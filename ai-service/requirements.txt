@@ -3,6 +3,8 @@ uvicorn[standard]
 python-dotenv
 pydantic
 pymupdf
+pytesseract
+Pillow
 sentence-transformers
 qdrant-client
 openai

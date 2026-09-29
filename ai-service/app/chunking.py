@@ -1,14 +1,14 @@
 import re # cắt nhỏ
 from dataclasses import asdict, dataclass # đóng gói
-from typing import List # dán nhãn
+from typing import List, Dict, Any # dán nhãn
 
 @dataclass
-
 class TextChunk:
     chunk_index: int
     content: str
     start_char: int
     end_char: int
+    metadata: Dict[str, Any] = None
     
     # start,end_char dùng để sau này hightlight khi trả về kết quả
 
@@ -30,6 +30,37 @@ class TextChunker:
             self.chunk_overlap = chunk_overlap
             self.min_chunk_size = min_chunk_size
     
+    def chunk_blocks(self, blocks: List[Dict[str, Any]]) -> List[TextChunk]:
+        """
+        Nhận đầu vào là mảng blocks từ BlockAnalyzer.
+        Cắt nhỏ nội dung từng block và gán lại toàn bộ thông tin phân cấp (metadata).
+        """
+        all_chunks = []
+        for block in blocks:
+            text = block.get("content", "")
+            if not text.strip():
+                continue
+                
+            # Trích xuất metadata của block
+            metadata = {
+                "block_id": block.get("block_id"),
+                "parent_chapter": block.get("parent_chapter", ""),
+                "parent_section": block.get("parent_section", ""),
+                "title": block.get("title", ""),
+                "label": block.get("label", "")
+            }
+            
+            # Cắt text của block này
+            chunks = self.split_text(text)
+            
+            # Gắn metadata vào từng mảnh cắt được
+            for c in chunks:
+                c.metadata = metadata
+                c.chunk_index = len(all_chunks) + 1
+                all_chunks.append(c)
+                
+        return all_chunks
+
     def split_text(self, text: str) -> List[TextChunk]:
         """
         Chia văn bản thành các chunk có overlap.

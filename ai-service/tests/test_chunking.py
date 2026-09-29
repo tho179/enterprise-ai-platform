@@ -4,7 +4,7 @@ from pathlib import Path
 from app.chunking import TextChunker
 
 
-INPUT_PATH = Path("data/extracted_test.txt")
+INPUT_PATH = Path("data/extracted_blocks.json")
 OUTPUT_PATH = Path("data/chunks_test.json")
 
 
@@ -13,11 +13,11 @@ def main():
         print(f"Không tìm thấy file: {INPUT_PATH}")
         return
 
-    text = INPUT_PATH.read_text(encoding="utf-8")
+    blocks_data = json.loads(INPUT_PATH.read_text(encoding="utf-8"))
 
     print("========== THÔNG TIN ĐẦU VÀO ==========")
     print(f"File: {INPUT_PATH}")
-    print(f"Số ký tự: {len(text):,}")
+    print(f"Số Blocks: {len(blocks_data):,}")
 
     chunker = TextChunker(
         chunk_size=1200,
@@ -25,17 +25,10 @@ def main():
         min_chunk_size=100,
     )
 
-    chunks = chunker.split_text(text)
+    chunks = chunker.chunk_blocks(blocks_data)
 
-    chunks_data = [
-        {
-            "chunk_index": chunk.chunk_index,
-            "content": chunk.content,
-            "start_char": chunk.start_char,
-            "end_char": chunk.end_char,
-        }
-        for chunk in chunks
-    ]
+    from dataclasses import asdict
+    chunks_data = [asdict(chunk) for chunk in chunks]
 
     OUTPUT_PATH.parent.mkdir(
         parents=True,
