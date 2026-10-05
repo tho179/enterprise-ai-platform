@@ -8,6 +8,16 @@ try:
     import pytesseract
     # pyrefly: ignore [missing-import]
     from PIL import Image
+    import shutil
+    import os
+    
+    # [TỰ ĐỘNG FIX LỖI TESSERACT TRÊN WINDOWS]
+    # Nếu tesseract chưa có trong PATH (chưa khởi động lại Terminal), thử tìm trực tiếp ở C:\Program Files
+    if os.name == 'nt' and not shutil.which("tesseract"):
+        tess_path = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+        if os.path.exists(tess_path):
+            pytesseract.pytesseract.tesseract_cmd = tess_path
+            
     HAS_OCR = True
 except ImportError:
     pytesseract = None
