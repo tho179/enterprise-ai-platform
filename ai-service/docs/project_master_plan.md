@@ -443,15 +443,16 @@ Spring Boot → HTTP POST → http://localhost:8000/api/v1/chat
 
 ---
 
-### M7 — TESTING & EVALUATION
+### M7 — TÍCH HỢP & ĐÁNH GIÁ TOÀN HỆ THỐNG
+
+*(Lưu ý: Unit test và Functional test được thực hiện liên tục trong từng Module M2 → M6. M7 chỉ tập trung vào đánh giá end-to-end).*
 
 | Loại test | Owner | Nội dung |
 |-----------|-------|---------|
-| Document Processing | Thọ | Parser accuracy, Heading detection, Chunk quality |
-| Retrieval Quality | Đạt | Top-K relevance, Precision, Recall, MRR |
-| LLM Quality | Đạt + Thọ | Answer correctness, Hallucination rate, Citation |
-| Backend API | Đức | Auth, RBAC, Workflow, Database integrity |
-| Integration | Cả 3 | Upload → Process → Embed → Search → Answer → UI |
+| Integration Test | Cả 3 | Upload → Process → Embed → Search → Answer → UI |
+| Performance Test | Đức | Thời gian phản hồi, tải của Qdrant/Neo4j |
+| Security Test | Đức | Kiểm tra lỗ hổng RBAC, JWT token expiration |
+| System Evaluation | Đạt + Thọ | Đánh giá tổng thể RAG pipeline vs Human baseline |
 
 ---
 
