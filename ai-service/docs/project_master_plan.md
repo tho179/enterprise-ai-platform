@@ -461,12 +461,10 @@ Spring Boot → HTTP POST → http://localhost:8000/api/v1/chat
 |--------|-------|-----------|
 | Mở đầu | Cả 3 | 🔜 |
 | Chương 01 — Tổng quan | Đức | ✅ Draft ([`chapter_01_introduction.md`](file:///c:/enterprise-ai-platform/ai-service/docs/thesis/chapter_01_introduction.md)) |
-| Chương 02 — Cơ sở lý thuyết | Đạt | 🔜 |
-| Chương 03 — Xử lý tài liệu & RAG | Thọ | ✅ Done ([`chapter_03_document_processing_pipeline.md`](file:///c:/enterprise-ai-platform/ai-service/docs/thesis/chapter_03_document_processing_pipeline.md)) |
-| Chương 04 — Graph & RAG | Đạt | 🔜 |
-| Chương 05 — Kiến trúc & Pipeline | Đức | 🔜 |
-| Chương 06 — Thiết kế & Triển khai | Đức | 🔜 |
-| Chương 07 — Thực nghiệm & Đánh giá | Cả 3 | 🔜 |
+| Chương 02 — Kỹ thuật AI/DL & Thực nghiệm | Đạt | 🔜 |
+| Chương 03 — Knowledge Graph & RAG | Thọ | ✅ Done ([`chapter_03_document_processing_pipeline.md`](file:///c:/enterprise-ai-platform/ai-service/docs/thesis/chapter_03_document_processing_pipeline.md)) |
+| Chương 04 — Thiết kế Hệ thống & Pipeline | Đức | 🔜 |
+| Chương 05 — Triển khai & Kết quả Demo | Cả 3 | 🔜 |
 
 ---
 
