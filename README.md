@@ -1,20 +1,19 @@
 # Enterprise AI Platform
 
-��y l� d? �n h? th?ng AI da n?n t?ng, du?c t? ch?c du?i d?ng monorepo v?i c�c th�nh ph?n ch�nh sau:
+Đây là dự án hệ thống AI đa nền tảng, được tổ chức dưới dạng monorepo với các thành phần chính sau:
 
-## C?u tr�c thu m?c
+## Cấu trúc thư mục
 
-- \ackend/\: Ch?a m� ngu?n d? �n Spring Boot (Core APIs).
-- \i-service/\: Ch?a c�c d?ch v? Python FastAPI x? l� RAG v� t�ch h?p LLM.
-- \rontend/\: Giao di?n ngu?i d�ng vi?t b?ng React (S? ph�t tri?n sau).
-- \infrastructure/\: C�c script v� t?p c?u h�nh tri?n khai, database, CI/CD.
-- \docs/\: T�i li?u ki?n tr�c, API, so d? co s? d? li?u.
+- `backend/`: Chứa mã nguồn dự án Spring Boot (Core APIs).
+- `ai-service/`: Chứa các dịch vụ Python FastAPI xử lý RAG và tích hợp LLM.
+- `frontend/`: Giao diện người dùng viết bằng React (Sẽ phát triển sau).
+- `infrastructure/`: Các script và tệp cấu hình triển khai, database, CI/CD.
+- `docs/`: Tài liệu kiến trúc, báo cáo đồ án, sơ đồ cơ sở dữ liệu.
 
-## Ch?y c�c d?ch v? n?i b? (Infrastructure)
+## Chạy các dịch vụ nội bộ (Infrastructure)
 
-�? kh?i d?ng Database (PostgreSQL), Redis v� Qdrant, s? d?ng Docker Compose:
+Để khởi động Database (PostgreSQL), Redis và Qdrant, sử dụng Docker Compose:
 
-\\\ash
+```bash
 docker-compose up -d
-\\\
-
+```
