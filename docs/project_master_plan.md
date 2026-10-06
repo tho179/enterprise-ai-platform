@@ -93,7 +93,7 @@ gantt
 | **Manager** | Duyệt đơn nghỉ phép, Xem báo cáo, Hỏi AI |
 | **Admin** | Upload tài liệu, Quản lý phiên bản, Quản lý user/role |
 | **IT Support** | Xử lý yêu cầu IT, Cập nhật trạng thái |
-| **AI Assistant** | Trả lời câu hỏi (RAG), Phân loại yêu cầu, Đề xuất xử lý |
+| **<span style="color:red">**[NEW]** Intelligent Agent</span>** | <span style="color:red">Trả lời câu hỏi, Gọi Tool (RAG, Graph), Điều phối Workflow nghiệp vụ</span> |
 
 #### M1.2 — Kiến trúc hệ thống
 
@@ -342,6 +342,11 @@ sequenceDiagram
     API-->>U: Trả lời + Nguồn (Trang X, Điều Y)
 ```
 
+#### <span style="color:red">**[NEW]** M3.5 — Thiết kế Tác tử Thông minh (Intelligent Agent)</span>
+- <span style="color:red">**[NEW] Memory**: Lưu lịch sử hội thoại.</span>
+- <span style="color:red">**[NEW] Tools**: RAG Tool, Graph Tool, Workflow Tool.</span>
+- <span style="color:red">**[NEW] Planning**: Agent tự động chọn Tool phù hợp với câu hỏi của người dùng.</span>
+
 #### M3 Output cần đạt
 - [ ] Upload PDF → Pipeline M2 chạy → Chunks vào Qdrant
 - [ ] Hỏi câu hỏi → AI trả lời chính xác + trích dẫn nguồn
@@ -452,7 +457,9 @@ Spring Boot → HTTP POST → http://localhost:8000/api/v1/chat
 | Integration Test | Cả 3 | Upload → Process → Embed → Search → Answer → UI |
 | Performance Test | Đức | Thời gian phản hồi, tải của Qdrant/Neo4j |
 | Security Test | Đức | Kiểm tra lỗ hổng RBAC, JWT token expiration |
-| System Evaluation | Đạt + Thọ | Đánh giá tổng thể RAG pipeline vs Human baseline |
+| <span style="color:red">**[NEW]** Retrieval Quality</span> | Đạt | <span style="color:red">Đánh giá độ chính xác bằng chỉ số **Recall@k**</span> |
+| <span style="color:red">**[NEW]** Answer Quality</span> | Đạt + Thọ | <span style="color:red">Đánh giá Correctness, Relevance, Completeness, Groundedness</span> |
+| <span style="color:red">**[NEW]** Agent Performance</span> | Cả 3 | <span style="color:red">Khả năng chọn đúng Tool và thực thi đúng Workflow</span> |
 
 ---
 

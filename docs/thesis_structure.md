@@ -84,16 +84,20 @@
 - **3.9.4. Reranking**
 *(Lưu ý: Sử dụng tên gọi "Hybrid GraphRAG" hoặc "Graph-enhanced RAG" để mô tả chính xác phạm vi cài đặt thực tế).*
 
-### 3.10. Quy trình sinh câu trả lời
-### 3.11. Citation và truy xuất nguồn
-### 3.12. Thử nghiệm và đánh giá RAG
-- **3.12.1. Dataset thử nghiệm**
-- **3.12.2. Retrieval evaluation**
-- **3.12.3. Answer quality**
-- **3.12.4. Citation accuracy**
-- **3.12.5. So sánh Vector RAG vs GraphRAG vs Hybrid GraphRAG**
+### <span style="color:red">**[NEW]** 3.10. Kiến trúc Tác tử thông minh (Intelligent Agent)</span>
+- <span style="color:red">**[NEW]** Mô hình Agent = Reasoning + Memory + Tools + Planning</span>
+- <span style="color:red">**[NEW]** Ứng dụng RAG và Knowledge Graph như các Tools</span>
 
-### 3.13. Kết luận chương
+### 3.11. Quy trình sinh câu trả lời
+### 3.12. Citation và truy xuất nguồn
+### 3.13. Thử nghiệm và đánh giá hệ thống thông minh
+- **3.13.1. Dataset thử nghiệm**
+- **3.13.2. Retrieval evaluation**
+- **3.13.3. Answer quality**
+- **3.13.4. Citation accuracy**
+- **3.13.5. So sánh Vector RAG vs GraphRAG vs Hybrid GraphRAG**
+
+### 3.14. Kết luận chương
 
 ---
 
@@ -118,13 +122,15 @@
 ### 4.6. Knowledge Base Construction Pipeline
 ### 4.7. RAG / GraphRAG Pipeline
 ### 4.8. Business Workflow
-### 4.9. Thiết kế API / Service Communication
-### 4.10. Use Case Diagram
-### 4.11. Activity Diagram
-### 4.12. Sequence Diagram
-### 4.13. Component / Package Diagram
-### 4.14. Deployment Architecture
-### 4.15. Kết luận chương
+### <span style="color:red">**[NEW]** 4.9. Thiết kế Tác tử & Tích hợp Công cụ (Agent & Tool Integration)</span>
+- <span style="color:red">**[NEW]** Agent điều phối Workflow nghỉ phép và IT Support thông qua Tools.</span>
+### 4.10. Thiết kế API / Service Communication
+### 4.11. Use Case Diagram
+### 4.12. Activity Diagram
+### 4.13. Sequence Diagram
+### 4.14. Component / Package Diagram
+### 4.15. Deployment Architecture
+### 4.16. Kết luận chương
 
 ---
 
@@ -147,21 +153,28 @@
 ### 5.4. Kết quả kiểm thử chức năng
 - Bảng thống kê kết quả Pass/Fail cho các Test Cases nghiệp vụ.
 
-### 5.5. Kết quả kiểm thử AI/RAG
-- Đánh giá chất lượng xử lý văn bản, tỷ lệ trích xuất đúng, độ chính xác của Citation.
+### 5.5. Kết quả kiểm thử Truy xuất (Retrieval Quality)
+- <span style="color:red">**[NEW]** Đánh giá dựa trên chỉ số **Recall@k** để đo lường độ chính xác khi truy xuất chunk/entity.</span>
 
-### 5.6. Kết quả đánh giá Vector RAG / GraphRAG / Hybrid
-- Tóm tắt lại kết quả thực nghiệm phương pháp tìm kiếm tốt nhất.
+### 5.6. Kết quả sinh câu trả lời (Answer Quality)
+- <span style="color:red">**[NEW]** Đánh giá dựa trên 4 tiêu chí: **Correctness** (Đúng), **Relevance** (Liên quan), **Completeness** (Đầy đủ), và **Groundedness** (Có căn cứ). Độ chính xác của Citation.</span>
 
-### 5.7. Kết quả thực hiện các nghiệp vụ
+### <span style="color:red">**[NEW]** 5.7. Đánh giá hiệu năng Tác tử (Agent Performance)</span>
+- <span style="color:red">**[NEW]** Đánh giá khả năng chọn đúng Tool, thực hiện đúng Workflow và hoàn thành mục tiêu của người dùng.</span>
+
+### 5.8. Kết quả thực hiện các nghiệp vụ
 - Thực tế xử lý đơn nghỉ phép, yêu cầu IT, phân quyền người dùng...
 
-### 5.8. Kết quả Demo hệ thống
+### 5.9. Kết quả Demo hệ thống
 - Các màn hình giao diện (UI) chính và luồng trải nghiệm người dùng thực tế.
 
-### 5.9. Đánh giá hệ thống
-### 5.10. Hạn chế
-### 5.11. Kết luận chương
+### <span style="color:red">**[NEW]** 5.10. Phân tích lỗi (Error Analysis & Common Failure Modes)</span>
+- <span style="color:red">**[NEW]** Knowledge Graph Failure (Thiếu entity, sai quan hệ).</span>
+- <span style="color:red">**[NEW]** RAG Failure (Bad Retrieval -> Bad Context -> Bad Answer).</span>
+- <span style="color:red">**[NEW]** LLM Failure (Hallucination).</span>
+
+### 5.11. Đánh giá hệ thống tổng thể
+### 5.12. Kết luận chương
 
 ---
 
