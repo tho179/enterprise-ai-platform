@@ -277,10 +277,11 @@ erDiagram
 
 | Hạng mục | Chi tiết |
 |----------|---------|
-| **Model** | `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (hỗ trợ tiếng Việt, 384 dims) |
-| **Input** | `05_enriched_chunks.json` |
-| **Output** | Vector 384 chiều cho mỗi chunk |
-| **File cần tạo** | `app/embedding_service.py` |
+| **Model lựa chọn** | `intfloat/multilingual-e5-small` (Chiến thắng benchmark: Recall@3 = 100%, MRR = 0.90, 384 dims) |
+| **Input** | `05_enriched_chunks.json` (152 chunks) |
+| **Output** | Vector 384 chiều cho mỗi chunk (`06_embedded_chunks.json`) |
+| **Trạng thái** | ✅ **Hoàn thành** (Đã benchmark so sánh với MiniLM-L12-v2 & Vietnamese-Bi-Encoder) |
+| **File đã tạo** | `app/embedding_service.py`, `scripts/benchmark_embeddings.py` |
 
 ```python
 # Pseudo-code M3.1
