@@ -10,3 +10,4 @@ qdrant-client
 openai
 google-genai
 python-multipart
+pytest

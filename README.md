@@ -77,3 +77,18 @@ docker compose exec ai-service python scripts/07_run_qdrant_ingest.py
 ```bash
 docker compose exec ai-service python scripts/08_test_retrieval.py
 ```
+
+---
+
+## 📋 Lệnh thao tác Docker thông dụng
+
+| Nhu cầu | Lệnh thực hiện |
+| :--- | :--- |
+| **Xem logs toàn bộ hệ thống** | `docker compose logs -f` |
+| **Xem logs riêng AI Service** | `docker compose logs -f ai-service` |
+| **Xem logs riêng Backend** | `docker compose logs -f backend` |
+| **Khởi động lại một dịch vụ** | `docker compose restart ai-service` |
+| **Cập nhật & Rebuild khi sửa Dockerfile** | `docker compose up -d --build` |
+| **Dừng hệ thống** | `docker compose down` |
+| **Dừng & Xóa sạch toàn bộ dữ liệu (Reset)** | `docker compose down -v` |
+
