@@ -1,40 +1,99 @@
-version: '3.8'
-
 services:
   # Database for Spring Boot backend
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: enterprise_ai_db
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-enterprise_ai_db}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-enterprise_ai_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # Redis for caching and message queue
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # Qdrant for Vector Database
   qdrant:
     image: qdrant/qdrant:latest
     ports:
-      - "6333:6333"
-      - "6334:6334"
+      - "${QDRANT_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
     volumes:
       - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+  # AI Service (FastAPI + OCR + RAG + Embeddings)
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    ports:
+      - "${AI_SERVICE_PORT:-8001}:8001"
+    environment:
+      - APP_NAME=Enterprise AI Service
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8001
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_COLLECTION=enterprise_documents
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+      - PYTHONPATH=/app
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    volumes:
+      - ./ai-service/data:/app/data
+      - ./ai-service/debug:/app/debug
+      - ./ai-service/app:/app/app
+      - ./ai-service/scripts:/app/scripts
+      - ./ai-service/tests:/app/tests
+      - huggingface_cache:/root/.cache/huggingface
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+
+  # Backend (Spring Boot / Java 17 + PostgreSQL + Redis)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-enterprise_ai_db}
+      - DB_USERNAME=${POSTGRES_USER:-admin}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - JWT_SECRET=${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600000}
+      - AI_SERVICE_URL=http://ai-service:8001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
   qdrant_data:
-
+  huggingface_cache:

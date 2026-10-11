@@ -1,0 +1,203 @@
+{
+  "false_heading_trap": [
+    {
+      "id": 1,
+      "text": "1. Người lao động phải tuân thủ nghiêm ngặt các quy định về an toàn lao động trong suốt quá trình làm việc tại nhà máy để đảm bảo không xảy ra sự cố đáng tiếc nào.",
+      "block_type": "PARAGRAPH",
+      "heading_type": null,
+      "list_type": null,
+      "depth": -1,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.8,
+      "is_garbage": false,
+      "section_path": [],
+      "page": 1
+    }
+  ],
+  "legal_document_structure": [
+    {
+      "id": 1,
+      "text": "CHƯƠNG I QUY ĐỊNH CHUNG",
+      "block_type": "HEADING",
+      "heading_type": "CHAPTER",
+      "list_type": null,
+      "depth": 1,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.9166666666666667,
+      "is_garbage": false,
+      "section_path": [
+        "CHƯƠNG I QUY ĐỊNH CHUNG"
+      ],
+      "page": 1
+    },
+    {
+      "id": 2,
+      "text": "Điều 1. Phạm vi áp dụng",
+      "block_type": "HEADING",
+      "heading_type": "ARTICLE",
+      "list_type": null,
+      "depth": 2,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.9,
+      "is_garbage": false,
+      "section_path": [
+        "CHƯƠNG I QUY ĐỊNH CHUNG",
+        "Điều 1. Phạm vi áp dụng"
+      ],
+      "page": 1
+    },
+    {
+      "id": 3,
+      "text": "1. Quy chế này quy định...",
+      "block_type": "HEADING",
+      "heading_type": "NUMBERED",
+      "list_type": null,
+      "depth": 3,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.9,
+      "is_garbage": false,
+      "section_path": [
+        "CHƯƠNG I QUY ĐỊNH CHUNG",
+        "Điều 1. Phạm vi áp dụng",
+        "1. Quy chế này quy định..."
+      ],
+      "page": 1
+    },
+    {
+      "id": 4,
+      "text": "a) Đối với nhân viên...",
+      "block_type": "LIST_ITEM",
+      "heading_type": null,
+      "list_type": "ALPHA",
+      "depth": 4,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.85,
+      "is_garbage": false,
+      "section_path": [
+        "CHƯƠNG I QUY ĐỊNH CHUNG",
+        "Điều 1. Phạm vi áp dụng",
+        "1. Quy chế này quy định..."
+      ],
+      "page": 1
+    },
+    {
+      "id": 5,
+      "text": "- Nghỉ thai sản",
+      "block_type": "LIST_ITEM",
+      "heading_type": null,
+      "list_type": "BULLET",
+      "depth": 4,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.9,
+      "is_garbage": false,
+      "section_path": [
+        "CHƯƠNG I QUY ĐỊNH CHUNG",
+        "Điều 1. Phạm vi áp dụng",
+        "1. Quy chế này quy định..."
+      ],
+      "page": 1
+    },
+    {
+      "id": 6,
+      "text": "- Nghỉ ốm",
+      "block_type": "LIST_ITEM",
+      "heading_type": null,
+      "list_type": "BULLET",
+      "depth": 4,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.9,
+      "is_garbage": false,
+      "section_path": [
+        "CHƯƠNG I QUY ĐỊNH CHUNG",
+        "Điều 1. Phạm vi áp dụng",
+        "1. Quy chế này quy định..."
+      ],
+      "page": 1
+    }
+  ],
+  "ocr_resilience": [
+    {
+      "id": 1,
+      "text": "diều 1. Lỗi chữ d đieu 2. Lỗi mất dấu nón",
+      "block_type": "HEADING",
+      "heading_type": "ARTICLE",
+      "list_type": null,
+      "depth": 2,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.8166666666666667,
+      "is_garbage": false,
+      "section_path": [
+        "diều 1. Lỗi chữ d đieu 2. Lỗi mất dấu nón"
+      ],
+      "page": 1
+    }
+  ],
+  "process_document_structure": [
+    {
+      "id": 1,
+      "text": "I. Tổng quan",
+      "block_type": "HEADING",
+      "heading_type": "NUMBERED",
+      "list_type": null,
+      "depth": 2,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.95,
+      "is_garbage": false,
+      "section_path": [
+        "I. Tổng quan"
+      ],
+      "page": 1
+    },
+    {
+      "id": 2,
+      "text": "1. Mục đích",
+      "block_type": "HEADING",
+      "heading_type": "NUMBERED",
+      "list_type": null,
+      "depth": 3,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.95,
+      "is_garbage": false,
+      "section_path": [
+        "I. Tổng quan",
+        "1. Mục đích"
+      ],
+      "page": 1
+    },
+    {
+      "id": 3,
+      "text": "1.1. Phạm vi.",
+      "block_type": "HEADING",
+      "heading_type": "NUMBERED",
+      "list_type": null,
+      "depth": 4,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.95,
+      "is_garbage": false,
+      "section_path": [
+        "I. Tổng quan",
+        "1. Mục đích",
+        "1.1. Phạm vi."
+      ],
+      "page": 1
+    },
+    {
+      "id": 4,
+      "text": "Đây là phần giải thích phạm vi.",
+      "block_type": "PARAGRAPH",
+      "heading_type": null,
+      "list_type": null,
+      "depth": -1,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.8,
+      "is_garbage": false,
+      "section_path": [
+        "I. Tổng quan",
+        "1. Mục đích",
+        "1.1. Phạm vi."
+      ],
+      "page": 1
+    }
+  ],
+  "toc_filter": []
+}

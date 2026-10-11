@@ -32,7 +32,12 @@ class Settings:
 
     EMBEDDING_MODEL: str = os.getenv(
         "EMBEDDING_MODEL",
-        "sentence-transformers/all-MiniLM-L6-v2"
+        "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    )
+
+    QDRANT_STORAGE_PATH: str = os.getenv(
+        "QDRANT_STORAGE_PATH",
+        "data/qdrant_storage"
     )
 
     OPENAI_API_KEY: str = os.getenv(
@@ -43,6 +48,16 @@ class Settings:
     OPENAI_MODEL: str = os.getenv(
         "OPENAI_MODEL",
         "gpt-4o-mini"
+    )
+
+    GEMINI_API_KEY: str = os.getenv(
+        "GEMINI_API_KEY",
+        ""
+    )
+
+    GEMINI_MODEL: str = os.getenv(
+        "GEMINI_MODEL",
+        "gemini-1.5-flash"
     )
 
 settings = Settings()

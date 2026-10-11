@@ -1,6 +1,25 @@
+# Python & AI Service
 venv/
+.venv/
 __pycache__/
 *.pyc
-.env
-debug/
 .pytest_cache/
+ai-service/debug/
+
+# Environment Variables
+.env
+
+# Backend & Maven
+target/
+**/target/
+.mvn/
+*.class
+
+# IDE & Editor
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db

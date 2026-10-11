@@ -247,6 +247,8 @@ class BlockAnalyzer:
         
         # 4. Classification Pipeline
         nodes = []
+        in_toc = False
+        
         for i, block in enumerate(merged):
             text = block["text"]
             block_type = BlockType.PARAGRAPH
@@ -256,11 +258,25 @@ class BlockAnalyzer:
             # Kiểm tra Rác
             is_garb, garb_conf = self.garbage_detector.detect(text)
             
-            # Phân loại TOC
-            lower_t = text.lower()
-            if lower_t == "mục lục" or lower_t == "nội dung":
-                block_type = BlockType.TOC
-                classifier_conf = 0.95
+            # Nhận diện Mục lục (TOC) thông minh
+            is_toc_item = bool(re.search(r'(?:\.{4,}|…{2,}|_{4,})', text))
+            has_toc_keyword = bool(re.search(r'(?i)\b(?:mục lục|table of contents)\b', text))
+            
+            if has_toc_keyword or is_toc_item:
+                in_toc = True
+                
+            if in_toc:
+                # Thoát khỏi vùng TOC nếu gặp Heading nội dung chính thức (Chương, Phần, Điều 1)
+                # và dòng này KHÔNG chứa dấu chấm/gạch mục lục
+                if not is_toc_item and re.match(r"(?i)^(chương\s+[i1vxlcdm\d]|phần\s+[i1vxlcdm\d]|điều\s+1[\.\:\-])", text):
+                    in_toc = False
+                else:
+                    block_type = BlockType.TOC
+                    classifier_conf = 0.95
+                    
+            if block_type == BlockType.TOC:
+                # Nếu là TOC, tuyệt đối KHÔNG phân loại thành Heading hay List
+                pass
             else:
                 # Phân loại Heading vs List vs Paragraph
                 is_list, l_type, l_conf = self.list_detector.detect(text)

@@ -5,17 +5,19 @@ from app.block_analyzer import BlockAnalyzer, BlockType, HeadingType
 from app.structure_analyzer import HierarchyResolver
 
 class TestBlockAnalyzer(unittest.TestCase):
-    def setUp(self):
-        self.analyzer = BlockAnalyzer()
-        self.resolver = HierarchyResolver()
-        self.output_dir = Path("data/test_outputs")
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.test_results = {}
+    @classmethod
+    def setUpClass(cls):
+        cls.analyzer = BlockAnalyzer()
+        cls.resolver = HierarchyResolver()
+        cls.output_dir = Path("data/test_outputs")
+        cls.output_dir.mkdir(parents=True, exist_ok=True)
+        cls.test_results = {}
 
-    def tearDown(self):
-        output_file = self.output_dir / "test_output_block_analyzer.json"
+    @classmethod
+    def tearDownClass(cls):
+        output_file = cls.output_dir / "test_output_block_analyzer.json"
         with open(output_file, "w", encoding="utf-8") as f:
-            json.dump(self.test_results, f, ensure_ascii=False, indent=2)
+            json.dump(cls.test_results, f, ensure_ascii=False, indent=2)
 
     def test_legal_document_structure(self):
         pages = [{
@@ -74,12 +76,18 @@ class TestBlockAnalyzer(unittest.TestCase):
             "text": "Chương I ....................... 1\nĐiều 1 ......................... 2\nEEEEEEEEEE 3"
         }]
         raw_nodes = self.analyzer.analyze(pages)
-        nodes = self.resolver.resolve(raw_nodes)
+        # BlockAnalyzer phát hiện đúng các dòng mục lục và rác
+        self.assertTrue(any(n.block_type == BlockType.TOC for n in raw_nodes))
+        self.assertTrue(any(n.is_garbage for n in raw_nodes))
+        
+        # HierarchyResolver tự động loại bỏ (drop) các node TOC khỏi cây cấu trúc
+        nodes = self.resolver.resolve(raw_nodes, drop_toc=True)
         self.test_results["toc_filter"] = nodes
-        # V4 đánh dấu rác bằng is_garbage thay vì drop thẳng.
-        # "EEEEEEEEEE 3" và "Chương I ........... 1" sẽ bị bắt bởi regex \1{5,}
-        has_garbage = any(n["is_garbage"] for n in nodes)
-        self.assertTrue(has_garbage)
+        self.assertEqual(len(nodes), 0)
+        
+        # Khi drop_toc=False, các node TOC vẫn được bảo toàn nguyên vẹn
+        preserved_nodes = self.resolver.resolve(raw_nodes, drop_toc=False)
+        self.assertTrue(any(n["is_garbage"] for n in preserved_nodes))
 
 if __name__ == "__main__":
     unittest.main()

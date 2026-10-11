@@ -30,7 +30,8 @@ class AdaptiveChunker:
     def chunk_nodes(self, nodes: List[Dict[str, Any]]) -> List[TextChunk]:
         all_chunks = []
         current_group_text = []
-        current_metadata = {}
+        current_pages = []
+        current_section_path = None
         
         for node in nodes:
             # LỌC RÁC & MỤC LỤC: Không đưa vào RAG
@@ -42,38 +43,46 @@ class AdaptiveChunker:
                 continue
                 
             section_path = node.get("section_path", [])
-            metadata = {
-                "section_path": section_path,
-                "page": node.get("page", 1)
-            }
+            page = node.get("page", 1)
             
             # NGUYÊN TẮC 1: STRUCTURE-AWARE (Gom theo section_path)
             # Nếu node này thuộc về một mục khác (khác section_path) -> Đóng gói khối hiện tại
-            if current_group_text and metadata["section_path"] != current_metadata.get("section_path"):
-                self._flush_group(current_group_text, current_metadata, all_chunks)
+            if current_group_text and section_path != current_section_path:
+                self._flush_group(current_group_text, current_section_path, current_pages, all_chunks)
                 current_group_text = []
+                current_pages = []
                 
-            current_metadata = metadata
+            current_section_path = section_path
             current_group_text.append(text)
+            current_pages.append(page)
             
             # Kiểm tra kích thước đang gom.
             # Nếu dồn lại đã bắt đầu vượt chunk_size -> Đóng gói khối hiện tại sớm để tránh bị đầy quá
             temp_len = sum(len(t) for t in current_group_text) + (len(current_group_text) - 1) * 2
             if temp_len >= self.chunk_size:
-                self._flush_group(current_group_text, current_metadata, all_chunks)
+                self._flush_group(current_group_text, current_section_path, current_pages, all_chunks)
                 current_group_text = []
+                current_pages = []
 
         # Xử lý đoạn cuối cùng còn sót lại
         if current_group_text:
-            self._flush_group(current_group_text, current_metadata, all_chunks)
+            self._flush_group(current_group_text, current_section_path, current_pages, all_chunks)
 
         # Lọc bỏ các chunk quá ngắn không mang lại ngữ nghĩa
         return [c for c in all_chunks if len(c.content.strip()) >= self.min_chunk_size]
 
-    def _flush_group(self, group_text_list: List[str], metadata: Dict[str, Any], all_chunks: List[TextChunk]):
+    def _flush_group(self, group_text_list: List[str], section_path: Any, pages: List[int], all_chunks: List[TextChunk]):
         """ Đóng gói một nhóm văn bản cùng section_path. Nếu quá dài, tự động kích hoạt Fallback. """
         merged_text = "\n\n".join(group_text_list)
         sub_chunks = self._fallback_split(merged_text)
+        
+        page_start = min(pages) if pages else 1
+        page_end = max(pages) if pages else page_start
+        metadata = {
+            "section_path": section_path if section_path else [],
+            "page_start": page_start,
+            "page_end": page_end
+        }
         
         for sc in sub_chunks:
             all_chunks.append(TextChunk(
