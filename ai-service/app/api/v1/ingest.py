@@ -4,7 +4,7 @@ from pathlib import Path
 from functools import lru_cache
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.schemas import IngestBatchRequest, IngestResponse
+from app.schemas import IngestBatchRequest, IngestResponse, DeleteVectorsResponse
 from app.embedding_service import EmbeddingService
 from app.qdrant_service import QdrantService
 
@@ -29,7 +29,7 @@ def ingest_chunks(
     """
     Ingest a batch of chunks: generates vector embeddings and upserts points into Qdrant.
     """
-    raw_chunks = [chunk.dict() for chunk in payload.chunks]
+    raw_chunks = [chunk.model_dump() for chunk in payload.chunks]
     try:
         embedded_chunks = embedder.embed_chunks(raw_chunks)
         upserted_count = qdrant.upsert_chunks(embedded_chunks)
@@ -46,6 +46,27 @@ def ingest_chunks(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ingestion failed: {str(exc)}"
+        )
+
+@router.delete("/documents/{document_id}", response_model=DeleteVectorsResponse)
+def delete_document_vectors(
+    document_id: str,
+    version_id: str | None = None,
+    qdrant: QdrantService = Depends(get_qdrant_service)
+) -> DeleteVectorsResponse:
+    """Remove every vector belonging to a document, or just one version. Safe to call repeatedly."""
+    try:
+        deleted_count = qdrant.delete_by_document_id(document_id, version_id=version_id)
+        return DeleteVectorsResponse(
+            success=True,
+            deleted_count=deleted_count,
+            total_points_in_db=qdrant.count()
+        )
+    except Exception as exc:
+        logger.error(f"Error deleting vectors for document {document_id}: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Vector deletion failed: {str(exc)}"
         )
 
 @router.post("/bootstrap-debug", response_model=IngestResponse, status_code=status.HTTP_200_OK)

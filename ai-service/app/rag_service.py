@@ -106,6 +106,15 @@ class RAGService:
         if not hits:
             return "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này."
 
+        # Gate độ tin cậy dựa trên cosine thuần (vector_score), không phải score
+        # combined (cosine + lexical) vì semantics 0.3 chỉ đúng với cosine.
+        top_score = hits[0].get("vector_score")
+        if top_score is None:
+            top_score = hits[0].get("score", 0.0)
+        if top_score < 0.3:
+            return "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này."
+
+        # Có thông tin tin cậy -> extractive fallback
         best = hits[0]
         meta = best.get("metadata", {})
         path_str = " > ".join(meta.get("section_path", []))
@@ -169,6 +178,7 @@ class RAGService:
                 answer = self._generate_extractive_fallback(cleaned_query, citations, hits)
                 model_name = f"{model_name}-fallback"
         else:
+            # Không có LLM hoặc không có hits -> fallback
             answer = self._generate_extractive_fallback(cleaned_query, citations, hits)
 
         elapsed_ms = round((time.time() - start_time) * 1000, 2)

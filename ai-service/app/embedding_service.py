@@ -1,9 +1,26 @@
 from typing import List, Dict, Any, Union
 import logging
+import re
+import unicodedata
 from sentence_transformers import SentenceTransformer
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+def fold_text(text: str) -> str:
+    """
+    Chuẩn hóa văn bản trước khi nhúng: bỏ dấu tiếng Việt (ổ -> o, đ -> d),
+    hạ chữ thường, nén khoảng trắng. OCR tiếng Việt hay mất/nhầm dấu nên
+    fold cả truy vấn lẫn tài liệu giúp độ tương đồng ổn định hơn hẳn.
+    """
+    if not text:
+        return ""
+    decomposed = unicodedata.normalize("NFD", text)
+    stripped = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    stripped = stripped.replace("\u0111", "d").replace("\u0110", "D")
+    return re.sub(r"\s+", " ", stripped.casefold()).strip()
+
 
 class EmbeddingService:
     """
@@ -26,8 +43,8 @@ class EmbeddingService:
         """
         if not query or not query.strip():
             return [0.0] * self.vector_dim
-            
-        vector = self.model.encode(query.strip(), convert_to_numpy=True)
+
+        vector = self.model.encode(fold_text(query), convert_to_numpy=True)
         return vector.tolist()
 
     def embed_documents(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
@@ -36,8 +53,8 @@ class EmbeddingService:
         """
         if not texts:
             return []
-            
-        cleaned_texts = [t.strip() if t else "" for t in texts]
+
+        cleaned_texts = [fold_text(t) for t in texts]
         vectors = self.model.encode(
             cleaned_texts,
             batch_size=batch_size,
