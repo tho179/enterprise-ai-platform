@@ -32,76 +32,57 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        // 1. Lay Authorization header
+        // 1. Extract the Authorization header
         String authHeader = request.getHeader("Authorization");
 
-        // 2. Khong co Bearer Token -> cho request di tiep -> Spring security xu ly tiep
-        if(authHeader == null || !authHeader.startsWith("Bearer ")){
+        // 2. No Bearer token present — pass through and let Spring Security handle authorization
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 3. Bo Bearer -> lay JWT
+        // 3. Strip the "Bearer " prefix to get the raw JWT
         String token = authHeader.substring(7);
 
-        // Add try-catch de xu ly khi token het han thi hien thi loi de hieu
-        try{
-            // 4. Lay email tu JWT
+        try {
+            // 4. Extract email claim from JWT
             String email = jwtService.extractEmail(token);
 
-            // 5. Tim User
+            // 5. Load the user from the database
             User user = userRepository.findByEmail(email).orElse(null);
 
-            // 6. Validate JWT
-            if(user == null || !jwtService.isTokenValid(token, user.getEmail())){
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write(
-                        """
-                                {
-                                "status": 401,
-                                "error": "Unauthorized",
-                                "message": "Invalid or expired token"
-                                }
-                           """
-                );
+            // 6. Validate JWT signature, expiry, and user existence
+            if (user == null || !jwtService.isTokenValid(token, user.getEmail())) {
+                writeUnauthorized(response);
                 return;
             }
 
+            // 7. Build a granted authority with the ROLE_ prefix required by Spring Security hasRole()
             SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole());
 
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user.getEmail(), null, List.of(authority));
+            UsernamePasswordAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(user.getEmail(), null, List.of(authority));
 
-            SecurityContextHolder
-                    .getContext()
-                    .setAuthentication(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (ExpiredJwtException | SignatureException | MalformedJwtException e) {
-
-            // Chi bat nhung loi do token khong hop le hoac het han
-
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-
-            response.setContentType("application/json");
-            response.setCharacterEncoding("UTF-8");
-            response.getWriter().write(
-                    """
-                        {
-                         "status": 401,
-                         "error": "Unauthorized",
-                         "message": "Invalid or expired token"
-                        }
-                       """
-            );
+            // Token is invalid or expired — return 401 immediately
+            writeUnauthorized(response);
             return;
         } catch (Exception e) {
-            // Cac loi khac nem 500
+            // Any other unexpected error — return 500
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
         }
 
-        // 10. Cho request đi tiếp
+        // 8. Token is valid — continue the filter chain
         filterChain.doFilter(request, response);
+    }
+
+    private void writeUnauthorized(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write("{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"Invalid or expired token\"}");
     }
 }

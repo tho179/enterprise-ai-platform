@@ -19,30 +19,38 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
-    // Lay chuoi jwt sau do duc thanh 1 secretKey
-    private SecretKey getSigningKey(){
+    /**
+     * Decodes the Base64 JWT secret and builds an HMAC-SHA signing key.
+     */
+    private SecretKey getSigningKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    // Create Token
-    public String generateToken(String email, String role){
-
-        // Create started time and expiration
+    /**
+     * Generates a signed JWT for the given email and role.
+     *
+     * @param email the user's email address (subject claim)
+     * @param role  the user's role (custom claim)
+     * @return compact, URL-safe JWT string
+     */
+    public String generateToken(String email, String role) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtExpiration);
 
         return Jwts.builder()
-                .subject(email) // Chu so huu Token
-                .claim("role", role) // Them thong tin role len Token
-                .issuedAt(now) // Ngay cap Token
-                .expiration(expiration) // Thoi han Token
-                .signWith(getSigningKey()) // Lay secretKey them vao
-                .compact(); // Gop tat ca lai thanh 1 String gom 3 thanh phan cach nhau boi dau "."
+                .subject(email)
+                .claim("role", role)
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(getSigningKey())
+                .compact();
     }
 
-    // Read JWT
-    private Claims extractAllClaims(String token){
+    /**
+     * Parses and validates the JWT signature, then returns all claims.
+     */
+    private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
@@ -50,28 +58,39 @@ public class JwtService {
                 .getPayload();
     }
 
-    // Get email for Token
-    public String extractEmail(String token){
+    /**
+     * Extracts the email (subject) claim from the token.
+     */
+    public String extractEmail(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    // Get role for Token
-    public String extractRole(String token){
+    /**
+     * Extracts the role claim from the token.
+     */
+    public String extractRole(String token) {
         return extractAllClaims(token).get("role", String.class);
     }
 
-    // Check Token Expiration
-    private Date extractExpiration(String token){
+    /**
+     * Returns the expiration date of the token.
+     */
+    private Date extractExpiration(String token) {
         return extractAllClaims(token).getExpiration();
     }
-    private boolean isTokenExpired(String token){
+
+    /**
+     * Returns true if the token's expiration date is in the past.
+     */
+    private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
-    // Validate Token
-    public boolean isTokenValid(String token, String email){
+    /**
+     * Validates that the token belongs to the given email and has not expired.
+     */
+    public boolean isTokenValid(String token, String email) {
         String tokenEmail = extractEmail(token);
         return tokenEmail.equals(email) && !isTokenExpired(token);
-        // Kiem tra token email trung voi email khong va thoi han cua token con khong
     }
 }

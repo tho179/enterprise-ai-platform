@@ -31,7 +31,14 @@ public class User {
     @Column(nullable = false)
     private String role;
 
+    @Column
+    private Boolean active;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    public boolean isActive() {
+        return active == null || active;
+    }
 
 }
