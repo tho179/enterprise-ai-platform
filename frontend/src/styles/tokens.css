@@ -1,0 +1,37 @@
+:root {
+  --brand-700: #0b4f7a;
+  --brand-600: #0e6396;
+  --brand-100: #d7e8f3;
+  --brand-50: #eaf3f9;
+  --accent: #0f766e;
+  --accent-50: #ecfdf5;
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --sidebar: #0b1f33;
+  --sidebar-2: #122c45;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text: #0f172a;
+  --text-2: #334155;
+  --muted: #64748b;
+  --muted-2: #94a3b8;
+  --success: #15803d;
+  --success-50: #f0fdf4;
+  --warning: #b45309;
+  --warning-50: #fffbeb;
+  --danger: #b91c1c;
+  --danger-50: #fef2f2;
+  --info: #1d4ed8;
+  --info-50: #eff6ff;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --shadow-pop: 0 8px 24px rgb(15 23 42 / 12%);
+  --control-h: 36px;
+  --row-h: 44px;
+  --font-sans: 'Be Vietnam Pro', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
+  --rail-w: 56px;
+  --sidebar-w: 264px;
+  --inspector-w: 340px;
+}

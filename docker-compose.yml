@@ -83,6 +83,9 @@ services:
       - JWT_SECRET=${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
       - JWT_EXPIRATION=${JWT_EXPIRATION:-3600000}
       - AI_SERVICE_URL=http://ai-service:8001
+      - UPLOAD_DIR=/app/data/uploads
+    volumes:
+      - backend_uploads:/app/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,8 +95,25 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # Frontend (React + Vite, served by nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_USE_MOCKS: ${VITE_USE_MOCKS:-true}
+        VITE_API_BASE_URL: ""
+        VITE_AI_BASE_URL: /ai-api
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+      - ai-service
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   qdrant_data:
   huggingface_cache:
+  backend_uploads:

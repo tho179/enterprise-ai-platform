@@ -1,0 +1,12 @@
+node_modules
+dist
+test-results
+playwright-report
+blob-report
+coverage
+.env.local
+.env.*.local
+*.log
+debug*.mjs
+visual.mjs
+smoke.mjs
