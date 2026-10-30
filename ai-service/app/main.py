@@ -1,12 +1,14 @@
 import logging
 from fastapi import FastAPI, Request, HTTPException, status
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.api.v1.search import router as search_router
 from app.api.v1.ingest import router as ingest_router
 from app.api.v1.chat import router as chat_router
+from app.api.v1.extract import router as extract_router
 
 # Configure logging
 logging.basicConfig(
@@ -19,6 +21,15 @@ app = FastAPI(
     title=settings.APP_NAME,
     version="0.1.0",
     description="Enterprise Knowledge Base & AI Semantic Retrieval Service"
+)
+
+# Enable CORS for frontend cross-origin requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Centralized Exception Handlers (Standard JSON format)
@@ -69,6 +80,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(ingest_router, prefix="/api/v1")
 app.include_router(chat_router, prefix="/api/v1")
+app.include_router(extract_router, prefix="/api/v1")
 
 @app.get("/", tags=["Health"])
 def root():

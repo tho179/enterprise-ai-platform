@@ -41,6 +41,11 @@ class IngestResponse(BaseModel):
     collection_name: str
     total_points_in_db: int
 
+class DeleteVectorsResponse(BaseModel):
+    success: bool = True
+    deleted_count: int
+    total_points_in_db: int
+
 class ChatMessage(BaseModel):
     role: str = Field(..., description="Role of the speaker: 'user' or 'assistant'")
     content: str = Field(..., description="Message text content")
@@ -58,7 +63,7 @@ class AskRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Natural language question")
     top_k: int = Field(default=3, ge=1, le=10, description="Number of context chunks to retrieve")
     document_id: Optional[str] = Field(default=None, description="Filter question context to a specific document ID")
-    min_score: float = Field(default=0.25, ge=0.0, le=1.0, description="Minimum similarity threshold")
+    min_score: float = Field(default=0.35, ge=0.0, le=1.0, description="Minimum similarity threshold")
     history: Optional[List[ChatMessage]] = Field(default_factory=list, description="Previous conversation messages for multi-turn chat")
 
 class AskResponse(BaseModel):
@@ -68,6 +73,27 @@ class AskResponse(BaseModel):
     citations: List[CitationItem]
     execution_time_ms: float
     model_used: str
+
+class ExtractedWord(BaseModel):
+    """Một từ với tọa độ khung hình theo tỷ lệ 0..1 (x, y là góc trên-trái)."""
+    text: str
+    x: float
+    y: float
+    w: float
+    h: float
+
+class ExtractedPage(BaseModel):
+    page: int
+    text: str
+    source: str
+    words: List[ExtractedWord] = Field(default_factory=list)
+
+class ExtractResponse(BaseModel):
+    success: bool = True
+    pageCount: int
+    nativePages: int
+    ocrPages: int
+    pages: List[ExtractedPage]
 
 class ErrorDetail(BaseModel):
     code: str

@@ -40,7 +40,7 @@ def ocr_page(page, dpi: int = 300, lang: str = "vie") -> dict:
     """
     if not HAS_OCR or pytesseract is None or Image is None:
         logger.warning("pytesseract hoặc Pillow chưa được cài đặt. Bỏ qua OCR fallback.")
-        return {"text": "", "words": []}
+        return {"text": "", "words": [], "pixel_size": (0, 0)}
 
     try:
         pix = page.get_pixmap(dpi=dpi)
@@ -78,11 +78,37 @@ def ocr_page(page, dpi: int = 300, lang: str = "vie") -> dict:
         
         return {
             "text": full_text.strip(),
-            "words": words_data
+            "words": words_data,
+            # Kích thước ảnh thật mà tọa độ words quy chiếu (pixel), khác hệ point của PDF
+            "pixel_size": (pix.width, pix.height)
         }
     except Exception as e:
         logger.warning(f"Lỗi OCR cho trang {page.number + 1}: {e}")
-        return {"text": "", "words": []}
+        return {"text": "", "words": [], "pixel_size": (0, 0)}
+
+
+def _normalize_words(raw_words: list[dict], page_width: float, page_height: float) -> list[dict]:
+    """
+    Chuyển danh sách từ + bbox sang tọa độ tỷ lệ 0..1 so với trang,
+    để phía viewer tô vàng không phụ thuộc độ phân giải render.
+    """
+    normalized = []
+    for word in raw_words:
+        text = word.get("text", "").strip()
+        if not text:
+            continue
+        x, y = word.get("x", 0.0), word.get("y", 0.0)
+        w, h = word.get("width", 0.0), word.get("height", 0.0)
+        if page_width <= 0 or page_height <= 0 or w <= 0 or h <= 0:
+            continue
+        normalized.append({
+            "text": text,
+            "x": round(max(0.0, x / page_width), 5),
+            "y": round(max(0.0, y / page_height), 5),
+            "w": round(min(1.0, w / page_width), 5),
+            "h": round(min(1.0, h / page_height), 5),
+        })
+    return normalized
 
 
 def extract_text_from_pdf(file_path: str, min_text_len: int = 30) -> list[dict]:
@@ -107,12 +133,15 @@ def extract_text_from_pdf(file_path: str, min_text_len: int = 30) -> list[dict]:
             raw_text = page.get_text("text").strip()
 
             words_data = []
+            rects = page.rect
+            page_width, page_height = rects.width, rects.height
+            ref_width, ref_height = page_width, page_height
 
             # 1. Nhánh xử lý lớp văn bản (Text Layer)
             if len(raw_text) >= min_text_len:
                 text = normalize_vietnamese_text(raw_text)
                 source = "native"
-                
+
                 # Trích xuất bounding boxes từ PyMuPDF nếu muốn đồng bộ kiến trúc (Optional)
                 for block in page.get_text("dict").get("blocks", []):
                     if "lines" in block:
@@ -136,6 +165,7 @@ def extract_text_from_pdf(file_path: str, min_text_len: int = 30) -> list[dict]:
                 text = ocr_result["text"]
                 words_data = ocr_result["words"]
                 source = "ocr"
+                ref_width, ref_height = ocr_result.get("pixel_size", (page_width, page_height))
 
             if not text:
                 continue
@@ -144,7 +174,7 @@ def extract_text_from_pdf(file_path: str, min_text_len: int = 30) -> list[dict]:
                 "page": page_number,
                 "text": text,
                 "source": source,
-                "words": words_data
+                "words": _normalize_words(words_data, ref_width, ref_height)
             })
 
     return pages
