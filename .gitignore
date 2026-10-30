@@ -5,6 +5,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 ai-service/debug/
+ai-service/data/qdrant_storage/
 
 # Environment Variables
 .env
@@ -14,6 +15,7 @@ target/
 **/target/
 .mvn/
 *.class
+backend/data/
 
 # IDE & Editor
 .idea/
@@ -23,3 +25,4 @@ target/
 # OS
 .DS_Store
 Thumbs.db
+.playwright-mcp/
