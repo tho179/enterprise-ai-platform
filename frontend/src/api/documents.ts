@@ -93,6 +93,17 @@ export const documentsApi = {
     return URL.createObjectURL(data as Blob)
   },
 
+  /**
+   * PDF gốc (toàn bộ tài liệu) đã tô vàng đoạn trích, dùng để nhúng trình xem
+   * PDF thật. Người gọi chịu trách nhiệm revoke URL khi không còn dùng.
+   */
+  async chunkPdfUrl(id: string, chunkId: string): Promise<string> {
+    const { data } = await api.get(`/api/documents/${id}/chunks/${chunkId}/highlighted`, {
+      responseType: 'blob',
+    })
+    return URL.createObjectURL(data as Blob)
+  },
+
   /** File PDF gốc (phiên bản hiện hành) dưới dạng object URL. */
   async fileUrl(id: string): Promise<string> {
     const { data } = await api.get(`/api/documents/${id}/file`, {

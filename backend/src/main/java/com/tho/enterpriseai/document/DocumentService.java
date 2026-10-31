@@ -366,6 +366,25 @@ public class DocumentService {
         return pdfProcessor.renderPageWithHighlight(file, chunk.getPageStart(), rects, 2.0f);
     }
 
+    /**
+     * PDF gốc của phiên bản hiện hành, đã tô vàng dẫn chứng của chunk — dùng
+     * cho trình xem PDF thật trong modal trích dẫn.
+     */
+    public byte[] renderChunkPdf(UUID documentId, String chunkId) {
+        DocumentVersionEntity version = currentDocumentVersion(documentId);
+        DocumentChunkEntity chunk = chunkRepository
+                .findByVersionIdAndChunkId(version.getId(), chunkId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Không tìm thấy đoạn trích trong phiên bản hiện hành."));
+        Path file = Path.of(version.getStoragePath());
+        if (!Files.exists(file)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Tệp gốc không còn trên máy chủ.");
+        }
+        List<PdfProcessor.Rect> rects = parseHighlight(chunk.getHighlightJson());
+        return pdfProcessor.renderPdfWithHighlight(file, chunk.getPageStart(), rects);
+    }
+
     private List<PdfProcessor.Rect> parseHighlight(String highlightJson) {
         if (highlightJson == null || highlightJson.isBlank()) {
             return List.of();

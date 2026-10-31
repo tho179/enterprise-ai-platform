@@ -45,6 +45,18 @@ public class DocumentController {
                 .body(image);
     }
 
+    /**
+     * Toàn bộ PDF gốc với đoạn dẫn chứng đã tô vàng, để nhúng trình xem PDF thật.
+     */
+    @GetMapping("/{id}/chunks/{chunkId}/highlighted")
+    public ResponseEntity<byte[]> chunkHighlightedPdf(@PathVariable UUID id, @PathVariable String chunkId) {
+        byte[] pdf = documentService.renderChunkPdf(id, chunkId);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "inline; filename=\"document-highlighted.pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
     @GetMapping
     public ResponseEntity<DocumentListDto> list(
             @RequestParam(required = false) String q,
