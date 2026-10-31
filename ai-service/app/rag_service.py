@@ -108,15 +108,9 @@ class RAGService:
         Fallback generator when cloud LLM API keys are not yet configured or reachable.
         Synthesizes top referenced extracts with citation markers.
         """
-        if not hits:
-            return "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này."
-
-        # Gate độ tin cậy dựa trên cosine thuần (vector_score), không phải score
-        # combined (cosine + lexical) vì semantics của ngưỡng chỉ đúng với cosine.
-        top_score = hits[0].get("vector_score")
-        if top_score is None:
-            top_score = hits[0].get("score", 0.0)
-        if top_score < CONFIDENCE_GATE:
+        # citations rỗng nghĩa là bước kiểm tra tin cậy (reranker/cosine) đã
+        # kết luận không đủ căn cứ -> phải từ chối, không được trích đoạn nhiễu.
+        if not hits or not citations:
             return "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này."
 
         # Có thông tin tin cậy -> extractive fallback
@@ -155,12 +149,15 @@ class RAGService:
 
         # Đoạn tốt nhất quá kém (ngoài ngưỡng tin cậy) -> trả lời trung thực là
         # không tìm thấy, không kèm trích dẫn gây hiểu nhầm, không nạp nhiễu cho LLM.
-        top_vector = hits[0].get("vector_score", 0.0) if hits else 0.0
-        # Đoạn chứa đúng số điều được hỏi ("Điều 43") vẫn đáng tin dù cosine thấp,
-        # vì embedding không mã hóa tốt con số.
-        trusted = bool(hits) and (
-            top_vector >= CONFIDENCE_GATE or hits[0].get("article_match")
-        )
+        top = hits[0] if hits else None
+        article_match = bool(top and top.get("article_match"))
+        rerank_score = top.get("rerank_score") if top else None
+        if rerank_score is not None:
+            trusted = bool(hits) and (article_match or rerank_score >= settings.RERANK_GATE)
+        else:
+            # Không có reranker: lùi về ngưỡng cosine đã hiệu chỉnh.
+            top_vector = top.get("vector_score", 0.0) if top else 0.0
+            trusted = bool(hits) and (top_vector >= CONFIDENCE_GATE or article_match)
 
         # Step 2: Format context and citations
         context_text, citations = self._build_context_and_citations(hits) if trusted else ("", [])

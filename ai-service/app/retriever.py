@@ -5,8 +5,10 @@ from pathlib import Path
 import json
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 
+from app.config import settings
 from app.embedding_service import EmbeddingService, fold_text
 from app.qdrant_service import QdrantService
+from app.reranker_service import RerankerService
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +57,7 @@ class VectorRetriever:
     ):
         self.embedding = embedding_service or EmbeddingService()
         self.qdrant = qdrant_service or QdrantService()
+        self.reranker = RerankerService()
         self._ensure_bootstrap()
 
     def _ensure_bootstrap(self):
@@ -176,4 +179,11 @@ class VectorRetriever:
             logger.info("No vector hits for query (min_score=%s)", min_score)
             return results
         results.sort(key=lambda r: r["score"], reverse=True)
+
+        # Cross-encoder chấm lại nhóm đầu: sửa thứ hạng sai và cung cấp điểm
+        # tin cậy cho bước quyết định trả lời/từ chối.
+        head = results[: settings.RERANK_CANDIDATES]
+        if self.reranker.enabled and head:
+            head = self.reranker.rerank(query, head)
+            results = head + results[settings.RERANK_CANDIDATES:]
         return results[:top_k]

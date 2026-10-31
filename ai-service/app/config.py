@@ -40,6 +40,16 @@ class Settings:
         "data/qdrant_storage"
     )
 
+    # Cross-encoder chấm lại độ liên quan của các ứng viên đầu: quyết định
+    # "trả lời hay từ chối" đáng tin hơn hẳn cosine của model nhúng nhỏ.
+    RERANKER_MODEL: str = os.getenv(
+        "RERANKER_MODEL",
+        "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
+    )
+    RERANK_CANDIDATES: int = int(os.getenv("RERANK_CANDIDATES", "10"))
+    RERANK_PASSAGE_CHARS: int = int(os.getenv("RERANK_PASSAGE_CHARS", "800"))
+    RERANK_GATE: float = float(os.getenv("RERANK_GATE", "-2.0"))
+
     OPENAI_API_KEY: str = os.getenv(
         "OPENAI_API_KEY",
         ""
