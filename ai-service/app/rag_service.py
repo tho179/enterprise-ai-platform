@@ -9,10 +9,10 @@ from app.schemas import CitationItem, ChatMessage, AskResponse
 
 logger = logging.getLogger(__name__)
 
-# Ngưỡng tin cậy cho trích dẫn (đo bằng cosine SAU khi fold): đoạn khớp thật
-# của kho DLCT nằm ở 0.72+, còn "nhiễu xung quanh" (mọi câu hỏi đều về ~0.49-0.55).
-# Dưới ngưỡng này -> trả lời trung thực là không tìm thấy thay vì trích đoạn lân cận.
-CONFIDENCE_GATE = 0.62
+# Ngưỡng tin cậy cho trích dẫn (cosine thuần sau khi fold). Đo thực tế trên kho
+# Điều lệ: câu hỏi ngoài phạm vi rơi vào 0.28-0.42, câu hỏi khớp thật thấp nhất
+# ~0.53. Ngưỡng 0.5 tách được hai vùng và không chặn oan câu hợp lệ.
+CONFIDENCE_GATE = 0.5
 
 SYSTEM_PROMPT = """Bạn là Trợ lý AI Quản lý Tri thức Doanh nghiệp. Nhiệm vụ của bạn là giải đáp thắc mắc của nhân viên dựa HOÀN TOÀN vào các đoạn ngữ cảnh trích xuất từ tài liệu nội bộ được cung cấp dưới đây.
 
@@ -156,7 +156,11 @@ class RAGService:
         # Đoạn tốt nhất quá kém (ngoài ngưỡng tin cậy) -> trả lời trung thực là
         # không tìm thấy, không kèm trích dẫn gây hiểu nhầm, không nạp nhiễu cho LLM.
         top_vector = hits[0].get("vector_score", 0.0) if hits else 0.0
-        trusted = bool(hits) and top_vector >= CONFIDENCE_GATE
+        # Đoạn chứa đúng số điều được hỏi ("Điều 43") vẫn đáng tin dù cosine thấp,
+        # vì embedding không mã hóa tốt con số.
+        trusted = bool(hits) and (
+            top_vector >= CONFIDENCE_GATE or hits[0].get("article_match")
+        )
 
         # Step 2: Format context and citations
         context_text, citations = self._build_context_and_citations(hits) if trusted else ("", [])

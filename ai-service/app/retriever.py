@@ -13,6 +13,14 @@ logger = logging.getLogger(__name__)
 # Rerank hybrid: giữ độ nhớ nhúng (vector) nhưng tăng hạng cho đoạn khớp từ khóa.
 # OCR tiếng Việt hay làm hỏng dấu nên việc khớp từ sau khi fold rất hiệu quả.
 LEXICAL_WEIGHT = 0.3
+# Câu hỏi dạng "Điều 43 quy định gì?" gần như không có tín hiệu ngữ nghĩa
+# (số điều không được embedding tốt) -> ưu tiên mạnh đoạn chứa đúng số điều.
+ARTICLE_BOOST = 0.45
+ARTICLE_PATTERN = re.compile(r"\bdieu\s+(\d{1,3})\b")
+
+
+def _article_numbers(query: str) -> set:
+    return set(ARTICLE_PATTERN.findall(fold_text(query)))
 
 
 def lexical_score(query: str, content: str) -> float:
@@ -82,6 +90,7 @@ class VectorRetriever:
         # 1. Embed query into vector
         query_vector = self.embedding.embed_query(query)
         seen_keys: set = set()
+        article_numbers = _article_numbers(query)
 
         # 2. Build metadata filter if specified
         query_filter = None
@@ -119,7 +128,9 @@ class VectorRetriever:
 
             for hit in hits:
                 score = getattr(hit, "score", 0.0)
-                if score < min_score:
+                # Câu hỏi có số điều ("Điều 43") có cosine gốc rất thấp nên không
+                # được lọc thô trước rerank, nếu không chunk đúng bị loại mất.
+                if score < min_score and not article_numbers:
                     continue
 
                 payload = getattr(hit, "payload", {}) or {}
@@ -133,12 +144,20 @@ class VectorRetriever:
                 seen_keys.add(dedup_key)
 
                 # Hybrid rerank: điểm cuối = cosine + trọng số × overlap từ khóa.
-                # Giữ nguyên vector_score để bộ fallback còn so với ngưỡng 0.3.
+                # Giữ nguyên vector_score để bộ fallback còn so với ngưỡng tin cậy.
                 lexical = lexical_score(query, content)
+                folded_content = fold_text(content)
+                article_match = any(
+                    re.search(rf"\bdieu\s+{number}\b", folded_content)
+                    for number in article_numbers
+                )
                 combined = score + LEXICAL_WEIGHT * lexical
+                if article_match:
+                    combined += ARTICLE_BOOST
                 results.append({
                     "score": round(combined, 4),
                     "vector_score": round(score, 4),
+                    "article_match": article_match,
                     "chunk_id": payload.get("chunk_id"),
                     "content": content,
                     "metadata": {
