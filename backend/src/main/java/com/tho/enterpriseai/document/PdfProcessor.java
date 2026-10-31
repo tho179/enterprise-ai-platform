@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Component
 public class PdfProcessor {
@@ -19,6 +20,8 @@ public class PdfProcessor {
     private static final int MAX_CHARS = 1400;
     private static final int OVERLAP_CHARS = 160;
     private static final int MIN_CHARS = 40;
+    // Dòng mục lục có dấu chấm/gạch dẫn trang (vd "Điều 1. Định nghĩa...... 4").
+    private static final Pattern TOC_LEADER = Pattern.compile("(?:\\.{4,}|…{2,}|_{4,})");
 
     public PdfContent extract(Path file) {
         try (PDDocument pdf = Loader.loadPDF(file.toFile())) {
@@ -58,7 +61,7 @@ public class PdfProcessor {
 
         for (PageText page : pages) {
             String text = clean(page.text());
-            if (text.isBlank()) {
+            if (text.isBlank() || isTableOfContents(text)) {
                 continue;
             }
             List<Rect> pageWords = page.words();
@@ -182,6 +185,17 @@ public class PdfProcessor {
             lines.add(word);
         }
         return lines;
+    }
+
+    /** Trang mục lục: từ 3 dòng có dấu dẫn trang trở lên — bỏ khỏi kho tri thức. */
+    private boolean isTableOfContents(String text) {
+        int leaderLines = 0;
+        for (String line : text.split("\n")) {
+            if (TOC_LEADER.matcher(line).find()) {
+                leaderLines++;
+            }
+        }
+        return leaderLines >= 3;
     }
 
     private String clean(String raw) {

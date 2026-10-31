@@ -33,6 +33,26 @@ class PdfProcessorTest {
     }
 
     @Test
+    void skipsTableOfContentsPages() {
+        String toc = "MỤC LỤC\n"
+                + "CHƯƠNG I. ĐỊNH NGHĨA CÁC THUẬT NGỮ ........................ 4\n"
+                + "Điều 1. Định nghĩa ........................ 4\n"
+                + "Điều 2. Phạm vi điều chỉnh ........................ 5";
+        String body = "Điều 1. Quyền của cổ đông. " + "Nội dung điều lệ. ".repeat(80);
+
+        PdfProcessor.PdfContent content = processor.fromPages(
+                2,
+                List.of(
+                        new PdfProcessor.PageText(1, toc),
+                        new PdfProcessor.PageText(2, body)
+                )
+        );
+
+        assertFalse(content.chunks().isEmpty());
+        assertTrue(content.chunks().stream().allMatch(chunk -> chunk.page() == 2));
+    }
+
+    @Test
     void rejectsPagesWithoutUsableText() {
         IllegalStateException error = assertThrows(
                 IllegalStateException.class,
