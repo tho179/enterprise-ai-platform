@@ -1,7 +1,14 @@
 package com.tho.enterpriseai.document;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.rendering.PDFRenderer;
 import org.junit.jupiter.api.Test;
 
+import java.awt.image.BufferedImage;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -109,5 +116,68 @@ class PdfProcessorTest {
 
         assertFalse(content.chunks().isEmpty());
         assertTrue(content.chunks().get(0).highlight().isEmpty());
+    }
+
+    @Test
+    void overlapStartsAtWordBoundary() {
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < 120; i++) {
+            text.append("Câu ").append(i)
+                    .append(" nói về việc mua hoặc bán tài sản của Công ty. ");
+        }
+        List<String> parts = processor.splitText(text.toString());
+
+        assertTrue(parts.size() > 1);
+        int searchFrom = 0;
+        for (String part : parts) {
+            int index = text.indexOf(part, searchFrom);
+            assertTrue(index >= 0, "Không tìm thấy chunk trong văn bản gốc");
+            assertTrue(
+                    part.startsWith("Câu "),
+                    "Chunk không bắt đầu ở đầu câu: " + part.substring(0, Math.min(30, part.length()))
+            );
+            if (index > 0) {
+                assertTrue(
+                        Character.isWhitespace(text.charAt(index - 1)),
+                        "Chunk bắt đầu giữa từ: " + part.substring(0, Math.min(20, part.length()))
+                );
+            }
+            searchFrom = index + 1;
+        }
+    }
+
+    @Test
+    void writesYellowHighlightIntoRealPdf() throws Exception {
+        Path file = Files.createTempFile("pdf-highlight", ".pdf");
+        try {
+            try (PDDocument document = new PDDocument()) {
+                document.addPage(new PDPage());
+                document.save(file.toFile());
+            }
+
+            byte[] highlighted = processor.renderPdfWithHighlight(
+                    file, 1, List.of(new PdfProcessor.Rect(0.1, 0.1, 0.8, 0.2, ""))
+            );
+
+            try (PDDocument document = Loader.loadPDF(highlighted)) {
+                assertEquals(1, document.getNumberOfPages());
+                BufferedImage image = new PDFRenderer(document).renderImage(0, 1f);
+                int yellow = 0;
+                for (int y = 0; y < image.getHeight(); y++) {
+                    for (int x = 0; x < image.getWidth(); x++) {
+                        int rgb = image.getRGB(x, y);
+                        int red = (rgb >> 16) & 0xff;
+                        int green = (rgb >> 8) & 0xff;
+                        int blue = rgb & 0xff;
+                        if (red > 200 && green > 180 && blue < 140) {
+                            yellow++;
+                        }
+                    }
+                }
+                assertTrue(yellow > 1000, "Không thấy vùng vàng trong PDF xuất ra");
+            }
+        } finally {
+            Files.deleteIfExists(file);
+        }
     }
 }

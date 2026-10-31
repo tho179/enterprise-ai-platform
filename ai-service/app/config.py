@@ -48,7 +48,9 @@ class Settings:
     )
     RERANK_CANDIDATES: int = int(os.getenv("RERANK_CANDIDATES", "10"))
     RERANK_PASSAGE_CHARS: int = int(os.getenv("RERANK_PASSAGE_CHARS", "800"))
-    RERANK_GATE: float = float(os.getenv("RERANK_GATE", "-2.0"))
+    # Câu hợp lệ đo được -1.06..+9.86; câu ngoài phạm vi -1.68..-6.86.
+    # -1.5 chặn được "công ty có bao nhiêu nhân viên" mà không chặn câu đúng.
+    RERANK_GATE: float = float(os.getenv("RERANK_GATE", "-1.5"))
 
     OPENAI_API_KEY: str = os.getenv(
         "OPENAI_API_KEY",

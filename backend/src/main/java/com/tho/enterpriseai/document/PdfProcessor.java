@@ -2,6 +2,11 @@ package com.tho.enterpriseai.document;
 
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.graphics.blend.BlendMode;
+import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +24,7 @@ public class PdfProcessor {
 
     private static final int MAX_CHARS = 1400;
     private static final int OVERLAP_CHARS = 160;
+    private static final int MAX_OVERLAP_CHARS = 400;
     private static final int MIN_CHARS = 40;
     // Dòng mục lục có dấu chấm/gạch dẫn trang (vd "Điều 1. Định nghĩa...... 4").
     private static final Pattern TOC_LEADER = Pattern.compile("(?:\\.{4,}|…{2,}|_{4,})");
@@ -207,7 +213,7 @@ public class PdfProcessor {
                 .trim();
     }
 
-    private List<String> splitText(String text) {
+    List<String> splitText(String text) {
         List<String> parts = new ArrayList<>();
         int start = 0;
         while (start < text.length()) {
@@ -225,10 +231,45 @@ public class PdfProcessor {
             if (end >= text.length()) {
                 break;
             }
-            int nextStart = Math.max(start + 1, end - OVERLAP_CHARS);
-            start = nextStart;
+            start = Math.max(start + 1, nextChunkStart(text, end));
         }
         return parts;
+    }
+
+    /**
+     * Điểm bắt đầu chunk kế tiếp: lùi về đầu câu gần nhất (tối đa
+     * MAX_OVERLAP_CHARS) để câu trả lời không mở đầu giữa câu/mid-word.
+     */
+    private int nextChunkStart(String text, int end) {
+        int floor = Math.max(0, end - MAX_OVERLAP_CHARS);
+        for (int i = end - 1; i >= floor; i--) {
+            char current = text.charAt(i);
+            boolean sentenceEnd = current == '.' || current == '!' || current == '?'
+                    || current == ';';
+            if (sentenceEnd && (i + 1 >= text.length() || Character.isWhitespace(text.charAt(i + 1)))) {
+                int next = i + 1;
+                while (next < end && Character.isWhitespace(text.charAt(next))) {
+                    next++;
+                }
+                return next;
+            }
+        }
+        int newline = text.lastIndexOf('\n', end - 1);
+        if (newline >= floor) {
+            int next = newline + 1;
+            while (next < end && Character.isWhitespace(text.charAt(next))) {
+                next++;
+            }
+            return next;
+        }
+        int candidate = Math.max(0, end - OVERLAP_CHARS);
+        while (candidate < end && candidate > 0 && !Character.isWhitespace(text.charAt(candidate - 1))) {
+            candidate++;
+        }
+        while (candidate < end && Character.isWhitespace(text.charAt(candidate))) {
+            candidate++;
+        }
+        return candidate;
     }
 
     private int findBoundary(String text, int start, int end) {
@@ -303,6 +344,52 @@ public class PdfProcessor {
             }
         } catch (IOException exception) {
             throw new IllegalStateException("Không render được trang PDF: " + exception.getMessage(), exception);
+        }
+    }
+
+    /**
+     * Trả về PDF gốc đã vẽ đè khung vàng lên trang chứa dẫn chứng (tọa độ tỷ lệ
+     * 0..1, gốc trên trái) để trình xem PDF thật hiển thị đúng vùng bôi vàng.
+     */
+    public byte[] renderPdfWithHighlight(Path file, int pageNumber, List<Rect> rects) {
+        try {
+            if (rects.isEmpty()) {
+                return java.nio.file.Files.readAllBytes(file);
+            }
+            try (PDDocument pdf = Loader.loadPDF(file.toFile())) {
+                if (pageNumber < 1 || pageNumber > pdf.getNumberOfPages()) {
+                    throw new IllegalStateException("Trang " + pageNumber + " ngoài phạm vi tài liệu.");
+                }
+                PDPage page = pdf.getPage(pageNumber - 1);
+                PDRectangle box = page.getCropBox();
+                float pageWidth = box.getWidth();
+                float pageHeight = box.getHeight();
+                try (PDPageContentStream content = new PDPageContentStream(
+                        pdf, page, PDPageContentStream.AppendMode.APPEND, true)) {
+                    content.setNonStrokingColor(new java.awt.Color(255, 234, 0));
+                    // Nhân bản màu để chữ/ảnh scan bên dưới vẫn đọc được.
+                    PDExtendedGraphicsState blend = new PDExtendedGraphicsState();
+                    blend.setBlendMode(BlendMode.MULTIPLY);
+                    content.setGraphicsStateParameters(blend);
+                    for (Rect rect : rects) {
+                        float x = box.getLowerLeftX() + (float) (rect.x() * pageWidth);
+                        float y = box.getLowerLeftY() + (float) ((1 - rect.y() - rect.h()) * pageHeight);
+                        content.addRect(
+                                x,
+                                y,
+                                (float) (rect.w() * pageWidth),
+                                (float) (rect.h() * pageHeight)
+                        );
+                        content.fill();
+                    }
+                }
+                try (java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                    pdf.save(out);
+                    return out.toByteArray();
+                }
+            }
+        } catch (IOException exception) {
+            throw new IllegalStateException("Không tạo được PDF bôi vàng: " + exception.getMessage(), exception);
         }
     }
 }

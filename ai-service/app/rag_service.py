@@ -1,13 +1,34 @@
+import re
 import time
 import logging
 from typing import List, Dict, Any, Optional, Tuple
 from openai import OpenAI
 
 from app.config import settings
+from app.embedding_service import fold_text
 from app.retriever import VectorRetriever
 from app.schemas import CitationItem, ChatMessage, AskResponse
 
 logger = logging.getLogger(__name__)
+
+# Từ chức năng khi chọn câu trả lời trích xuất; giữ nguyên từ chuyên môn.
+_STOPWORDS = {
+    "la", "cua", "co", "va", "duoc", "bao", "nhieu", "gi", "nao", "the", "nhu",
+    "khi", "cho", "trong", "mot", "cac", "nhung", "nay", "do", "de", "voi",
+    "hay", "hoac", "thi", "ma", "o", "ra", "vao", "len", "xuong", "roi", "da",
+    "dang", "se", "toi", "ban", "minh", "tren", "duoi", "tu", "den", "ve",
+    "tai", "boi", "vi", "nen", "cung", "chi", "con", "ai", "lam", "sao", "phai",
+    "khong", "bi", "moi", "vay", "nhi", "rat", "qua", "hon", "nua", "day", "kia",
+    "ay", "no", "ho", "chung",
+}
+
+
+def _content_terms(text: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[0-9a-z]+", fold_text(text))
+        if len(token) > 1 and token not in _STOPWORDS
+    }
 
 # Ngưỡng tin cậy cho trích dẫn (cosine thuần sau khi fold). Đo thực tế trên kho
 # Điều lệ: câu hỏi ngoài phạm vi rơi vào 0.28-0.42, câu hỏi khớp thật thấp nhất
@@ -34,7 +55,8 @@ class RAGService:
 
     def _build_context_and_citations(
         self,
-        hits: List[Dict[str, Any]]
+        hits: List[Dict[str, Any]],
+        query: str
     ) -> Tuple[str, List[CitationItem]]:
         """
         Formats retrieved vector hits into an indexed context prompt and citation models.
@@ -64,7 +86,10 @@ class RAGService:
             context_blocks.append(block)
 
             # Build structured citation object
-            snippet = content[:180] + "..." if len(content) > 180 else content
+            snippet = self._focused_excerpt(query, content)
+            if len(snippet) > 500:
+                cut = snippet.rfind(" ", 0, 500)
+                snippet = snippet[: cut if cut > 0 else 500].rstrip() + "…"
             citations.append(CitationItem(
                 index=idx,
                 chunk_id=chunk_id,
@@ -77,6 +102,63 @@ class RAGService:
 
         formatted_context = "\n\n".join(context_blocks)
         return formatted_context, citations
+
+    def _focused_excerpt(self, query: str, content: str) -> str:
+        """
+        Chọn (các) câu chứa từ khóa của câu hỏi để phần trích dẫn không bắt
+        đầu giữa câu và không đổ nguyên đoạn 1.400 ký tự vào câu trả lời.
+        """
+        query_terms = _content_terms(query)
+        # Dấu xuống dòng của OCR không phải ranh giới câu; chỉ tách theo dấu câu
+        # rồi nén khoảng trắng để câu trả lời không bị cụt giữa dòng.
+        sentences = [
+            re.sub(r"\s+", " ", sentence).strip()
+            for sentence in re.split(r"(?<=[.!?;])\s+", content)
+            if sentence.strip()
+        ]
+        if not query_terms or not sentences:
+            return content
+
+        # Câu hỏi dạng "Điều 43" phải giữ đúng tiêu đề điều, không chọn câu
+        # nào khác chỉ vì trùng từ "quy định".
+        article = re.search(r"\bdieu\s+(\d+)\b", fold_text(query))
+        if article:
+            number = article.group(1)
+            for index, sentence in enumerate(sentences):
+                if re.search(rf"\bdieu\s+{number}\b", fold_text(sentence)):
+                    end = index + 1
+                    while end < len(sentences) and end <= index + 4:
+                        if len(" ".join(sentences[index:end + 1])) >= 320:
+                            end += 1
+                            break
+                        end += 1
+                    return " ".join(sentences[index:end]).strip()
+
+        scores = [
+            len(query_terms & _content_terms(sentence)) / len(query_terms)
+            for sentence in sentences
+        ]
+        best = max(range(len(sentences)), key=lambda index: scores[index])
+        if scores[best] == 0:
+            return content
+
+        start = best
+        end = best + 1
+        # Câu đứng sau thường là phần giải thích/ngoại lệ của cùng quy định,
+        # nhưng không kéo theo tiêu đề chương/điều của phần kế tiếp.
+        next_is_heading = best + 1 < len(sentences) and bool(
+            re.match(r"^(chuong|dieu|muc)\b", fold_text(sentences[best + 1]))
+        )
+        if (len(sentences[best]) < 140 or sentences[best].endswith(":")) \
+                and best + 1 < len(sentences) and not next_is_heading:
+            end = best + 2
+        # Câu bắt đầu bằng chữ thường là phần nối tiếp -> lấy cả câu trước.
+        if sentences[best][:1].islower() and best > 0:
+            start = best - 1
+        excerpt = " ".join(sentences[start:end])
+        if sentences[start][:1].islower():
+            excerpt = "… " + excerpt
+        return excerpt
 
     def _get_llm_client(self) -> Tuple[Optional[OpenAI], str]:
         """
@@ -118,7 +200,7 @@ class RAGService:
         meta = best.get("metadata", {})
         path_str = " > ".join(meta.get("section_path", []))
         summary_intro = f"Theo quy định tại **{path_str or 'tài liệu nội bộ'}** [1]:\n\n"
-        content = best.get("content", "").strip()
+        content = self._focused_excerpt(query, best.get("content", "").strip())
 
         return f"{summary_intro}> {content}\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*"
 
@@ -160,7 +242,7 @@ class RAGService:
             trusted = bool(hits) and (top_vector >= CONFIDENCE_GATE or article_match)
 
         # Step 2: Format context and citations
-        context_text, citations = self._build_context_and_citations(hits) if trusted else ("", [])
+        context_text, citations = self._build_context_and_citations(hits, cleaned_query) if trusted else ("", [])
 
         # Step 3: Determine generation strategy
         client, model_name = self._get_llm_client()
