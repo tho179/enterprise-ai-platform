@@ -9,6 +9,11 @@ from app.schemas import CitationItem, ChatMessage, AskResponse
 
 logger = logging.getLogger(__name__)
 
+# Ngưỡng tin cậy cho trích dẫn (đo bằng cosine SAU khi fold): đoạn khớp thật
+# của kho DLCT nằm ở 0.72+, còn "nhiễu xung quanh" (mọi câu hỏi đều về ~0.49-0.55).
+# Dưới ngưỡng này -> trả lời trung thực là không tìm thấy thay vì trích đoạn lân cận.
+CONFIDENCE_GATE = 0.62
+
 SYSTEM_PROMPT = """Bạn là Trợ lý AI Quản lý Tri thức Doanh nghiệp. Nhiệm vụ của bạn là giải đáp thắc mắc của nhân viên dựa HOÀN TOÀN vào các đoạn ngữ cảnh trích xuất từ tài liệu nội bộ được cung cấp dưới đây.
 
 QUY TẮC BẮT BUỘC (Chống ảo giác & Trích dẫn chính xác):
@@ -107,11 +112,11 @@ class RAGService:
             return "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này."
 
         # Gate độ tin cậy dựa trên cosine thuần (vector_score), không phải score
-        # combined (cosine + lexical) vì semantics 0.3 chỉ đúng với cosine.
+        # combined (cosine + lexical) vì semantics của ngưỡng chỉ đúng với cosine.
         top_score = hits[0].get("vector_score")
         if top_score is None:
             top_score = hits[0].get("score", 0.0)
-        if top_score < 0.3:
+        if top_score < CONFIDENCE_GATE:
             return "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này."
 
         # Có thông tin tin cậy -> extractive fallback
@@ -148,14 +153,21 @@ class RAGService:
             min_score=min_score
         )
 
+        # Đoạn tốt nhất quá kém (ngoài ngưỡng tin cậy) -> trả lời trung thực là
+        # không tìm thấy, không kèm trích dẫn gây hiểu nhầm, không nạp nhiễu cho LLM.
+        top_vector = hits[0].get("vector_score", 0.0) if hits else 0.0
+        trusted = bool(hits) and top_vector >= CONFIDENCE_GATE
+
         # Step 2: Format context and citations
-        context_text, citations = self._build_context_and_citations(hits)
+        context_text, citations = self._build_context_and_citations(hits) if trusted else ("", [])
 
         # Step 3: Determine generation strategy
         client, model_name = self._get_llm_client()
 
         answer = ""
-        if client is not None and hits:
+        if not trusted:
+            answer = self._generate_extractive_fallback(cleaned_query, citations, hits)
+        elif client is not None:
             try:
                 messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
