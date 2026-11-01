@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -347,42 +348,61 @@ public class DocumentService {
         return new StoredPdf(version, file);
     }
 
+    private record ChunkSelection(DocumentVersionEntity version, DocumentChunkEntity chunk) {
+    }
+
+    /**
+     * Chunk của phiên bản hiện hành, hoặc phiên bản cũ mà lịch sử chat còn
+     * trích dẫn — để mở lại PDF cũ vẫn đúng tệp và đúng vùng tô vàng.
+     */
+    private ChunkSelection chunkForRendering(UUID documentId, String chunkId) {
+        DocumentVersionEntity current = currentDocumentVersion(documentId);
+        Optional<DocumentChunkEntity> currentChunk = chunkRepository
+                .findByVersionIdAndChunkId(current.getId(), chunkId);
+        if (currentChunk.isPresent()) {
+            return new ChunkSelection(current, currentChunk.get());
+        }
+
+        DocumentChunkEntity historical = chunkRepository
+                .findByDocumentIdAndChunkId(documentId, chunkId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Không tìm thấy đoạn trích."));
+        DocumentVersionEntity version = versionRepository.findById(historical.getVersionId())
+                .filter(candidate -> candidate.getDocumentId().equals(documentId))
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Không tìm thấy phiên bản của đoạn trích."));
+        return new ChunkSelection(version, historical);
+    }
+
+    private Path existingFile(DocumentVersionEntity version) {
+        Path file = Path.of(version.getStoragePath());
+        if (!Files.exists(file)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Tệp gốc không còn trên máy chủ.");
+        }
+        return file;
+    }
+
     /**
      * Ảnh trang PDF của chunk kèm tô vàng các dòng dẫn chứng (highlightJson).
      * Chunk của các phiên bản cũ vẫn preview được để đối chiếu lịch sử.
      */
     public byte[] renderChunkPreview(UUID documentId, String chunkId) {
-        DocumentVersionEntity version = currentDocumentVersion(documentId);
-        DocumentChunkEntity chunk = chunkRepository
-                .findByVersionIdAndChunkId(version.getId(), chunkId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Không tìm thấy đoạn trích trong phiên bản hiện hành."));
-        Path file = Path.of(version.getStoragePath());
-        if (!Files.exists(file)) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Tệp gốc không còn trên máy chủ.");
-        }
-        List<PdfProcessor.Rect> rects = parseHighlight(chunk.getHighlightJson());
-        return pdfProcessor.renderPageWithHighlight(file, chunk.getPageStart(), rects, 2.0f);
+        ChunkSelection selection = chunkForRendering(documentId, chunkId);
+        List<PdfProcessor.Rect> rects = parseHighlight(selection.chunk().getHighlightJson());
+        return pdfProcessor.renderPageWithHighlight(
+                existingFile(selection.version()), selection.chunk().getPageStart(), rects, 2.0f);
     }
 
     /**
-     * PDF gốc của phiên bản hiện hành, đã tô vàng dẫn chứng của chunk — dùng
-     * cho trình xem PDF thật trong modal trích dẫn.
+     * PDF gốc đã tô vàng dẫn chứng của chunk — dùng cho trình xem PDF thật
+     * trong modal trích dẫn, kể cả trích dẫn thuộc phiên bản cũ.
      */
     public byte[] renderChunkPdf(UUID documentId, String chunkId) {
-        DocumentVersionEntity version = currentDocumentVersion(documentId);
-        DocumentChunkEntity chunk = chunkRepository
-                .findByVersionIdAndChunkId(version.getId(), chunkId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Không tìm thấy đoạn trích trong phiên bản hiện hành."));
-        Path file = Path.of(version.getStoragePath());
-        if (!Files.exists(file)) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Tệp gốc không còn trên máy chủ.");
-        }
-        List<PdfProcessor.Rect> rects = parseHighlight(chunk.getHighlightJson());
-        return pdfProcessor.renderPdfWithHighlight(file, chunk.getPageStart(), rects);
+        ChunkSelection selection = chunkForRendering(documentId, chunkId);
+        List<PdfProcessor.Rect> rects = parseHighlight(selection.chunk().getHighlightJson());
+        return pdfProcessor.renderPdfWithHighlight(
+                existingFile(selection.version()), selection.chunk().getPageStart(), rects);
     }
 
     private List<PdfProcessor.Rect> parseHighlight(String highlightJson) {

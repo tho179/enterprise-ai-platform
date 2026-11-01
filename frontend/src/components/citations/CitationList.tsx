@@ -55,7 +55,13 @@ function ChunkPdfViewer({ citation }: { citation: Citation }) {
 
   useEffect(() => {
     let revoked: string | null = null
-    if (!citation.document_id || !citation.chunk_id) return
+    if (!citation.document_id || !citation.chunk_id) {
+      setPdf({
+        status: 'error',
+        message: 'Trích dẫn này thiếu mã tài liệu để mở PDF.',
+      })
+      return
+    }
     setPdf({ status: 'loading' })
     documentsApi
       .chunkPdfUrl(citation.document_id, citation.chunk_id)

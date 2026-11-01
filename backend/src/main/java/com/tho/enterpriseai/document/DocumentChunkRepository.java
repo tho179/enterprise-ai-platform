@@ -13,6 +13,8 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunkEnti
 
     Optional<DocumentChunkEntity> findByVersionIdAndChunkId(UUID versionId, String chunkId);
 
+    Optional<DocumentChunkEntity> findByDocumentIdAndChunkId(UUID documentId, String chunkId);
+
     @Transactional
     void deleteByVersionId(UUID versionId);
 
