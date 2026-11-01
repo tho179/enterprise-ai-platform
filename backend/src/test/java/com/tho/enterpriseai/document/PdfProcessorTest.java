@@ -161,6 +161,11 @@ class PdfProcessorTest {
 
             try (PDDocument document = Loader.loadPDF(highlighted)) {
                 assertEquals(1, document.getNumberOfPages());
+                assertTrue(
+                        document.getDocumentCatalog().getNames().getDests().getNames()
+                                .containsKey("evidence"),
+                        "Thiếu named destination để mở đúng vùng vàng"
+                );
                 BufferedImage image = new PDFRenderer(document).renderImage(0, 1f);
                 int yellow = 0;
                 for (int y = 0; y < image.getHeight(); y++) {
@@ -175,6 +180,15 @@ class PdfProcessorTest {
                     }
                 }
                 assertTrue(yellow > 1000, "Không thấy vùng vàng trong PDF xuất ra");
+            }
+
+            byte[] noHighlight = processor.renderPdfWithHighlight(file, 1, List.of());
+            try (PDDocument document = Loader.loadPDF(noHighlight)) {
+                assertTrue(
+                        document.getDocumentCatalog().getNames().getDests().getNames()
+                                .containsKey("evidence"),
+                        "Thiếu named destination khi chunk không có vùng vàng"
+                );
             }
         } finally {
             Files.deleteIfExists(file);

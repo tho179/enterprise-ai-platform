@@ -94,16 +94,19 @@ function ChunkPdfViewer({ citation }: { citation: Citation }) {
       />
     )
   }
-  const page = citation.pages.match(/\d+/)?.[0] ?? '1'
   return (
     <div className="citation-preview">
       <iframe
         title={`PDF gốc đã tô vàng: ${citation.pages}`}
-        src={`${pdf.url}#page=${page}&zoom=page-width`}
+        src={`${pdf.url}#nameddest=evidence`}
       />
       <div className="citation-preview__foot">
         <span className="muted">PDF gốc đã tô vàng đoạn dẫn chứng.</span>
-        <a href={pdf.url} target="_blank" rel="noopener noreferrer">
+        <a
+          href={`${pdf.url}#nameddest=evidence`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           Mở tab mới
         </a>
       </div>

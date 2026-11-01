@@ -1,12 +1,17 @@
 package com.tho.enterpriseai.document;
 
 import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDestinationNameTreeNode;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDDocumentCatalog;
+import org.apache.pdfbox.pdmodel.PDDocumentNameDictionary;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.graphics.blend.BlendMode;
 import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageDestination;
+import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitRectangleDestination;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.stereotype.Component;
 
@@ -25,6 +30,7 @@ public class PdfProcessor {
     private static final int MAX_CHARS = 1400;
     private static final int OVERLAP_CHARS = 160;
     private static final int MAX_OVERLAP_CHARS = 400;
+    private static final String EVIDENCE_DESTINATION = "evidence";
     private static final int MIN_CHARS = 40;
     // Dòng mục lục có dấu chấm/gạch dẫn trang (vd "Điều 1. Định nghĩa...... 4").
     private static final Pattern TOC_LEADER = Pattern.compile("(?:\\.{4,}|…{2,}|_{4,})");
@@ -352,18 +358,23 @@ public class PdfProcessor {
      * 0..1, gốc trên trái) để trình xem PDF thật hiển thị đúng vùng bôi vàng.
      */
     public byte[] renderPdfWithHighlight(Path file, int pageNumber, List<Rect> rects) {
-        try {
-            if (rects.isEmpty()) {
-                return java.nio.file.Files.readAllBytes(file);
+        try (PDDocument pdf = Loader.loadPDF(file.toFile())) {
+            if (pageNumber < 1 || pageNumber > pdf.getNumberOfPages()) {
+                throw new IllegalStateException("Trang " + pageNumber + " ngoài phạm vi tài liệu.");
             }
-            try (PDDocument pdf = Loader.loadPDF(file.toFile())) {
-                if (pageNumber < 1 || pageNumber > pdf.getNumberOfPages()) {
-                    throw new IllegalStateException("Trang " + pageNumber + " ngoài phạm vi tài liệu.");
-                }
-                PDPage page = pdf.getPage(pageNumber - 1);
-                PDRectangle box = page.getCropBox();
-                float pageWidth = box.getWidth();
-                float pageHeight = box.getHeight();
+            PDPage page = pdf.getPage(pageNumber - 1);
+            PDRectangle box = page.getCropBox();
+            float pageWidth = box.getWidth();
+            float pageHeight = box.getHeight();
+            float minX = box.getLowerLeftX();
+            float maxX = box.getUpperRightX();
+            float maxY = box.getUpperRightY();
+            float minY = maxY - 24;
+            if (!rects.isEmpty()) {
+                minX = Float.MAX_VALUE;
+                minY = Float.MAX_VALUE;
+                maxX = -Float.MAX_VALUE;
+                maxY = -Float.MAX_VALUE;
                 try (PDPageContentStream content = new PDPageContentStream(
                         pdf, page, PDPageContentStream.AppendMode.APPEND, true)) {
                     content.setNonStrokingColor(new java.awt.Color(255, 234, 0));
@@ -372,24 +383,61 @@ public class PdfProcessor {
                     blend.setBlendMode(BlendMode.MULTIPLY);
                     content.setGraphicsStateParameters(blend);
                     for (Rect rect : rects) {
+                        float width = (float) (rect.w() * pageWidth);
+                        float height = (float) (rect.h() * pageHeight);
                         float x = box.getLowerLeftX() + (float) (rect.x() * pageWidth);
                         float y = box.getLowerLeftY() + (float) ((1 - rect.y() - rect.h()) * pageHeight);
-                        content.addRect(
-                                x,
-                                y,
-                                (float) (rect.w() * pageWidth),
-                                (float) (rect.h() * pageHeight)
-                        );
+                        content.addRect(x, y, width, height);
                         content.fill();
+                        minX = Math.min(minX, x);
+                        minY = Math.min(minY, y);
+                        maxX = Math.max(maxX, x + width);
+                        maxY = Math.max(maxY, y + height);
                     }
                 }
-                try (java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
-                    pdf.save(out);
-                    return out.toByteArray();
-                }
+            }
+            addEvidenceDestination(pdf, page, minX, minY, maxX, maxY);
+            try (java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream()) {
+                pdf.save(out);
+                return out.toByteArray();
             }
         } catch (IOException exception) {
             throw new IllegalStateException("Không tạo được PDF bôi vàng: " + exception.getMessage(), exception);
         }
+    }
+
+    /**
+     * Điểm đến có tên để trình xem PDF nhảy thẳng tới vùng vàng thay vì mở ở
+     * đầu trang; fragment #nameddest=evidence dùng được cả với blob URL.
+     */
+    private void addEvidenceDestination(
+            PDDocument pdf, PDPage page, float left, float bottom, float right, float top
+    ) throws IOException {
+        float margin = 12f;
+        PDDocumentCatalog catalog = pdf.getDocumentCatalog();
+        PDDocumentNameDictionary names = catalog.getNames();
+        if (names == null) {
+            names = new PDDocumentNameDictionary(catalog);
+            catalog.setNames(names);
+        }
+        PDDestinationNameTreeNode destinations = names.getDests();
+        Map<String, PDPageDestination> entries =
+                destinations == null ? new HashMap<>() : destinations.getNames();
+        entries = entries == null ? new HashMap<>() : new HashMap<>(entries);
+
+        PDRectangle box = page.getCropBox();
+        PDPageFitRectangleDestination destination = new PDPageFitRectangleDestination();
+        destination.setPage(page);
+        destination.setLeft((int) Math.max(box.getLowerLeftX(), Math.floor(left - margin)));
+        destination.setBottom((int) Math.max(box.getLowerLeftY(), Math.floor(bottom - margin)));
+        destination.setRight((int) Math.min(box.getUpperRightX(), Math.ceil(right + margin)));
+        destination.setTop((int) Math.min(box.getUpperRightY(), Math.ceil(top + margin)));
+        entries.put(EVIDENCE_DESTINATION, destination);
+
+        if (destinations == null) {
+            destinations = new PDDestinationNameTreeNode();
+            names.setDests(destinations);
+        }
+        destinations.setNames(entries);
     }
 }
