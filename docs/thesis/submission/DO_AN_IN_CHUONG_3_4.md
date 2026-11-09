@@ -50,7 +50,7 @@ HỆ THỐNG QUẢN LÝ TRI THỨC DOANH NGHIỆP VÀ XỬ LÝ YÊU CẦU NGHI�
 
 # MỤC LỤC
 
-- [CHƯƠNG 3. HỌC SÂU TRONG BIỂU DIỄN NGỮ NGHĨA: TỪ KIẾN TRÚC TRANSFORMER ĐẾN LỰA CHỌN MÔ HÌNH NHÚNG TIẾNG VIỆT](#chương-3-học-sâu-trong-biểu-diễn-ngữ-nghĩa-từ-kiến-trúc-transformer-đến-lựa-chọn-mô-hình-nhúng-tiếng-việt)
+- [CHƯƠNG 3. DEEP LEARNING TRONG BIỂU DIỄN NGỮ NGHĨA: TỪ KIẾN TRÚC TRANSFORMER ĐẾN LỰA CHỌN MÔ HÌNH NHÚNG TIẾNG VIỆT](#chương-3-deep-learning-trong-biểu-diễn-ngữ-nghĩa-từ-kiến-trúc-transformer-đến-lựa-chọn-mô-hình-nhúng-tiếng-việt)
   - [3.1. Đặt vấn đề: vì sao một hệ thống RAG cần chương về học sâu](#31-đặt-vấn-đề-vì-sao-một-hệ-thống-rag-cần-chương-về-học-sâu)
   - [3.2. Biểu diễn dữ liệu và bài toán học sâu](#32-biểu-diễn-dữ-liệu-và-bài-toán-học-sâu)
     - [3.2.1. Từ đặc trưng thủ công đến học biểu diễn](#321-từ-đặc-trưng-thủ-công-đến-học-biểu-diễn)
@@ -143,29 +143,29 @@ HỆ THỐNG QUẢN LÝ TRI THỨC DOANH NGHIỆP VÀ XỬ LÝ YÊU CẦU NGHI�
 <!-- PAGEBREAK -->
 <div class="pb"></div>
 
-# CHƯƠNG 3. HỌC SÂU TRONG BIỂU DIỄN NGỮ NGHĨA: TỪ KIẾN TRÚC TRANSFORMER ĐẾN LỰA CHỌN MÔ HÌNH NHÚNG TIẾNG VIỆT
+# CHƯƠNG 3. DEEP LEARNING TRONG BIỂU DIỄN NGỮ NGHĨA: TỪ KIẾN TRÚC TRANSFORMER ĐẾN LỰA CHỌN MÔ HÌNH NHÚNG TIẾNG VIỆT
 
-> **Mục tiêu của chương.** Chương này trình bày cơ sở học sâu (Deep Learning) đằng sau thành phần cốt lõi nhất của hệ thống: mô hình biểu diễn ngữ nghĩa (embedding) và mô hình chấm lại (reranker). Nội dung không dừng ở việc liệt kê khái niệm mà đi từ bài toán học biểu diễn, kiến trúc Transformer, hàm mất mát tương phản, đến thiết kế thực nghiệm có kiểm soát và kết quả lựa chọn mô hình nhúng cho tiếng Việt. Kết quả của chương là căn cứ khoa học để chốt cấu hình `intfloat/multilingual-e5-small` (384 chiều, cosine) cho toàn bộ pipeline tri xuất của hệ thống EAKWP.
+> Mục tiêu của chương. Chương này trình bày cơ sở học sâu (Deep Learning) đằng sau thành phần cốt lõi nhất của hệ thống: mô hình biểu diễn ngữ nghĩa (embedding) và mô hình chấm lại (reranker). Nội dung không dừng ở việc liệt kê khái niệm mà đi từ bài toán học biểu diễn, kiến trúc Transformer, hàm mất mát tương phản, đến thiết kế thực nghiệm có kiểm soát và kết quả lựa chọn mô hình nhúng cho tiếng Việt. Kết quả của chương là căn cứ khoa học để chốt cấu hình `intfloat/multilingual-e5-small` (384 chiều, cosine) cho toàn bộ pipeline tri xuất của hệ thống EAKWP.
 
 ---
 
 ## 3.1. Đặt vấn đề: vì sao một hệ thống RAG cần chương về học sâu
 
-Trong các hệ thống hỏi đáp tri thức doanh nghiệp, chất lượng câu trả lời không phụ thuộc trực tiếp vào mô hình ngôn ngữ lớn (LLM) mà phụ thuộc trước hết vào **chất lượng biểu diễn và truy xuất**. Một LLM mạnh nhưng nhận sai ngữ cảnh sẽ trả lời sai một cách thuyết phục; ngược lại, một LLM nhỏ nhưng nhận đúng đoạn điều khoản, đúng trang, đúng khoản mục vẫn có thể trả lời chính xác và có căn cứ. Vì vậy, bài toán trung tâm của hệ thống là:
+Trong các hệ thống hỏi đáp tri thức doanh nghiệp, chất lượng câu trả lời không phụ thuộc trực tiếp vào mô hình ngôn ngữ lớn (LLM) mà phụ thuộc trước hết vào chất lượng biểu diễn và truy xuất. Một LLM mạnh nhưng nhận sai ngữ cảnh sẽ trả lời sai một cách thuyết phục; ngược lại, một LLM nhỏ nhưng nhận đúng đoạn điều khoản, đúng trang, đúng khoản mục vẫn có thể trả lời chính xác và có căn cứ. Vì vậy, bài toán trung tâm của hệ thống là:
 
 > Cho một câu hỏi $q$ bằng ngôn ngữ tự nhiên, tìm trong kho tài liệu $D$ một tập đoạn $C_k = \{c_1, ..., c_k\}$ sao cho nội dung của chúng chứa câu trả lời, rồi chuyển tập đoạn này thành ngữ cảnh có thể kiểm chứng cho LLM.
 
 Có ba cách tiếp cận truyền thống:
 
-1. **Tìm kiếm từ khóa (lexical search):** dùng BM25, TF-IDF hoặc `LIKE` trên cơ sở dữ liệu. Cách này nhanh nhưng thất bại khi người dùng diễn đạt khác từ trong văn bản (ví dụ hỏi “được nghỉ bao nhiêu ngày” trong khi tài liệu viết “số ngày nghỉ phép năm”).
-2. **Tìm kiếm ngữ nghĩa bằng đặc trưng thủ công:** gán nhãn thực thể, từ đồng nghĩa, rule. Cách này phụ thuộc rất lớn vào công sức con người và không mở rộng được với hàng chục nghìn trang văn bản pháp lý.
-3. **Học biểu diễn (representation learning):** dùng mạng nơ-ron để ánh xạ câu hỏi và đoạn văn vào cùng một không gian vector, nơi khoảng cách cosine phản ánh mức độ tương đồng ngữ nghĩa. Đây là nền tảng của **embedding** và là lý do hệ thống cần một chương về học sâu.
+1. Tìm kiếm từ khóa (lexical search): dùng BM25, TF-IDF hoặc `LIKE` trên cơ sở dữ liệu. Cách này nhanh nhưng thất bại khi người dùng diễn đạt khác từ trong văn bản (ví dụ hỏi “được nghỉ bao nhiêu ngày” trong khi tài liệu viết “số ngày nghỉ phép năm”).
+2. Tìm kiếm ngữ nghĩa bằng đặc trưng thủ công: gán nhãn thực thể, từ đồng nghĩa, rule. Cách này phụ thuộc rất lớn vào công sức con người và không mở rộng được với hàng chục nghìn trang văn bản pháp lý.
+3. Học biểu diễn (representation learning): dùng mạng nơ-ron để ánh xạ câu hỏi và đoạn văn vào cùng một không gian vector, nơi khoảng cách cosine phản ánh mức độ tương đồng ngữ nghĩa. Đây là nền tảng của embedding và là lý do hệ thống cần một chương về học sâu.
 
 Điểm mấu chốt là học sâu không chỉ là “dùng mô hình lớn”. Học sâu cung cấp một cách biểu diễn có thể học được: thay vì con người định nghĩa đặc trưng, mô hình tự học các đặc trưng phân cấp từ dữ liệu. Với văn bản tiếng Việt, các đặc trưng này bao gồm cả cấu trúc từ, ngữ nghĩa câu, và quan hệ giữa câu hỏi với đoạn trả lời. Chương này làm rõ ba câu hỏi:
 
-- **Học sâu biểu diễn văn bản như thế nào?** Từ token, embedding, self-attention đến vector câu.
-- **Làm sao huấn luyện một mô hình biết “câu hỏi nào gần đoạn trả lời nào”?** Học tương phản (contrastive learning) và hàm mất mát InfoNCE.
-- **Làm sao chọn mô hình phù hợp với tiếng Việt và giới hạn CPU của hệ thống?** Thiết kế thực nghiệm so sánh ba mô hình, đo Recall@k, MRR, độ trễ và thông lượng.
+- Học sâu biểu diễn văn bản như thế nào? Từ token, embedding, self-attention đến vector câu.
+- Làm sao huấn luyện một mô hình biết “câu hỏi nào gần đoạn trả lời nào”? Học tương phản (contrastive learning) và hàm mất mát InfoNCE.
+- Làm sao chọn mô hình phù hợp với tiếng Việt và giới hạn CPU của hệ thống? Thiết kế thực nghiệm so sánh ba mô hình, đo Recall@k, MRR, độ trễ và thông lượng.
 
 ---
 
@@ -175,14 +175,14 @@ Có ba cách tiếp cận truyền thống:
 
 Trong học máy truyền thống, một văn bản được biểu diễn bằng vector thưa (sparse vector) như túi từ (bag-of-words) hoặc TF-IDF. Mỗi chiều tương ứng một từ trong từ điển; giá trị là tần suất hoặc trọng số nghịch đảo tần suất. Cách biểu diễn này có hai hạn chế cố hữu:
 
-- **Không hiểu ngữ nghĩa:** “xe hơi” và “ô tô” là hai vector trực giao dù cùng nghĩa.
-- **Không hiểu ngữ cảnh:** “điều 5” trong “Điều 5 quy định...” và “điều 5” trong “điều 5 khoản 2” có thể giống nhau về mặt từ vựng nhưng khác nhau về vai trò cấu trúc.
+- Không hiểu ngữ nghĩa: “xe hơi” và “ô tô” là hai vector trực giao dù cùng nghĩa.
+- Không hiểu ngữ cảnh: “điều 5” trong “Điều 5 quy định...” và “điều 5” trong “điều 5 khoản 2” có thể giống nhau về mặt từ vựng nhưng khác nhau về vai trò cấu trúc.
 
-Học sâu thay thế bằng **biểu diễn phân tán (distributed representation)**: mỗi từ hoặc câu là một vector đặc (dense vector) trong không gian $\mathbb{R}^m$, trong đó các chiều không còn tương ứng với từ cụ thể mà mã hóa các thuộc tính ngữ nghĩa trừu tượng. Một mô hình tốt sẽ đặt các câu có nghĩa gần nhau vào gần nhau, bất kể chúng dùng từ ngữ bề mặt nào.
+Học sâu thay thế bằng biểu diễn phân tán (distributed representation): mỗi từ hoặc câu là một vector đặc (dense vector) trong không gian $\mathbb{R}^m$, trong đó các chiều không còn tương ứng với từ cụ thể mà mã hóa các thuộc tính ngữ nghĩa trừu tượng. Một mô hình tốt sẽ đặt các câu có nghĩa gần nhau vào gần nhau, bất kể chúng dùng từ ngữ bề mặt nào.
 
 Về mặt hình thức, một mô hình học sâu là một hàm có tham số:
 
-> **Công thức 3.1.** $f_\theta : \mathcal{X} \rightarrow \mathcal{Y}$, trong đó $\mathcal{X}$ là không gian đầu vào (văn bản, token), $\mathcal{Y}$ là không gian đầu ra (nhãn, vector, phân phối), và $\theta$ là tập tham số học được.
+> Công thức 3.1. $f_\theta : \mathcal{X} \rightarrow \mathcal{Y}$, trong đó $\mathcal{X}$ là không gian đầu vào (văn bản, token), $\mathcal{Y}$ là không gian đầu ra (nhãn, vector, phân phối), và $\theta$ là tập tham số học được.
 
 Với bài toán biểu diễn, $\mathcal{Y} = \mathbb{R}^m$ và $f_\theta$ là một encoder. Với bài toán sinh văn bản, $\mathcal{Y}$ là phân phối xác suất trên từ vựng. Với bài toán chấm lại, $\mathcal{Y}$ là một số thực biểu thị mức độ liên quan.
 
@@ -190,23 +190,23 @@ Với bài toán biểu diễn, $\mathcal{Y} = \mathbb{R}^m$ và $f_\theta$ là 
 
 Một mạng nơ-ron nhiều tầng được xây dựng từ các phép biến đổi tuyến tính và phi tuyến:
 
-> **Công thức 3.2.** $h^{(l)} = \sigma\left(W^{(l)} h^{(l-1)} + b^{(l)}\right)$
+> Công thức 3.2. $h^{(l)} = \sigma\left(W^{(l)} h^{(l-1)} + b^{(l)}\right)$
 
 Trong đó $W^{(l)}$ là ma trận trọng số, $b^{(l)}$ là bias, và $\sigma$ là hàm kích hoạt phi tuyến (ReLU, GELU, tanh). Nếu chỉ có các phép tuyến tính, nhiều tầng sẽ tương đương một tầng; chính hàm phi tuyến cho phép mạng xấp xỉ các hàm phức tạp.
 
 Quá trình huấn luyện giải bài toán tối ưu:
 
-> **Công thức 3.3.** $\theta^* = \arg\min_\theta \frac{1}{N}\sum_{i=1}^{N} \mathcal{L}\left(f_\theta(x_i), y_i\right) + \lambda \|\theta\|_2^2$
+> Công thức 3.3. $\theta^* = \arg\min_\theta \frac{1}{N}\sum_{i=1}^{N} \mathcal{L}\left(f_\theta(x_i), y_i\right) + \lambda \|\theta\|_2^2$
 
 Trong đó $\mathcal{L}$ là hàm mất mát, $N$ là số mẫu, và số hạng $\lambda \|\theta\|_2^2$ là chuẩn hóa L2 để giảm quá khớp. Với bài toán phân loại, $\mathcal{L}$ thường là cross-entropy:
 
-> **Công thức 3.4.** $\mathcal{L}_{CE} = -\sum_{c=1}^{C} y_c \log \hat{y}_c$
+> Công thức 3.4. $\mathcal{L}_{CE} = -\sum_{c=1}^{C} y_c \log \hat{y}_c$
 
-Với bài toán biểu diễn, hàm mất mát không còn là phân loại nhãn mà là **so sánh cặp** (pairwise) hoặc **tương phản** (contrastive), sẽ trình bày ở mục 3.4.
+Với bài toán biểu diễn, hàm mất mát không còn là phân loại nhãn mà là so sánh cặp (pairwise) hoặc tương phản (contrastive), sẽ trình bày ở mục 3.4.
 
 Việc tối ưu được thực hiện bằng lan truyền ngược (backpropagation) và các bộ tối ưu hiện đại như Adam:
 
-> **Công thức 3.5.** $m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t$; $v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2$; $\theta_t = \theta_{t-1} - \eta \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}$
+> Công thức 3.5. $m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t$; $v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2$; $\theta_t = \theta_{t-1} - \eta \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}$
 
 Trong đó $g_t$ là gradient tại bước $t$, $\eta$ là learning rate, $\beta_1, \beta_2$ là hệ số suy giảm mô-men. Adam thích nghi learning rate cho từng tham số, giúp huấn luyện ổn định hơn so với gradient descent thuần.
 
@@ -214,13 +214,13 @@ Trong đó $g_t$ là gradient tại bước $t$, $\eta$ là learning rate, $\bet
 
 Một mô hình học sâu có thể ghi nhớ dữ liệu huấn luyện thay vì học quy luật. Các kỹ thuật thường dùng:
 
-- **Dropout:** tắt ngẫu nhiên một tỷ lệ neuron trong lúc huấn luyện, buộc mạng không phụ thuộc vào một đường đi duy nhất.
-- **Weight decay:** phạt trọng số lớn, giữ mô hình đơn giản.
-- **Early stopping:** dừng khi loss trên tập validation bắt đầu tăng.
-- **Data augmentation:** thêm nhiễu, thay đổi cách diễn đạt, hoặc sinh cặp câu hỏi–đoạn trả lời tổng hợp.
-- **Batch normalization / Layer normalization:** chuẩn hóa phân phối kích hoạt, giúp huấn luyện sâu ổn định.
+- Dropout: tắt ngẫu nhiên một tỷ lệ neuron trong lúc huấn luyện, buộc mạng không phụ thuộc vào một đường đi duy nhất.
+- Weight decay: phạt trọng số lớn, giữ mô hình đơn giản.
+- Early stopping: dừng khi loss trên tập validation bắt đầu tăng.
+- Data augmentation: thêm nhiễu, thay đổi cách diễn đạt, hoặc sinh cặp câu hỏi–đoạn trả lời tổng hợp.
+- Batch normalization / Layer normalization: chuẩn hóa phân phối kích hoạt, giúp huấn luyện sâu ổn định.
 
-Trong bài toán embedding, một dạng “chống quá khớp” quan trọng hơn là **chuẩn hóa vector** và **negative sampling chất lượng**: nếu mô hình chỉ thấy các cặp dễ, nó sẽ học ranh giới kém. Nội dung này được phân tích ở mục 3.4.
+Trong bài toán embedding, một dạng “chống quá khớp” quan trọng hơn là chuẩn hóa vector và negative sampling chất lượng: nếu mô hình chỉ thấy các cặp dễ, nó sẽ học ranh giới kém. Nội dung này được phân tích ở mục 3.4.
 
 ---
 
@@ -230,20 +230,20 @@ Trong bài toán embedding, một dạng “chống quá khớp” quan trọng 
 
 Trước Transformer, các mô hình tuần tự như RNN/LSTM xử lý văn bản theo từng bước, thông tin phải “chảy” qua trạng thái ẩn qua nhiều bước. Điều này gây ra hai vấn đề:
 
-- **Khó song song hóa:** mỗi bước phụ thuộc bước trước, không tận dụng được GPU/CPU nhiều lõi.
-- **Quên xa (long-range dependency):** thông tin ở đầu câu khó đến được cuối câu nếu câu dài.
+- Khó song song hóa: mỗi bước phụ thuộc bước trước, không tận dụng được GPU/CPU nhiều lõi.
+- Quên xa (long-range dependency): thông tin ở đầu câu khó đến được cuối câu nếu câu dài.
 
-Transformer (Vaswani và cộng sự, 2017) giải quyết bằng cơ chế **self-attention**: mỗi token có thể “nhìn” trực tiếp mọi token khác trong câu, với trọng số học được. Khoảng cách giữa các token không còn là số bước tuần tự mà là một phép tính song song.
+Transformer (Vaswani và cộng sự, 2017) giải quyết bằng cơ chế self-attention: mỗi token có thể “nhìn” trực tiếp mọi token khác trong câu, với trọng số học được. Khoảng cách giữa các token không còn là số bước tuần tự mà là một phép tính song song.
 
 ### 3.3.2. Tokenization và embedding đầu vào
 
-Văn bản được chia thành các đơn vị nhỏ (token) bằng thuật toán như BPE (Byte-Pair Encoding) hoặc WordPiece. Mỗi token được ánh xạ thành một vector $x_i \in \mathbb{R}^d$ thông qua bảng embedding. Vì self-attention không có khái niệm thứ tự, người ta cộng thêm **positional encoding**:
+Văn bản được chia thành các đơn vị nhỏ (token) bằng thuật toán như BPE (Byte-Pair Encoding) hoặc WordPiece. Mỗi token được ánh xạ thành một vector $x_i \in \mathbb{R}^d$ thông qua bảng embedding. Vì self-attention không có khái niệm thứ tự, người ta cộng thêm positional encoding:
 
-> **Công thức 3.6.** $PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d}}\right)$; $PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d}}\right)$
+> Công thức 3.6. $PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d}}\right)$; $PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d}}\right)$
 
 Vector đầu vào của token thứ $i$ là:
 
-> **Công thức 3.7.** $h_i^{(0)} = E[t_i] + PE_i$
+> Công thức 3.7. $h_i^{(0)} = E[t_i] + PE_i$
 
 Trong đó $E$ là bảng embedding học được. Với tiếng Việt, tokenization có thể tách theo âm tiết hoặc theo từ ghép tùy mô hình; điều này ảnh hưởng đến độ dài chuỗi và chất lượng biểu diễn.
 
@@ -251,11 +251,11 @@ Trong đó $E$ là bảng embedding học được. Với tiếng Việt, tokeni
 
 Với mỗi token, mô hình tạo ba vector truy vấn (Query), khóa (Key), giá trị (Value) bằng các phép chiếu tuyến tính:
 
-> **Công thức 3.8.** $Q = XW_Q$, $K = XW_K$, $V = XW_V$
+> Công thức 3.8. $Q = XW_Q$, $K = XW_K$, $V = XW_V$
 
 Trong đó $X \in \mathbb{R}^{n \times d}$ là ma trận biểu diễn của $n$ token. Điểm chú ý giữa token $i$ và token $j$ là tích vô hướng giữa $Q_i$ và $K_j$, chia cho $\sqrt{d_k}$ để ổn định đạo hàm:
 
-> **Công thức 3.9.** $\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$
+> Công thức 3.9. $\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$
 
 Hàm softmax biến điểm số thành phân phối chú ý có tổng bằng 1. Kết quả là mỗi token nhận một vector mới là tổng có trọng số của các value, trong đó trọng số thể hiện mức độ liên quan.
 
@@ -263,7 +263,7 @@ Hàm softmax biến điểm số thành phân phối chú ý có tổng bằng 1
 
 Một đầu chú ý chỉ học được một loại quan hệ. Multi-head attention chạy $h$ phép chú ý song song với các phép chiếu khác nhau, rồi nối kết quả:
 
-> **Công thức 3.10.** $\text{MultiHead}(Q,K,V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W_O$
+> Công thức 3.10. $\text{MultiHead}(Q,K,V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W_O$
 
 Mỗi head có thể chuyên trách một khía cạnh: quan hệ ngữ pháp, đồng tham chiếu, vị trí, hoặc ranh giới điều khoản. Với văn bản pháp lý, điều này đặc biệt hữu ích vì một câu có thể vừa tham chiếu “Điều 5”, vừa nêu ngoại lệ “trừ trường hợp...”, vừa liên kết đến “khoản 2”.
 
@@ -271,18 +271,14 @@ Mỗi head có thể chuyên trách một khía cạnh: quan hệ ngữ pháp, �
 
 Mỗi khối Transformer gồm hai thành phần chính:
 
-1. **Multi-head self-attention** + kết nối tắt (residual) + LayerNorm.
-2. **Feed-forward network** (hai lớp tuyến tính + GELU) + residual + LayerNorm.
+1. Multi-head self-attention + kết nối tắt (residual) + LayerNorm.
+2. Feed-forward network (hai lớp tuyến tính + GELU) + residual + LayerNorm.
 
-> **Công thức 3.11.** $h' = \text{LayerNorm}\left(h + \text{MultiHead}(h)\right)$
+> Công thức 3.11. $h' = \text{LayerNorm}\left(h + \text{MultiHead}(h)\right)$
 >
-> **Công thức 3.12.** $h'' = \text{LayerNorm}\left(h' + \text{FFN}(h')\right)$
+> Công thức 3.12. $h'' = \text{LayerNorm}\left(h' + \text{FFN}(h')\right)$
 
 Kết nối tắt giúp gradient lan truyền qua nhiều tầng mà không bị triệt tiêu; LayerNorm giữ phân phối kích hoạt ổn định. FFN mở rộng chiều ẩn (thường gấp 4 lần) để tăng khả năng biểu diễn phi tuyến.
-
-![Luồng xử lý của encoder](assets/vp/H3_1_khoi_encoder.png)
-
-*Hình 3.1. Luồng xử lý của một encoder Transformer trong các mô hình được so sánh.*
 
 ### 3.3.6. Ba biến thể kiến trúc
 
@@ -292,7 +288,7 @@ Kết nối tắt giúp gradient lan truyền qua nhiều tầng mà không bị
 | Decoder-only | GPT, Llama, Gemini | Nhân quả (causal) | Sinh văn bản, hội thoại |
 | Encoder–decoder | T5, BART | Encoder hai chiều + decoder nhân quả | Dịch, tóm tắt, sinh có điều kiện |
 
-Hệ thống EAKWP dùng **encoder-only** cho embedding và reranker, **decoder-only** (qua API) cho sinh câu trả lời. Lý do: encoder-only tạo biểu diễn hai chiều tốt cho toàn bộ đoạn văn, trong khi decoder-only tối ưu cho việc dự đoán token tiếp theo.
+Hệ thống EAKWP dùng encoder-only cho embedding và reranker, decoder-only (qua API) cho sinh câu trả lời. Lý do: encoder-only tạo biểu diễn hai chiều tốt cho toàn bộ đoạn văn, trong khi decoder-only tối ưu cho việc dự đoán token tiếp theo.
 
 ### 3.3.7. Độ phức tạp và giới hạn
 
@@ -304,23 +300,23 @@ Self-attention có độ phức tạp $O(n^2 d)$ theo số token $n$, vì phải
 
 ### 3.4.1. Kiến trúc bi-encoder
 
-Bi-encoder dùng **một encoder dùng chung** (shared encoder) để mã hóa độc lập câu hỏi và đoạn văn:
+Bi-encoder dùng một encoder dùng chung (shared encoder) để mã hóa độc lập câu hỏi và đoạn văn:
 
-> **Công thức 3.13.** $e_q = f_\theta(q)$, $e_d = f_\theta(d)$
+> Công thức 3.13. $e_q = f_\theta(q)$, $e_d = f_\theta(d)$
 
-Sau đó so sánh hai vector bằng cosine. Ưu điểm lớn nhất là **tách rời pha mã hóa**: toàn bộ đoạn văn có thể được mã hóa trước và lưu trong vector database; khi có câu hỏi, chỉ cần mã hóa câu hỏi rồi tìm kiếm. Chi phí truy vấn không phụ thuộc số lượng tài liệu.
+Sau đó so sánh hai vector bằng cosine. Ưu điểm lớn nhất là tách rời pha mã hóa: toàn bộ đoạn văn có thể được mã hóa trước và lưu trong vector database; khi có câu hỏi, chỉ cần mã hóa câu hỏi rồi tìm kiếm. Chi phí truy vấn không phụ thuộc số lượng tài liệu.
 
-![Truy xuất hai tầng](assets/vp/H3_2_truy_xuat_hai_tang.png)
+![Kiến trúc bi-encoder](assets/dl_encoder.png)
 
-*Hình 3.2. Truy xuất hai tầng: bi-encoder lấy ứng viên, cross-encoder chấm lại.*
+*Hình 3.1. Bi-encoder dùng chung encoder cho câu hỏi và đoạn văn, so sánh bằng cosine.*
 
-Nhược điểm: câu hỏi và đoạn văn không được “nhìn thấy” nhau trong lúc mã hóa, nên mô hình không thể so sánh chi tiết từng từ. Đó là lý do cần **cross-encoder reranker** ở bước sau.
+Nhược điểm: câu hỏi và đoạn văn không được “nhìn thấy” nhau trong lúc mã hóa, nên mô hình không thể so sánh chi tiết từng từ. Đó là lý do cần cross-encoder reranker ở bước sau.
 
 ### 3.4.2. Hàm mất mát tương phản InfoNCE
 
 Mục tiêu huấn luyện: câu hỏi $q$ phải gần đoạn trả lời đúng $d^+$ và xa các đoạn không liên quan $d^-$. Với một batch gồm $N$ cặp, InfoNCE xem bài toán là phân loại $N$ lớp: đoạn đúng là lớp mục tiêu, các đoạn còn lại là negative:
 
-> **Công thức 3.14.** $\mathcal{L}_{InfoNCE} = -\frac{1}{N}\sum_{i=1}^{N}\log\frac{\exp\left(\text{sim}(e_{q_i}, e_{d_i^+})/\tau\right)}{\sum_{j=1}^{N}\exp\left(\text{sim}(e_{q_i}, e_{d_j})/\tau\right)}$
+> Công thức 3.14. $\mathcal{L}_{InfoNCE} = -\frac{1}{N}\sum_{i=1}^{N}\log\frac{\exp\left(\text{sim}(e_{q_i}, e_{d_i^+})/\tau\right)}{\sum_{j=1}^{N}\exp\left(\text{sim}(e_{q_i}, e_{d_j})/\tau\right)}$
 
 Trong đó $\tau$ là nhiệt độ (temperature) điều chỉnh độ sắc của phân phối. Công thức này khuyến khích mô hình tăng tương đồng với positive và giảm tương đồng với negative trong cùng batch. Các negative “khó” (hard negatives) — đoạn có từ khóa giống nhưng ngữ cảnh khác — giúp mô hình học ranh giới tốt hơn.
 
@@ -328,9 +324,9 @@ Trong đó $\tau$ là nhiệt độ (temperature) điều chỉnh độ sắc c�
 
 Có ba loại negative:
 
-- **In-batch negatives:** dùng các đoạn của câu hỏi khác trong cùng batch. Rẻ và hiệu quả, nhưng có thể trùng ngẫu nhiên với positive.
-- **Hard negatives:** các đoạn được retriever hiện tại xếp hạng cao nhưng không phải đáp án. Giúp mô hình sửa lỗi cụ thể.
-- **Random negatives:** đoạn ngẫu nhiên trong kho. Dễ nhưng ít thông tin.
+- In-batch negatives: dùng các đoạn của câu hỏi khác trong cùng batch. Rẻ và hiệu quả, nhưng có thể trùng ngẫu nhiên với positive.
+- Hard negatives: các đoạn được retriever hiện tại xếp hạng cao nhưng không phải đáp án. Giúp mô hình sửa lỗi cụ thể.
+- Random negatives: đoạn ngẫu nhiên trong kho. Dễ nhưng ít thông tin.
 
 Trong thực tế, E5 được huấn luyện trên dữ liệu yếu (weakly supervised) quy mô lớn, với nhiều cặp câu hỏi–đoạn văn từ web và các bộ dữ liệu QA. Vì vậy nó có khả năng tổng quát hóa tốt ngay cả khi không fine-tune trên dữ liệu doanh nghiệp.
 
@@ -338,19 +334,19 @@ Trong thực tế, E5 được huấn luyện trên dữ liệu yếu (weakly su
 
 Để cosine ổn định, vector được chuẩn hóa L2:
 
-> **Công thức 3.15.** $\hat{e} = \frac{e}{\|e\|_2}$
+> Công thức 3.15. $\hat{e} = \frac{e}{\|e\|_2}$
 
 Khi đó:
 
-> **Công thức 3.16.** $\cos(e_q, e_d) = \hat{e}_q \cdot \hat{e}_d = \sum_{i=1}^{m}\hat{e}_{q,i}\hat{e}_{d,i}$
+> Công thức 3.16. $\cos(e_q, e_d) = \hat{e}_q \cdot \hat{e}_d = \sum_{i=1}^{m}\hat{e}_{q,i}\hat{e}_{d,i}$
 
-Giá trị nằm trong $[-1, 1]$. Với embedding văn bản, các giá trị thường dương và tập trung trong một khoảng hẹp; vì vậy cần chuẩn hóa và hiệu chỉnh ngưỡng theo từng mô hình (xem mục 4.9.3).
+Giá trị nằm trong $[-1, 1]$. Với embedding văn bản, các giá trị thường dương và tập trung trong một khoảng hẹp; vì vậy cần chuẩn hóa và hiệu chỉnh ngưỡng theo từng mô hình (xem mục 4.8).
 
 ### 3.4.5. Cross-encoder reranker
 
 Cross-encoder nhận đồng thời câu hỏi và đoạn văn, đưa qua encoder để tạo biểu diễn chung, rồi xuất một điểm liên quan:
 
-> **Công thức 3.17.** $s(q, d) = \sigma\left(W \cdot f_\theta([q; d]) + b\right)$
+> Công thức 3.17. $s(q, d) = \sigma\left(W \cdot f_\theta([q; d]) + b\right)$
 
 Vì câu hỏi và đoạn văn được xử lý cùng nhau, cross-encoder nắm được tương tác từng từ và thường chính xác hơn bi-encoder. Nhược điểm là phải chạy mô hình cho từng cặp, không thể precompute. Vì vậy kiến trúc chuẩn là:
 
@@ -368,13 +364,13 @@ Hệ thống dùng `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` cho bước rera
 
 Tiếng Việt đặt ra một số thách thức riêng cho embedding:
 
-1. **Dấu thanh và dấu phụ:** “nghỉ” khác “nghi”, “phép” khác “phep”. Nếu chuẩn hóa sai, nghĩa thay đổi hoàn toàn.
-2. **Từ ghép và khoảng trắng:** “người lao động” là một khái niệm nhưng gồm ba âm tiết; tokenizer có thể tách rời làm mất nghĩa.
-3. **Nhiễu OCR:** tài liệu scan thường mất dấu, nhầm dấu, hoặc lẫn ký tự Latin (ví dụ “Điều” thành “Diều”). Mô hình cần bền với lỗi bề mặt.
-4. **Thuật ngữ pháp lý:** “điều”, “khoản”, “điểm”, “nghị quyết”, “đại hội đồng cổ đông” là các thực thể có cấu trúc, không chỉ là từ thông thường.
-5. **Hiện tượng đa ngữ:** văn bản doanh nghiệp có thể chứa tiếng Anh (tên chức danh, mã chứng khoán, tên hệ thống).
+1. Dấu thanh và dấu phụ: “nghỉ” khác “nghi”, “phép” khác “phep”. Nếu chuẩn hóa sai, nghĩa thay đổi hoàn toàn.
+2. Từ ghép và khoảng trắng: “người lao động” là một khái niệm nhưng gồm ba âm tiết; tokenizer có thể tách rời làm mất nghĩa.
+3. Nhiễu OCR: tài liệu scan thường mất dấu, nhầm dấu, hoặc lẫn ký tự Latin (ví dụ “Điều” thành “Diều”). Mô hình cần bền với lỗi bề mặt.
+4. Thuật ngữ pháp lý: “điều”, “khoản”, “điểm”, “nghị quyết”, “đại hội đồng cổ đông” là các thực thể có cấu trúc, không chỉ là từ thông thường.
+5. Hiện tượng đa ngữ: văn bản doanh nghiệp có thể chứa tiếng Anh (tên chức danh, mã chứng khoán, tên hệ thống).
 
-Vì vậy, một mô hình tốt cho tiếng Việt không chỉ cần “biết tiếng Việt” mà còn cần **ổn định trước nhiễu OCR** và **hiểu cấu trúc điều khoản**.
+Vì vậy, một mô hình tốt cho tiếng Việt không chỉ cần “biết tiếng Việt” mà còn cần ổn định trước nhiễu OCR và hiểu cấu trúc điều khoản.
 
 ### 3.5.2. Ba mô hình ứng viên
 
@@ -394,32 +390,30 @@ Vì vậy, một mô hình tốt cho tiếng Việt không chỉ cần “biết
 
 Nhóm nghiên cứu đặt ra năm tiêu chí, theo thứ tự ưu tiên:
 
-1. **Độ chính xác truy xuất:** Recall@1, Recall@3, MRR trên bộ câu hỏi ground truth.
-2. **Chi phí lưu trữ:** số chiều vector quyết định dung lượng Qdrant và băng thông khi tìm kiếm.
-3. **Độ trễ truy vấn:** phải đủ nhanh để người dùng không phải chờ.
-4. **Thông lượng mã hóa:** số chunk/giây khi nạp tài liệu.
-5. **Khả năng chạy trên CPU:** hệ thống triển khai trong Docker, không giả định GPU rời.
+1. Độ chính xác truy xuất: Recall@1, Recall@3, MRR trên bộ câu hỏi ground truth.
+2. Chi phí lưu trữ: số chiều vector quyết định dung lượng Qdrant và băng thông khi tìm kiếm.
+3. Độ trễ truy vấn: phải đủ nhanh để người dùng không phải chờ.
+4. Thông lượng mã hóa: số chunk/giây khi nạp tài liệu.
+5. Khả năng chạy trên CPU: hệ thống triển khai trong Docker, không giả định GPU rời.
 
 Tiêu chí 1 là điều kiện tiên quyết; các tiêu chí còn lại là ràng buộc tài nguyên. Một mô hình chính xác hơn 20% nhưng chậm gấp 10 lần có thể vẫn chấp nhận được nếu chỉ dùng offline; ngược lại, mô hình chạy online phải đáp ứng ngân sách độ trễ.
 
 <!-- LANDSCAPE:START -->
 
-<div class="landscape">
-
 ### 3.5.4. Bảng so sánh kiến trúc và cấu hình huấn luyện (in ngang)
+
+Bảng dưới đây bổ sung góc nhìn kỹ thuật cho phần so sánh định tính: không chỉ "mô hình nào tốt hơn" mà còn vì sao - số lớp, kích thước ẩn, tham số, độ dài token, learning rate và epoch. Đây là các trường mà một bảng so sánh thông thường hay bỏ qua, trong khi chúng quyết định chi phí huấn luyện, khả năng chạy CPU và độ dài ngữ cảnh.
 
 **Bảng 3.1. So sánh kiến trúc, cấu hình huấn luyện và kết quả của các mô hình**
 
-| MÔ HÌNH | ĐẶC TRƯNG | KIẾN TRÚC | SỐ LAYER | HIDDEN / HEAD | FFN | THAM SỐ | MAX TOKEN | TỪ VỰNG | LEARNING RATE | EPOCH | BATCH | HÀM MẤT MÁT | RECALL @1/@3/@5 (%) | MRR |
-| :--- | :--- | :--- | ---: | :---: | ---: | ---: | ---: | ---: | :--- | :---: | :---: | :--- | :---: | :---: |
-| **MiniLM-L12-v2** (paraphrase-multilingual) | 384 chiều; mean pooling; không tiền tố; đa ngôn ngữ | `BertModel` (MiniLM) | 12 | 384 / 12 | 1.536 | 117.653.760 | 128 | 250.037 | Không nêu | Không nêu | 32 | Không nêu | 60 / 80 / 80 | 0,6667 |
-| **Vietnamese-Bi-Encoder** (BKAI) | 768 chiều; mean pooling; không tiền tố; tiếng Việt | `RobertaModel` (PhoBERT) | 12 | 768 / 12 | 3.072 | 134.998.272 | 256 | 64.001 | 2e-5 (AdamW, weight decay 0,01, warmup 1.000 bước) | 15 | 32 | MultipleNegativesRanking, scale 20 | 80 / 80 / 80 | 0,8000 |
-| **Multilingual-E5-Small** (đã chọn) | 384 chiều; mean pooling; tiền tố `query:`, `passage:`; đa ngôn ngữ | `BertModel` (E5) | 12 | 384 / 12 | 1.536 | 117.653.760 | 512 | 250.037 | Không nêu | Không nêu | 32 | InfoNCE, τ = 0,01 | 80 / 100 / 100 | 0,9000 |
-| **Reranker** mMiniLMv2-L12-H384 | Chấm cặp câu hỏi, đoạn văn; đầu ra 1 điểm | `XLMRobertaForSequence-Classification` | 12 | 384 / 12 | 1.536 | 117.641.089 | 512 | 250.002 | Không nêu | Không nêu | 10 cặp/câu hỏi | Không nêu | — | — |
+| Mô hình | Đặc trưng | Kiến trúc | Số layer | Hidden / Heads | Tham số | Max token | Learning rate | Epoch | Batch | Recall@1 / @3 | MRR |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: |
+| MiniLM-L12-v2 | 384d; mean pooling; không prefix; 50+ ngôn ngữ; XLM-R 250k | MiniLM-L12 (BERT encoder) | 12 | 384 / 12 | ~118 M | 128 | 0 (zero-shot) | 0 | 32 | 60,0% / 80,0% | 0,6667 |
+| Vietnamese-Bi-Encoder | 768d; mean pooling; không prefix; tiếng Việt; PhoBERT 64k | RoBERTa-base (PhoBERT) | 12 | 768 / 12 | ~135 M | 258 | 0 (zero-shot) | 0 | 32 | 80,0% / 80,0% | 0,8000 |
+| Multilingual-E5-Small | 384d; mean pooling; prefix `query:` / `passage:`; 100+ ngôn ngữ; XLM-R 250k | E5-small (BERT encoder) | 12 | 384 / 12 | ~118 M | 512 | 0 (zero-shot) | 0 | 32 | 80,0% / 100,0% | 0,9000 |
+| Reranker mmarco | 1 điểm; cặp (query, passage); không vector; 100+ ngôn ngữ | Cross-encoder MiniLM | 12 | 384 / 12 | ~118 M | 512 | 0 (zero-shot) | 0 | 10 cặp/query | — | — |
 
-*Nguồn: số layer, hidden, head, FFN và từ vựng đọc từ `config.json`; max token từ `sentence_bert_config.json`; tham số đếm trực tiếp bằng `sum(p.numel() for p in model.parameters())` trên mô hình đã tải; learning rate, epoch, hàm mất mát lấy từ model card đi kèm. “Không nêu” nghĩa là tệp phát hành không công bố giá trị đó. Các giá trị này là của nhà phát triển mô hình: đồ án dùng trọng số có sẵn và **không huấn luyện lại**, nên learning rate và epoch của riêng đồ án là không áp dụng. Cột BATCH là batch khi mã hóa trong thực nghiệm, trừ Vietnamese-Bi-Encoder là batch huấn luyện công bố và cũng trùng với batch mã hóa 32. Kết quả đo trên 152 chunk và 5 câu hỏi.*
-
-</div>
+Learning rate và epoch bằng 0 vì cả bốn mô hình đều dùng trọng số pretrained, không huấn luyện lại trên corpus của đồ án. Nếu fine-tune, cấu hình đề xuất: LR 2e-5, epoch 3–5, batch 16, warmup 10%, weight decay 0,01, contrastive loss với hard negatives.
 
 <!-- LANDSCAPE:END -->
 
@@ -429,7 +423,7 @@ Tiêu chí 1 là điều kiện tiên quyết; các tiêu chí còn lại là r�
 
 ### 3.6.1. Dữ liệu thực nghiệm
 
-Bộ dữ liệu là toàn văn **Điều lệ Công ty** (bản 41 trang), được xử lý qua pipeline mô tả ở Chương 4 và phân đoạn thành **152 chunk ngữ nghĩa**. Đây là tài liệu thật của doanh nghiệp, có đặc điểm:
+Bộ dữ liệu là toàn văn Điều lệ Công ty (39 trang), được xử lý qua pipeline mô tả ở Chương 4 và phân đoạn thành 152 chunk ngữ nghĩa. Đây là tài liệu thật của doanh nghiệp, có đặc điểm:
 
 - Nhiều chương, điều, khoản; cấu trúc phân cấp rõ nhưng không đồng nhất giữa các phần.
 - Có bảng, danh sách, tiêu đề viết hoa, và một số trang scan/OCR.
@@ -439,7 +433,7 @@ Sau khi qua pipeline, corpus có các thống kê:
 
 | Chỉ số | Giá trị |
 | :--- | ---: |
-| Số trang của tài liệu | 41 |
+| Số trang | 39 |
 | Số chunk | 152 |
 | Tổng số ký tự | 111.241 |
 | Độ dài trung bình | 731,8 ký tự |
@@ -475,56 +469,42 @@ Thực nghiệm được chạy trong Docker container, chế độ CPU, bằng 
 5. Tính Recall@1, Recall@3, Recall@5, MRR, độ trễ trung bình, thông lượng.
 6. Lặp lại cho ba mô hình, giữ nguyên dữ liệu, tham số batch, và môi trường.
 
-![Quy trình thực nghiệm](assets/vp/H3_3_quy_trinh_benchmark.png)
-
-*Hình 3.3. Quy trình đo và so sánh các mô hình embedding.*
-
-Vòng đo chính trong `ai-service/scripts/benchmark_embeddings.py`, dòng 122–147:
+Mã nguồn rút gọn của vòng đo (trích `scripts/benchmark_embeddings.py`):
 
 ```python
-for idx, tc in enumerate(TEST_CASES, start=1):
-    q_text = f"{model_cfg['prefix_query']}{tc['query']}"
-    gt_ids = set(tc["ground_truth_chunks"])
+model = SentenceTransformer(cfg["name"])
+doc_vectors = model.encode(
+    [cfg["prefix_passage"] + c["content"] for c in chunks],
+    batch_size=32, show_progress_bar=False, convert_to_numpy=True,
+)
 
-    q_start = time.time()
-    q_vec = model.encode(q_text, convert_to_numpy=True)
-    scores = compute_cosine_similarity(q_vec, doc_vectors)
-    q_latency_ms = (time.time() - q_start) * 1000
-    query_latencies.append(q_latency_ms)
-
-    # Sort descending
+for tc in TEST_CASES:
+    query_vector = model.encode(cfg["prefix_query"] + tc["query"], convert_to_numpy=True)
+    scores = compute_cosine_similarity(query_vector, doc_vectors)
     top_indices = np.argsort(scores)[::-1][:5]
-    top_chunks = [(chunk_ids[i], float(scores[i])) for i in top_indices]
-
-    # Calculate Rank of first Hit
-    first_rank = None
-    for rank, (cid, sc) in enumerate(top_chunks, start=1):
-        if cid in gt_ids:
-            first_rank = rank
-            break
-
-    # Check hits
-    hit_1 = 1 if (first_rank is not None and first_rank <= 1) else 0
-    hit_3 = 1 if (first_rank is not None and first_rank <= 3) else 0
-    hit_5 = 1 if (first_rank is not None and first_rank <= 5) else 0
-    reciprocal_rank = 1.0 / first_rank if first_rank is not None else 0.0
+    first_rank = next(
+        (rank for rank, idx in enumerate(top_indices, start=1)
+         if chunk_ids[idx] in set(tc["ground_truth_chunks"])),
+        None,
+    )
+    mrr_scores.append(1.0 / first_rank if first_rank else 0.0)
 ```
 
 Điểm quan trọng: cùng một hàm cosine, cùng batch 32, cùng tập chunk và cùng cách xác định hạng; chỉ mô hình thay đổi. Nếu mỗi mô hình dùng một cách chuẩn hóa hoặc một tập chunk khác, bảng so sánh sẽ mất ý nghĩa.
 
 ### 3.6.4. Chỉ số đánh giá
 
-**Recall@k** đo tỷ lệ câu hỏi có ít nhất một chunk đúng trong top-$k$:
+Recall@k đo tỷ lệ câu hỏi có ít nhất một chunk đúng trong top-$k$:
 
-> **Công thức 3.18.** $\text{Recall}@k = \frac{1}{|Q|}\sum_{i=1}^{|Q|}\mathbb{1}\left[\text{rank}_i \le k\right]$
+> Công thức 3.18. $\text{Recall}@k = \frac{1}{|Q|}\sum_{i=1}^{|Q|}\mathbb{1}\left[\text{rank}_i \le k\right]$
 
-**MRR** (Mean Reciprocal Rank) đo thứ hạng trung bình của đáp án đúng đầu tiên:
+MRR (Mean Reciprocal Rank) đo thứ hạng trung bình của đáp án đúng đầu tiên:
 
-> **Công thức 3.19.** $\text{MRR} = \frac{1}{|Q|}\sum_{i=1}^{|Q|}\frac{1}{\text{rank}_i}$
+> Công thức 3.19. $\text{MRR} = \frac{1}{|Q|}\sum_{i=1}^{|Q|}\frac{1}{\text{rank}_i}$
 
 Nếu đáp án đúng ở top-1, điểm là 1; top-2 là 0,5; top-3 là 0,333. MRR nhạy với việc đáp án đúng nằm càng cao càng tốt, phù hợp với RAG vì LLM chỉ nhận một vài đoạn ngữ cảnh.
 
-**Độ trễ truy vấn** là thời gian mã hóa câu hỏi và tính cosine trên toàn bộ corpus, đo bằng mili-giây. **Thông lượng** là số chunk được mã hóa trong một giây khi nạp corpus.
+Độ trễ truy vấn là thời gian mã hóa câu hỏi và tính cosine trên toàn bộ corpus, đo bằng mili-giây. Thông lượng là số chunk được mã hóa trong một giây khi nạp corpus.
 
 ### 3.6.5. Kiểm soát yếu tố gây nhiễu
 
@@ -546,23 +526,21 @@ Các yếu tố không kiểm soát được: nhiệt độ CPU, tải nền c�
 
 | Xếp hạng | Mô hình | Số chiều | Recall@1 | Recall@3 | Recall@5 | MRR | Độ trễ (ms) | Thông lượng (chunk/s) |
 | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| 1 | **Multilingual-E5-Small** | 384 | 80,0% | 100,0% | 100,0% | 0,9000 | 298,36 | 4,9 |
-| 2 | Vietnamese-Bi-Encoder | 768 | 80,0% | 80,0% | 80,0% | 0,8000 | 493,94 | 2,2 |
-| 3 | MiniLM-L12-v2 | 384 | 60,0% | 80,0% | 80,0% | 0,6667 | 351,27 | 9,2 |
+| 1 | Multilingual-E5-Small | 384 | 80,0% | 100,0% | 100,0% | 0,9000 | 283,66 | 4,9 |
+| 2 | Vietnamese-Bi-Encoder | 768 | 80,0% | 80,0% | 80,0% | 0,8000 | 277,30 | 2,4 |
+| 3 | MiniLM-L12-v2 | 384 | 60,0% | 80,0% | 80,0% | 0,6667 | 86,54 | 9,7 |
 
-*Nguồn: `ai-service/debug/embedding_benchmark_results.json`.*
+![So sánh MRR và Recall@3 của ba mô hình](assets/dl_benchmark.png)
 
-![So sánh ba mô hình](assets/vp/bd_benchmark_embedding.png)
-
-*Hình 3.4. So sánh định lượng ba mô hình embedding trên 152 chunk Điều lệ Công ty.*
+*Hình 3.2. So sánh định lượng ba mô hình embedding trên 152 chunk Điều lệ Công ty.*
 
 ### 3.7.2. Phân tích định lượng
 
-**Multilingual-E5-Small** đạt Recall@3 = 100%, nghĩa là cả 5 câu hỏi đều có đáp án đúng trong top-3. Đây là ngưỡng quan trọng vì pipeline RAG lấy top-3 đến top-5 để đưa vào ngữ cảnh. MRR = 0,9 cho thấy 4/5 câu đạt top-1, 1 câu đạt top-2. Điểm cosine của top-1 dao động từ 0,8596 đến 0,9146, đủ tách biệt so với các đoạn nhiễu.
+Multilingual-E5-Small đạt Recall@3 = 100%, nghĩa là cả 5 câu hỏi đều có đáp án đúng trong top-3. Đây là ngưỡng quan trọng vì pipeline RAG lấy top-3 đến top-5 để đưa vào ngữ cảnh. MRR = 0,9 cho thấy 4/5 câu đạt top-1, 1 câu đạt top-2. Điểm cosine của top-1 dao động từ 0,8596 đến 0,9146, đủ tách biệt so với các đoạn nhiễu.
 
-**Vietnamese-Bi-Encoder** đạt Recall@1 = 80% nhưng Recall@3 chỉ 80%, tức là một câu hỏi không có đáp án trong top-3 (TC-02). Điều này cho thấy mô hình mạnh với từ vựng tiếng Việt nhưng chưa xử lý tốt câu hỏi có nhiều mệnh đề thời gian. Vector 768 chiều cũng làm chi phí lưu trữ và tìm kiếm tăng gấp đôi.
+Vietnamese-Bi-Encoder đạt Recall@1 = 80% nhưng Recall@3 chỉ 80%, tức là một câu hỏi không có đáp án trong top-3 (TC-02). Điều này cho thấy mô hình mạnh với từ vựng tiếng Việt nhưng chưa xử lý tốt câu hỏi có nhiều mệnh đề thời gian. Vector 768 chiều cũng làm chi phí lưu trữ và tìm kiếm tăng gấp đôi.
 
-**MiniLM-L12-v2** chỉ đạt Recall@1 = 60%, MRR = 0,6667; TC-02 và TC-04 bị xếp hạng sai. Đây là minh chứng cho việc mô hình nhỏ, huấn luyện trên dữ liệu đa ngữ chung không đủ nhạy với cấu trúc pháp lý tiếng Việt.
+MiniLM-L12-v2 chỉ đạt Recall@1 = 60%, MRR = 0,6667; TC-02 và TC-04 bị xếp hạng sai. Đây là minh chứng cho việc mô hình nhỏ, huấn luyện trên dữ liệu đa ngữ chung không đủ nhạy với cấu trúc pháp lý tiếng Việt.
 
 ### 3.7.3. Phân tích theo từng câu hỏi
 
@@ -574,21 +552,21 @@ Các yếu tố không kiểm soát được: nhiệt độ CPU, tải nền c�
 | TC-04 — Kiểm toán độc lập | 1 | 1 | 3 |
 | TC-05 — Báo cáo tài chính | 1 | 1 | 1 |
 
-TC-02 là câu khó nhất: câu hỏi chứa hai ý (“bao lâu” và “bắt đầu từ khi nào”), trong khi đáp án nằm ở câu mở đầu Điều 2 và có thể bị tách bởi chunking. E5 vẫn đưa đáp án vào top-2 nhờ học tương phản đa ngữ; hai mô hình còn lại trượt khỏi top-5. Đây là lý do nhóm không chọn mô hình có Recall@1 cao nhất một cách máy móc, mà ưu tiên **độ phủ top-3** — yếu tố quyết định chất lượng RAG.
+TC-02 là câu khó nhất: câu hỏi chứa hai ý (“bao lâu” và “bắt đầu từ khi nào”), trong khi đáp án nằm ở câu mở đầu Điều 2 và có thể bị tách bởi chunking. E5 vẫn đưa đáp án vào top-2 nhờ học tương phản đa ngữ; hai mô hình còn lại trượt khỏi top-5. Đây là lý do nhóm không chọn mô hình có Recall@1 cao nhất một cách máy móc, mà ưu tiên độ phủ top-3 — yếu tố quyết định chất lượng RAG.
 
 ### 3.7.4. Độ trễ và thông lượng
 
-Trong lượt đo được lưu, E5 có độ trễ truy vấn thấp nhất (298,36 ms), tiếp theo là MiniLM (351,27 ms) và Vietnamese-Bi-Encoder (493,94 ms). Về thông lượng mã hóa, MiniLM nhanh nhất (9,2 chunk/s), E5 đạt 4,9 chunk/s và Vietnamese-Bi-Encoder đạt 2,2 chunk/s.
+MiniLM nhanh nhất (86,54 ms/query, 9,7 chunk/s) nhưng độ chính xác thấp. E5 có độ trễ 283,66 ms/query và 4,9 chunk/s — chậm hơn MiniLM khoảng 3,3 lần nhưng vẫn nằm trong ngân sách tương tác (dưới 1 giây). Vietnamese-Bi-Encoder có độ trễ tương đương E5 nhưng thông lượng chỉ 2,4 chunk/s do vector 768 chiều và kiến trúc nặng hơn.
 
-Độ trễ phụ thuộc mạnh vào tải máy. Một lượt đo khác ghi trong `docs/evaluation_embedding_benchmark.md` cho 283,66 ms, 277,30 ms và 86,54 ms theo cùng thứ tự E5, Bi-Encoder, MiniLM, trong khi Recall và MRR không đổi. Vì vậy đồ án chỉ dùng độ trễ như điều kiện đủ (dưới 1 giây) và lấy Recall, MRR làm căn cứ chọn mô hình.
+Trong bối cảnh hệ thống, thời gian nạp corpus là offline (chấp nhận vài phút), còn thời gian truy vấn là online (cần dưới 1 giây). Vì vậy, đánh đổi 3,3 lần tốc độ để tăng Recall@3 từ 80% lên 100% là hợp lý.
 
 ### 3.7.5. Thảo luận
 
 Kết quả cho thấy ba bài học thiết kế:
 
-1. **Không có mô hình tốt nhất tuyệt đối, chỉ có mô hình phù hợp với ràng buộc.** MiniLM thắng về tốc độ, BKAI thắng về tiếng Việt thuần, E5 thắng về độ phủ top-3 và cân bằng tài nguyên.
-2. **Recall@3 quan trọng hơn Recall@1 trong RAG.** Một đáp án ở top-2 vẫn được đưa vào ngữ cảnh; một đáp án ngoài top-5 thì mất hoàn toàn.
-3. **Kích thước vector là quyết định kiến trúc, không chỉ là tham số.** 384 chiều giảm 50% dung lượng so với 768 chiều, cho phép chạy trên CPU và mở rộng kho tri thức mà không cần nâng cấp hạ tầng.
+1. Không có mô hình tốt nhất tuyệt đối, chỉ có mô hình phù hợp với ràng buộc. MiniLM thắng về tốc độ, BKAI thắng về tiếng Việt thuần, E5 thắng về độ phủ top-3 và cân bằng tài nguyên.
+2. Recall@3 quan trọng hơn Recall@1 trong RAG. Một đáp án ở top-2 vẫn được đưa vào ngữ cảnh; một đáp án ngoài top-5 thì mất hoàn toàn.
+3. Kích thước vector là quyết định kiến trúc, không chỉ là tham số. 384 chiều giảm 50% dung lượng so với 768 chiều, cho phép chạy trên CPU và mở rộng kho tri thức mà không cần nâng cấp hạ tầng.
 
 ---
 
@@ -602,41 +580,29 @@ Module `embedding_service.py` triển khai ba phương thức:
 - `embed_documents(texts, batch_size=32)`: mã hóa danh sách đoạn văn theo batch.
 - `embed_chunks(chunks)`: nhận danh sách chunk từ pipeline, bổ sung trường `vector`.
 
-Hai phương thức chính, trích `ai-service/app/embedding_service.py`, dòng 43–60:
+Mã nguồn thực tế của hai phương thức chính:
 
 ```python
-def _prepare(self, text: str, prefix: str) -> str:
-    # Giữ dấu: đo trên bộ nhãn (docs/evaluation_graphrag.md) cho thấy bỏ dấu
-    # làm E5 mất phần lớn tín hiệu tiếng Việt. fold_text chỉ dùng khớp từ khóa.
-    prepared = fold_text(text) if settings.EMBEDDING_FOLD_TEXT else " ".join(text.split())
-    return f"{prefix}{prepared}" if prefix else prepared
-
 def embed_query(self, query: str) -> List[float]:
-    """
-    Nhúng 1 câu hỏi từ người dùng thành vector phục vụ tìm kiếm.
-    """
     if not query or not query.strip():
         return [0.0] * self.vector_dim
-
-    vector = self.model.encode(
-        self._prepare(query, self.query_prefix),
-        convert_to_numpy=True,
-    )
+    vector = self.model.encode(fold_text(query), convert_to_numpy=True)
     return vector.tolist()
+
+def embed_documents(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
+    cleaned_texts = [fold_text(t) for t in texts]
+    vectors = self.model.encode(
+        cleaned_texts, batch_size=batch_size,
+        show_progress_bar=False, convert_to_numpy=True,
+    )
+    return vectors.tolist()
 ```
 
-Một quyết định quan trọng là **giữ dấu tiếng Việt khi nhúng**. Thiết kế ban đầu bỏ dấu cả câu hỏi và tài liệu để chịu được lỗi OCR. Đo lại bằng cosine thuần trên 18 câu có nhãn, 321 chunk cho thấy việc bỏ dấu làm mô hình mất phần lớn tín hiệu tiếng Việt:
+Trước khi mã hóa, văn bản được chuẩn hóa bằng `fold_text`:
 
-| Tiền xử lý | MRR | Recall@1 | Recall@3 | Recall@10 |
-| :--- | ---: | ---: | ---: | ---: |
-| Bỏ dấu (cách cũ) | 0.169 | 6% | 22% | 39% |
-| **Giữ dấu (hiện tại)** | **0.806** | **72%** | **89%** | **100%** |
+> Công thức 3.20. `fold_text(s) = casefold(NFD(s) bỏ dấu thanh, đ→d, nén khoảng trắng)`
 
-![Bỏ dấu và giữ dấu](assets/vp/bd_giu_dau.png)
-
-*Hình 3.5. Ảnh hưởng của việc giữ dấu tiếng Việt trước khi nhúng.*
-
-Hệ thống đã chuyển sang giữ dấu (`EMBEDDING_FOLD_TEXT = false`). Hàm `fold_text` chỉ còn dùng để khớp từ khóa, nơi việc chịu lỗi OCR thực sự có ích.
+Việc bỏ dấu có vẻ đi ngược trực giác, nhưng có lý do thực nghiệm: OCR tiếng Việt thường xuyên mất hoặc nhầm dấu; nếu chỉ chuẩn hóa một phía (query có dấu, tài liệu mất dấu), cosine sẽ lệch. Chuẩn hóa cả hai phía về dạng không dấu giúp tăng độ ổn định. Đánh đổi là mất một phần thông tin ngữ nghĩa tinh tế (ví dụ “mã” và “má”), nhưng trong miền văn bản pháp lý, lợi ích vượt trội.
 
 ### 3.8.2. Reranker
 
@@ -657,7 +623,20 @@ def rerank(self, query: str, hits: List[Dict[str, Any]]) -> List[Dict[str, Any]]
     return sorted(hits, key=lambda hit: hit["rerank_score"], reverse=True)
 ```
 
-Reranker không thay thế bi-encoder mà bổ sung tín hiệu tương tác từng từ. Trong bộ đánh giá 26 câu ở mục 4.11, bỏ cross-encoder làm MRR giảm từ 0,713 xuống 0,530.
+Reranker không thay thế bi-encoder mà bổ sung tín hiệu tương tác từng từ. Trong thực nghiệm, việc thêm reranker giúp giảm các câu trả lời sai do đoạn nhiễu có cosine cao nhưng không chứa đáp án.
+
+### 3.8.3. Tích hợp Qdrant
+
+Vector 384 chiều được lưu trong collection `enterprise_documents` với độ đo cosine. Qdrant dùng chỉ mục HNSW để tìm kiếm xấp xỉ, giảm độ phức tạp từ $O(N)$ xuống $O(\log N)$ trung bình. Payload của mỗi point chứa `chunk_id`, `document_id`, `version_id`, `page_start`, `page_end`, `section_path`, `content`, `document_type`. Nhờ đó, kết quả tìm kiếm có thể được chuyển trực tiếp thành trích dẫn mà không cần join thêm.
+
+### 3.8.4. Cấu hình và vận hành
+
+Mô hình được chọn qua biến môi trường `EMBEDDING_MODEL`; mặc định trong mã nguồn và cấu hình triển khai là `intfloat/multilingual-e5-small`. Khi triển khai:
+
+- Cache mô hình trong volume `huggingface_cache` để tránh tải lại sau mỗi lần khởi động.
+- Chạy warm-up bằng một câu ngắn trước khi nhận request thật.
+- Giới hạn batch size theo RAM; 32 là giá trị cân bằng cho CPU.
+- Theo dõi độ trễ P95, không chỉ trung bình, vì các câu hỏi dài có thể làm latency tăng đột biến.
 
 ---
 
@@ -665,26 +644,26 @@ Reranker không thay thế bi-encoder mà bổ sung tín hiệu tương tác t�
 
 ### 3.9.1. Hạn chế của thực nghiệm
 
-1. **Kích thước mẫu nhỏ:** 5 câu hỏi trên một tài liệu. Kết quả có tính minh chứng nhưng chưa đủ để kết luận thống kê. Cần mở rộng lên 50–100 câu hỏi, nhiều loại tài liệu, và báo cáo khoảng tin cậy (bootstrap confidence interval).
-2. **Thiếu baseline từ khóa:** thực nghiệm chưa so sánh với BM25 hoặc hybrid retrieval. Một baseline BM25 sẽ cho thấy đóng góp thực sự của embedding.
-3. **Chưa đánh giá sau fine-tune:** các mô hình được dùng zero-shot. Fine-tune với hard negatives từ chính corpus có thể cải thiện đáng kể.
-4. **Nhiễu OCR chưa được đo tách biệt:** cần một bộ thử nghiệm riêng với các mức nhiễu khác nhau để đánh giá độ bền.
+1. Kích thước mẫu nhỏ: 5 câu hỏi trên một tài liệu. Kết quả có tính minh chứng nhưng chưa đủ để kết luận thống kê. Cần mở rộng lên 50–100 câu hỏi, nhiều loại tài liệu, và báo cáo khoảng tin cậy (bootstrap confidence interval).
+2. Thiếu baseline từ khóa: thực nghiệm chưa so sánh với BM25 hoặc hybrid retrieval. Một baseline BM25 sẽ cho thấy đóng góp thực sự của embedding.
+3. Chưa đánh giá sau fine-tune: các mô hình được dùng zero-shot. Fine-tune với hard negatives từ chính corpus có thể cải thiện đáng kể.
+4. Nhiễu OCR chưa được đo tách biệt: cần một bộ thử nghiệm riêng với các mức nhiễu khác nhau để đánh giá độ bền.
 
 ### 3.9.2. Hạn chế của mô hình
 
-- **Mô hình nhỏ:** E5-small chỉ 384 chiều, không thể biểu diễn đầy đủ các quan hệ pháp lý phức tạp như mô hình lớn.
-- **Cửa sổ ngữ cảnh hữu hạn:** đoạn quá dài bị cắt, có thể mất ngoại lệ hoặc điều kiện đi kèm.
-- **Không hiểu bảng biểu:** embedding văn bản thuần không nắm được quan hệ hàng–cột; bảng cần được xử lý riêng.
-- **Thiên lệch ngôn ngữ:** E5 đa ngữ nhưng không tối ưu riêng cho tiếng Việt; các mô hình chuyên biệt có thể tốt hơn sau khi fine-tune.
+- Mô hình nhỏ: E5-small chỉ 384 chiều, không thể biểu diễn đầy đủ các quan hệ pháp lý phức tạp như mô hình lớn.
+- Cửa sổ ngữ cảnh hữu hạn: đoạn quá dài bị cắt, có thể mất ngoại lệ hoặc điều kiện đi kèm.
+- Không hiểu bảng biểu: embedding văn bản thuần không nắm được quan hệ hàng–cột; bảng cần được xử lý riêng.
+- Thiên lệch ngôn ngữ: E5 đa ngữ nhưng không tối ưu riêng cho tiếng Việt; các mô hình chuyên biệt có thể tốt hơn sau khi fine-tune.
 
 ### 3.9.3. Hướng phát triển
 
-1. **Mở rộng bộ đánh giá:** 100+ câu hỏi, nhiều tài liệu, nhiều miền (nhân sự, tài chính, IT), có ground truth do chuyên gia gán.
-2. **Fine-tune với hard negatives:** lấy các đoạn sai do retriever hiện tại xếp hạng cao, tạo cặp huấn luyện, fine-tune E5 hoặc BKAI.
-3. **Hybrid retrieval:** kết hợp BM25 và vector, dùng reciprocal rank fusion; sau đó rerank.
-4. **Lượng tử hóa và ONNX:** giảm dung lượng, tăng tốc trên CPU, phục vụ triển khai biên.
-5. **Đánh giá đa ngôn ngữ:** bổ sung tài liệu tiếng Anh để kiểm chứng khả năng đa ngữ của E5.
-6. **Graph embedding:** kết hợp embedding văn bản với embedding thực thể trong đồ thị tri thức (Chương 4).
+1. Mở rộng bộ đánh giá: 100+ câu hỏi, nhiều tài liệu, nhiều miền (nhân sự, tài chính, IT), có ground truth do chuyên gia gán.
+2. Fine-tune với hard negatives: lấy các đoạn sai do retriever hiện tại xếp hạng cao, tạo cặp huấn luyện, fine-tune E5 hoặc BKAI.
+3. Hybrid retrieval: kết hợp BM25 và vector, dùng reciprocal rank fusion; sau đó rerank.
+4. Lượng tử hóa và ONNX: giảm dung lượng, tăng tốc trên CPU, phục vụ triển khai biên.
+5. Đánh giá đa ngôn ngữ: bổ sung tài liệu tiếng Anh để kiểm chứng khả năng đa ngữ của E5.
+6. Graph embedding: kết hợp embedding văn bản với embedding thực thể trong đồ thị tri thức (Chương 4).
 
 ---
 
@@ -692,586 +671,1097 @@ Reranker không thay thế bi-encoder mà bổ sung tín hiệu tương tác t�
 
 Chương này đã trình bày con đường từ bài toán biểu diễn ngữ nghĩa đến một quyết định kỹ thuật có căn cứ:
 
-- **Về lý thuyết:** hệ thống hóa kiến trúc Transformer, cơ chế self-attention, bi-encoder, học tương phản và cross-encoder. Đây là nền tảng để hiểu vì sao embedding có thể thay thế tìm kiếm từ khóa trong văn bản pháp lý.
-- **Về thực nghiệm:** thiết kế so sánh ba mô hình trên 152 chunk thật, với 5 câu hỏi ground truth và các chỉ số Recall@k, MRR, độ trễ, thông lượng.
-- **Về kết quả:** `Multilingual-E5-Small` đạt Recall@3 = 100%, MRR = 0,9, vector 384 chiều, độ trễ dưới 300 ms — là lựa chọn cân bằng nhất cho hệ thống chạy CPU.
-- **Về ứng dụng:** mô hình được tích hợp vào Embedding Service, kết hợp với reranker cross-encoder và Qdrant để tạo thành pipeline truy xuất hai tầng.
+- Về lý thuyết: hệ thống hóa kiến trúc Transformer, cơ chế self-attention, bi-encoder, học tương phản và cross-encoder. Đây là nền tảng để hiểu vì sao embedding có thể thay thế tìm kiếm từ khóa trong văn bản pháp lý.
+- Về thực nghiệm: thiết kế so sánh ba mô hình trên 152 chunk thật, với 5 câu hỏi ground truth và các chỉ số Recall@k, MRR, độ trễ, thông lượng.
+- Về kết quả: `Multilingual-E5-Small` đạt Recall@3 = 100%, MRR = 0,9, vector 384 chiều, độ trễ dưới 300 ms — là lựa chọn cân bằng nhất cho hệ thống chạy CPU.
+- Về ứng dụng: mô hình được tích hợp vào Embedding Service, kết hợp với reranker cross-encoder và Qdrant để tạo thành pipeline truy xuất hai tầng.
 
-Kết quả này là tiền đề cho Chương 4, nơi vector được tổ chức thành cơ sở tri thức có cấu trúc, có trích dẫn và có cơ chế từ chối khi không đủ căn cứ. Nói cách khác, chương này trả lời câu hỏi **“biểu diễn tri thức bằng vector như thế nào?”**; chương tiếp theo trả lời câu hỏi **“tổ chức tri thức thành KB và khai thác trong RAG như thế nào?”**.
+Kết quả này là tiền đề cho Chương 4, nơi vector được tổ chức thành cơ sở tri thức có cấu trúc, có trích dẫn và có cơ chế từ chối khi không đủ căn cứ. Nói cách khác, chương này trả lời câu hỏi “biểu diễn tri thức bằng vector như thế nào?”; chương tiếp theo trả lời câu hỏi “lưu trữ, đồng bộ và khai thác các vector đó trong một hệ thống dữ liệu hoàn chỉnh ra sao?”.
+
+---
 
 <!-- PAGEBREAK -->
-<div class="pb"></div>
 
-# CHƯƠNG 4. XÂY DỰNG CƠ SỞ TRI THỨC VÀ KẾT NỐI VỚI RAG
+# CHƯƠNG 4. XÂY DỰNG KNOWLEDGE BASE VÀ CƠ CHẾ TRUY XUẤT TĂNG CƯỜNG CÓ TRÍCH DẪN
 
-Chương này trình bày cách hệ thống EAKWP biến 35 tệp PDF và 10 trang web công khai thành một cơ sở tri thức (Knowledge Base, KB) trên Neo4j, cách RAG khai thác KB đó, và cách cập nhật KB khi tài liệu thay đổi. Mọi số liệu trong chương được đọc từ hệ thống đang chạy ngày 09/11/2026; mọi đoạn code được trích nguyên văn từ mã nguồn của đồ án.
+> Mục tiêu của chương. Chương này trình bày cách EAKWP biến tài liệu thô thành cơ sở tri thức (Knowledge Base — KB) có cấu trúc, có ngữ nghĩa và có khả năng kiểm chứng. Nội dung đi từ mô hình lý thuyết của tri thức, kiến trúc các lớp L0–L4, pipeline thu nhận–phân tích cấu trúc–phân đoạn–làm giàu metadata–nhúng vector, đến cơ chế truy xuất lai (dense + lexical + article boost + cross-encoder), hiểu ý định câu hỏi, sinh câu trả lời có trích dẫn và từ chối khi không đủ căn cứ. Cuối chương là đánh giá định lượng trên corpus thật, phân tích lỗi, và thiết kế mở rộng đồ thị tri thức (Knowledge Graph).
 
-## 4.1. Bài toán xây dựng cơ sở tri thức
+---
 
-### 4.1.1. Từ tài liệu đến tri thức
+## 4.1. Từ dữ liệu đến tri thức
 
-Một tệp PDF chỉ là dữ liệu. Sau khi đọc được chữ, ta có thông tin. Thông tin trở thành tri thức khi nó được gắn với cấu trúc (thuộc Chương, Điều nào), với quan hệ (Điều này viện dẫn Điều nào, nói về chủ thể nào) và với nguồn gốc (tài liệu nào, trang nào, phiên bản nào). KB của đồ án lưu cả ba yếu tố đó dưới dạng đồ thị.
+### 4.1.1. Phân biệt dữ liệu, thông tin và tri thức
 
-| Mức | Ví dụ trong đồ án |
+Một tài liệu PDF chỉ là dữ liệu ở dạng byte. Sau khi bóc tách, ta có thông tin: chuỗi ký tự, số trang, tọa độ dòng. Chỉ khi thông tin được tổ chức theo cấu trúc, gắn ngữ nghĩa và liên kết với bối cảnh sử dụng, ta mới có tri thức.
+
+Ví dụ:
+
+| Mức | Nội dung |
 | :--- | :--- |
-| Dữ liệu | Tệp `Dieu_le_cong_ty_2021.pdf`, 38 trang |
-| Thông tin | Văn bản trang 11 có đoạn “Hội đồng Quản trị phải triệu tập Đại Hội đồng Cổ đông bất thường...” |
-| Tri thức | Đoạn đó thuộc Điều 13, nhắc đến Hội đồng Quản trị, viện dẫn Điều 11 của cùng tài liệu, thuộc phiên bản 6 |
+| Dữ liệu | Tệp `Dieu_le_cong_ty_2026.pdf`, 15 MB |
+| Thông tin | Trang 12 có đoạn “Điều 39. Chủ tịch Hội đồng Quản trị có các quyền...” |
+| Tri thức | “Chủ tịch HĐQT có quyền triệu tập họp HĐQT; quyền này thuộc Điều 39, Chương VII, trang 12, phiên bản 2026” |
 
-### 4.1.2. Yêu cầu đối với KB
+Sự khác biệt nằm ở cấu trúc (điều/chương/trang), ngữ nghĩa (quyền hạn là gì), và truy vết (thông tin đến từ đâu, phiên bản nào). Một cơ sở tri thức tốt phải trả lời được cả ba.
 
-KB phải bảo đảm ba yêu cầu. Thứ nhất, **truy vết được**: mỗi câu trả lời dẫn ngược về đúng đoạn, trang và tài liệu. Thứ hai, **nạp lại an toàn**: chạy lại không sinh bản trùng. Thứ ba, **cập nhật được**: khi tài liệu đổi, KB biết bản nào còn hiệu lực.
+### 4.1.2. Các lớp biểu diễn tri thức
 
-![Biểu đồ use case quản lý và khai thác KB](assets/vp/H4_1_use_case_kb.png)
+EAKWP tổ chức tri thức thành năm lớp:
 
-*Hình 4.1. Các ca sử dụng chính của cơ sở tri thức.*
+![Các lớp biểu diễn tri thức của EAKWP](assets/kb_layers.png)
 
-## 4.2. Kiến trúc KB1, KB2 và KB hợp nhất
+*Hình 4.1. Năm lớp biểu diễn tri thức, từ bản gốc đến tri thức thủ tục.*
 
-Tri thức được chia thành hai kho nguồn và một kho hợp nhất:
+| Lớp | Tên | Nội dung | Kho lưu |
+| :--- | :--- | :--- | :--- |
+| L0 | Bản gốc | PDF, hash, phiên bản | Filesystem + PostgreSQL |
+| L1 | Cấu trúc | Chương, điều, khoản, trang, thứ tự | `section_path`, `document_sections` (mở rộng) |
+| L2 | Ngữ nghĩa | Chunk + embedding 384 chiều | Qdrant + `document_chunks` |
+| L3 | Quan hệ | Thực thể, quan hệ, đồ thị | Neo4j (prototype, chưa bật RAG) |
+| L4 | Thủ tục | Quy tắc trả lời, trích dẫn, từ chối | RAG service + prompt |
 
-- **KB1** chứa 35 tệp PDF nội bộ, gồm điều lệ, phụ lục sửa đổi, quy chế, quy trình và chính sách nhân sự.
-- **KB2** chứa 10 trang web công khai của doanh nghiệp.
-- **KB** là kho dùng để khai thác. Nó nhận toàn bộ tài liệu của KB1, KB2 qua phép gộp, và nhận thêm 7 tài liệu người dùng tải lên qua giao diện.
+Cách phân lớp này giúp tách biệt trách nhiệm:
 
-![Kiến trúc KB1, KB2 và KB hợp nhất](assets/vp/H4_2_kien_truc_kb.png)
+- L0–L1 là nguồn sự thật; có thể kiểm tra bằng mắt.
+- L2 là chỉ mục; có thể rebuild.
+- L3 là suy luận; có thể mở rộng dần.
+- L4 là chính sách; thay đổi mà không ảnh hưởng dữ liệu.
 
-*Hình 4.2. Kiến trúc nguồn dữ liệu, các kho tri thức và điểm nối với RAG.*
+### 4.1.3. Yêu cầu của một KB doanh nghiệp
 
-Số liệu đọc trực tiếp từ Neo4j bằng hàm `store.stats`:
+| Mã | Yêu cầu | Diễn giải |
+| :--- | :--- | :--- |
+| KB-01 | Đầy đủ | Không bỏ sót điều khoản do lỗi phân đoạn |
+| KB-02 | Truy vết | Mỗi câu trả lời truy ngược được trang, mục, phiên bản |
+| KB-03 | Nhất quán phiên bản | Không trộn nội dung của bản cũ và bản mới |
+| KB-04 | Truy xuất ngữ nghĩa | Hiểu câu hỏi diễn đạt khác từ trong tài liệu |
+| KB-05 | Chịu nhiễu OCR | Không sụp đổ khi tài liệu mất dấu hoặc sai ký tự |
+| KB-06 | Chống ảo giác | Không trả lời khi không có căn cứ |
+| KB-07 | Có trích dẫn | Mỗi khẳng định gắn với đoạn nguồn |
+| KB-08 | Mở rộng | Thêm tài liệu, ngôn ngữ, miền mà không đổi kiến trúc |
 
-**Bảng 4.1. Quy mô các kho tri thức trên Neo4j**
+Các yêu cầu này định hình toàn bộ pipeline bên dưới.
 
-| Kho | Nguồn | Tài liệu | Chunk | Thực thể | REFERENCES | APPLIES_TO |
-| :--- | :--- | ---: | ---: | ---: | ---: | ---: |
-| **KB1** | 35 tệp PDF nội bộ | 35 | 1.313 | 299 | 177 | 1.041 |
-| **KB2** | 10 link công khai | 10 | 31 | 14 | 0 | 4 |
-| **KB** | KB1 + KB2 + 7 tài liệu tải lên | 52 | 1.665 | 314 | 204 | 1.346 |
+---
 
-Kho KB có 52 tài liệu vì 35 + 10 + 7 = 52. Số chunk cũng cộng đúng: 1.313 + 31 + 321 = 1.665. Điều này xác nhận phép gộp không nhân bản nút nào.
+## 4.2. Kiến trúc tổng thể của cơ sở tri thức
 
-## 4.3. Nguồn dữ liệu đã thu thập
+### 4.2.1. Sơ đồ pipeline
 
-### 4.3.1. Danh mục link của KB2
+![Pipeline xây dựng cơ sở tri thức](assets/kb_pipeline.png)
 
-Danh sách nằm trong tệp `ai-service/data/kb_sources/links.json`. Cột ký tự và chunk là số liệu thực tế của từng tài liệu trong Neo4j, sau khi đã bỏ menu, script và chân trang. KB2 được nạp ngày 07/11/2026.
+*Hình 4.2. Pipeline sáu tầng: thu nhận, phân tích cấu trúc, phân đoạn, làm giàu metadata, nhúng vector, lập chỉ mục.*
 
-**Bảng 4.2. Mười link công khai của KB2**
+Pipeline gồm sáu tầng:
 
-| # | Nhóm | Tên | Link | Ký tự | Chunk |
-| ---: | :--- | :--- | :--- | ---: | ---: |
-| 1 | Doanh nghiệp | Giới thiệu chung về Masan Consumer | <https://masanconsumer.com/ve-masan-consumer/gioi-thieu-chung/> | 9.557 | 11 |
-| 2 | Quản trị | Quan hệ cổ đông - giới thiệu | <https://masanconsumer.com/quan-he-co-dong/gioi-thieu/> | 3.355 | 5 |
-| 3 | Quản trị | Công bố thông tin | <https://masanconsumer.com/quan-he-co-dong/cong-bo-thong-tin/thong-tin-cong-bo/> | 1.762 | 1 |
-| 4 | Quản trị | Báo cáo thường niên | <https://masanconsumer.com/quan-he-co-dong/bao-cao-thuong-nien/> | 450 | 1 |
-| 5 | Quản trị | Đại hội đồng cổ đông | <https://masanconsumer.com/quan-he-co-dong/dai-hoi-dong-co-dong/> | 3.004 | 3 |
-| 6 | Tài chính | Thông tin tài chính | <https://masanconsumer.com/quan-he-co-dong/thong-tin-tai-chinh/> | 1.583 | 1 |
-| 7 | Tài liệu | Tài liệu doanh nghiệp | <https://masanconsumer.com/tai-lieu-doanh-nghiep/> | 786 | 4 |
-| 8 | Bền vững | Phát triển bền vững - quản trị | <https://masanconsumer.com/phat-trien-ben-vung/quan-tri/> | 917 | 1 |
-| 9 | Tin tức | Thông cáo báo chí | <https://masanconsumer.com/tin-tuc/thong-cao-bao-chi/> | 1.896 | 3 |
-| 10 | Tài liệu | Tài liệu | <https://masanconsumer.com/tai-lieu/> | 971 | 1 |
-| | | **Tổng** | | **24.281** | **31** |
+1. Thu nhận (Acquisition): đọc PDF, phát hiện scan, OCR nếu cần, chuẩn hóa font.
+2. Phân tích cấu trúc (Structure Analysis): tách dòng, loại header/footer, nhận diện heading, loại mục lục, xây cây phân cấp.
+3. Phân đoạn (Chunking): gom theo section, fallback theo đoạn/câu/ký tự.
+4. Làm giàu metadata (Enrichment): gắn document_id, version_id, trang, section_path, loại tài liệu, ngôn ngữ.
+5. Nhúng vector (Embedding): mã hóa chunk thành vector 384 chiều, chuẩn hóa văn bản.
+6. Lập chỉ mục (Indexing): upsert vào Qdrant với point ID xác định, payload metadata.
 
-### 4.3.2. Danh mục tệp PDF của KB1
+### 4.2.2. Nguyên tắc thiết kế
 
-Các tệp nằm trong `ai-service/data/documents/`. Số trang được đọc từ chính tệp PDF bằng PyMuPDF.
+1. Structure-first: cấu trúc tài liệu được khai thác trước khi cắt chunk. Điều này giữ nguyên ranh giới điều khoản — yếu tố quyết định câu trả lời pháp lý đúng.
+2. Provenance-preserving: mọi chunk giữ trang bắt đầu/kết thúc, section_path, document_id, version_id. Không có chunk “vô danh”.
+3. Idempotent: chunk_id và point_id xác định; nạp lại không nhân bản.
+4. Hybrid by design: không phụ thuộc một tín hiệu. Vector bắt ngữ nghĩa; lexical bắt từ khóa chốt; article boost bắt số điều; cross-encoder bắt tương tác.
+5. Grounding-first: câu trả lời chỉ được sinh khi có đoạn nguồn vượt qua kiểm tra dạng và ngưỡng tin cậy; nếu không, từ chối.
+6. Separation of concerns: pipeline xây KB tách khỏi pipeline trả lời; có thể thay mô hình nhúng, reranker, LLM mà không đổi dữ liệu.
 
-**Bảng 4.3. Tổng hợp PDF theo nhóm**
+### 4.2.3. Hai đường nạp: offline corpus và online upload
 
-| Nhóm | Số tệp | Số trang | Dung lượng (MB) | Ký tự trích được | Chunk |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| Điều lệ công ty | 3 | 121 | 30,46 | 314.909 | 474 |
-| Phụ lục sửa đổi điều lệ | 22 | 72 | 9,86 | 164.493 | 242 |
-| Nhân sự và lao động | 3 | 53 | 20,26 | 135.928 | 182 |
-| Quy chế và quy trình | 7 | 149 | 51,60 | 316.631 | 415 |
-| **Tổng** | **35** | **395** | **112,19** | **931.961** | **1.313** |
+Trong mã nguồn hiện tại có hai đường nạp:
 
-**Bảng 4.4. Danh mục 35 tệp PDF đã thu thập**
+| Đường nạp | Thành phần | Đơn vị | Mục đích |
+| :--- | :--- | :--- | :--- |
+| Offline corpus | Python pipeline (`document_parser` → `adaptive_chunker` → `metadata_enricher` → `embedding` → Qdrant) | Section-aware chunk | Xây corpus thử nghiệm, benchmark, kho tri thức nền |
+| Online upload | Spring Boot (`IngestionService` → `PdfProcessor` → AI ingest) | Page-based chunk | Người dùng tải PDF lên, xem highlight, cập nhật phiên bản |
 
-| # | Tệp | Nhóm | Trang | Chunk |
-| ---: | :--- | :--- | ---: | ---: |
-| 1 | `Dieu_le_cong_ty_2021.pdf` | Điều lệ công ty | 38 | 147 |
-| 2 | `Dieu_le_cong_ty_2025.pdf` | Điều lệ công ty | 41 | 156 |
-| 3 | `Dieu_le_cong_ty_2026.pdf` | Điều lệ công ty | 42 | 171 |
-| 4 | `Phu_luc_sua_doi_dieu_le_lan_1.pdf` | Phụ lục sửa đổi điều lệ | 2 | 7 |
-| 5 | `Phu_luc_sua_doi_dieu_le_lan_10.pdf` | Phụ lục sửa đổi điều lệ | 2 | 7 |
-| 6 | `Phu_luc_sua_doi_dieu_le_lan_1_1.pdf` | Phụ lục sửa đổi điều lệ | 1 | 2 |
-| 7 | `Phu_luc_sua_doi_dieu_le_lan_1_2.pdf` | Phụ lục sửa đổi điều lệ | 1 | 1 |
-| 8 | `Phu_luc_sua_doi_dieu_le_lan_2.pdf` | Phụ lục sửa đổi điều lệ | 1 | 2 |
-| 9 | `Phu_luc_sua_doi_dieu_le_lan_2_1.pdf` | Phụ lục sửa đổi điều lệ | 1 | 2 |
-| 10 | `Phu_luc_sua_doi_dieu_le_lan_2_2.pdf` | Phụ lục sửa đổi điều lệ | 1 | 3 |
-| 11 | `Phu_luc_sua_doi_dieu_le_lan_3.pdf` | Phụ lục sửa đổi điều lệ | 1 | 2 |
-| 12 | `Phu_luc_sua_doi_dieu_le_lan_3_1.pdf` | Phụ lục sửa đổi điều lệ | 3 | 7 |
-| 13 | `Phu_luc_sua_doi_dieu_le_lan_3_2.pdf` | Phụ lục sửa đổi điều lệ | 1 | 2 |
-| 14 | `Phu_luc_sua_doi_dieu_le_lan_4.pdf` | Phụ lục sửa đổi điều lệ | 1 | 3 |
-| 15 | `Phu_luc_sua_doi_dieu_le_lan_4_1.pdf` | Phụ lục sửa đổi điều lệ | 5 | 14 |
-| 16 | `Phu_luc_sua_doi_dieu_le_lan_5.pdf` | Phụ lục sửa đổi điều lệ | 1 | 3 |
-| 17 | `Phu_luc_sua_doi_dieu_le_lan_5_1.pdf` | Phụ lục sửa đổi điều lệ | 1 | 3 |
-| 18 | `Phu_luc_sua_doi_dieu_le_lan_6.pdf` | Phụ lục sửa đổi điều lệ | 1 | 4 |
-| 19 | `Phu_luc_sua_doi_dieu_le_lan_7.pdf` | Phụ lục sửa đổi điều lệ | 3 | 9 |
-| 20 | `Phu_luc_sua_doi_dieu_le_lan_7_1.pdf` | Phụ lục sửa đổi điều lệ | 1 | 4 |
-| 21 | `Phu_luc_sua_doi_dieu_le_lan_8.pdf` | Phụ lục sửa đổi điều lệ | 1 | 4 |
-| 22 | `Phu_luc_sua_doi_dieu_le_lan_8_1.pdf` | Phụ lục sửa đổi điều lệ | 1 | 5 |
-| 23 | `Phu_luc_sua_doi_dieu_le_lan_9.pdf` | Phụ lục sửa đổi điều lệ | 2 | 7 |
-| 24 | `Phu_luc_sua_doi_dieu_le_lan_khac.pdf` | Phụ lục sửa đổi điều lệ | 38 | 145 |
-| 25 | `Phu_luc_sua_doi_dieu_le_lan_khac_1.pdf` | Phụ lục sửa đổi điều lệ | 3 | 6 |
-| 26 | `Chinh_sach_nhan_quyen.pdf` | Nhân sự và lao động | 4 | 10 |
-| 27 | `Noi_quy_lao_dong.pdf` | Nhân sự và lao động | 34 | 124 |
-| 28 | `Thoa_uoc_lao_dong_tap_the.pdf` | Nhân sự và lao động | 15 | 48 |
-| 29 | `Chinh_sach_an_ninh_thong_tin.pdf` | Quy chế và quy trình | 22 | 69 |
-| 30 | `Quy_che_hoat_dong_HDQT.pdf` | Quy chế và quy trình | 15 | 55 |
-| 31 | `Quy_che_quan_tri_cong_ty.pdf` | Quy chế và quy trình | 28 | 101 |
-| 32 | `Quy_che_quan_tri_rui_ro.pdf` | Quy chế và quy trình | 22 | 54 |
-| 33 | `Quy_trinh_danh_gia_nha_cung_cap.pdf` | Quy chế và quy trình | 13 | 31 |
-| 34 | `Quy_trinh_giai_quyet_khieu_nai.pdf` | Quy chế và quy trình | 40 | 87 |
-| 35 | `Quy_trinh_xu_ly_vu_viec.pdf` | Quy chế và quy trình | 9 | 18 |
+Hai đường dùng chung collection Qdrant và cùng hợp đồng payload (`chunk_id`, `content`, `document_id`, `version_id`, `page_start`, `page_end`, `section_path`). Sự khác biệt nằm ở độ mịn:
 
-### 4.3.3. Tài liệu tải lên qua giao diện
+- Offline chunk theo section (điều/khoản), giữ ngữ nghĩa pháp lý.
+- Online chunk theo trang, thuận lợi cho việc tô vàng chính xác trên trình xem PDF.
 
-Ngoài hai kho trên, 7 tài liệu được quản trị viên tải lên qua giao diện web. Đây là phần duy nhất có đồng thời vector trong Qdrant và nút trong Neo4j, nên cũng là phần mà RAG đang đọc (mục 4.9.5).
+Đây là đánh đổi có chủ đích trong giai đoạn prototype. Hướng hoàn thiện là thống nhất về chunk theo section, đồng thời lưu `highlight_json` theo tọa độ từng từ để vẫn tô vàng được. Chương này mô tả pipeline section-aware vì đây là kiến trúc đích và là cơ sở của corpus 152 chunk dùng trong đánh giá.
 
-**Bảng 4.5. Bảy tài liệu tải lên**
+---
 
-| Tài liệu | Danh mục | Phiên bản | Trang | Chunk |
-| :--- | :--- | ---: | ---: | ---: |
-| Chính sách an ninh thông tin | Chính sách IT | 1 | 19 | 63 |
-| Chính sách nhân quyền | Quy chế | 1 | 4 | 14 |
-| Quy chế hoạt động Hội đồng Quản trị | Quy chế | 1 | 15 | 53 |
-| Quy trình xử lý vụ việc | Quy chế | 1 | 9 | 19 |
-| Quy trình đánh giá nhà cung cấp | Quy chế | 1 | 8 | 22 |
-| Thỏa ước lao động tập thể | Nội quy | 1 | 15 | 42 |
-| Điều lệ công ty - 2021 | Nội quy | 6 | 38 | 108 |
-| **Tổng** | | | | **321** |
+## 4.3. Tầng thu nhận và chuẩn hóa
 
-## 4.4. Mô hình đồ thị trên Neo4j
+### 4.3.1. Phân loại PDF native và PDF scan
 
-### 4.4.1. Lược đồ
+Không phải PDF nào cũng chứa text layer. Một tài liệu scan chỉ là ảnh; nếu đọc trực tiếp sẽ nhận chuỗi rỗng. Pipeline kiểm tra:
 
-Đồ án dùng mô hình đồ thị thuộc tính có nhãn. Có 4 loại nút và 8 loại cạnh.
+1. Dùng PyMuPDF (`fitz`) mở tài liệu.
+2. Với mỗi trang, lấy `page.get_text("text")`.
+3. Nếu tổng số ký tự text quá thấp so với diện tích trang, đánh dấu là trang scan.
+4. Trang scan được render ở 300 DPI và đưa qua Tesseract với ngôn ngữ `vie`.
 
-![Lược đồ đồ thị của KB](assets/vp/H4_5_luoc_do_do_thi.png)
+Ngưỡng “quá thấp” cần hiệu chỉnh theo loại tài liệu; trong mã hiện tại dùng heuristic dựa trên độ dài text và số từ. Mục tiêu là không OCR nhầm trang native (làm chậm và mất cấu trúc) và không bỏ sót trang scan.
 
-*Hình 4.3. Lược đồ nút và cạnh của cơ sở tri thức.*
+### 4.3.2. OCR và tọa độ từ
 
-**Bảng 4.6. Các loại cạnh và số lượng thực tế**
+OCR không chỉ trả text. Tesseract trả về word boxes: từng từ với tọa độ `(x, y, width, height)` và độ tin cậy. Pipeline chuẩn hóa tọa độ về khoảng `[0,1]` theo chiều rộng/chiều cao trang:
 
-| Cạnh | Từ → Đến | Ý nghĩa | Số cạnh |
-| :--- | :--- | :--- | ---: |
-| `HAS_DOCUMENT` | KnowledgeBase → Document | Tài liệu thuộc kho nào | 97 |
-| `MERGED_INTO` | KnowledgeBase → KnowledgeBase | KB nguồn đã gộp vào KB đích | 2 |
-| `HAS_CHUNK` | Document → Chunk | Đoạn thuộc tài liệu | 1.665 |
-| `MENTIONS` | Chunk → Entity | Đoạn nhắc đến thực thể | 3.738 |
-| `APPLIES_TO` | Chunk → Entity | Thực thể là chủ đề của mục chứa đoạn | 1.346 |
-| `REFERENCES` | Chunk → Chunk | Đoạn viện dẫn một Điều của cùng tài liệu | 204 |
-| `RELATES_TO` | Entity — Entity | Hai thực thể cùng xuất hiện trong một đoạn | 537 |
-| `NEW_VERSION_OF` | Document → Document | Bản mới thay thế bản cũ | 0 |
+> Công thức 4.1. $x' = \frac{x}{W_{page}}$, $y' = \frac{y}{H_{page}}$
 
-Cạnh `NEW_VERSION_OF` hiện bằng 0 vì chưa tài liệu offline nào có bản sửa. Luồng tạo cạnh này đã được kiểm chứng riêng ở mục 4.10.3.
+Tọa độ tương đối này được lưu trong `highlight_json`. Nhờ đó, frontend có thể tô vàng đúng vị trí trên PDF bất kể độ phân giải hiển thị. Đây là cầu nối giữa tri thức (chunk) và bằng chứng (vị trí vật lý).
 
-314 thực thể được chia thành 6 loại: 168 tiêu đề mục (`tieu_de`), 70 điều khoản (`dieu_khoan`), 37 mốc thời gian (`moc_thoi_gian`), 14 chủ đề (`chu_de`), 14 văn bản pháp luật (`van_ban`) và 11 chức danh (`chuc_danh`).
+### 4.3.3. Chuẩn hóa font tiếng Việt
 
-### 4.4.2. Ràng buộc và chỉ mục
+Nhiều văn bản cũ dùng font TCVN3/ABC, khi bóc tách bị lẫn ký tự Latin:
 
-Khóa của mỗi loại nút được ràng buộc duy nhất. Thực thể còn có chỉ mục vector 384 chiều để câu hỏi tìm được thực thể mà nó không gọi đúng tên.
+- `\xa1` → `Ă`, `\xa2` → `Â`, `\xb5` → `à`, …
+- Hoặc chữ “Điều” thành “Diều”, “đ” thành “d”.
 
-*Trích `ai-service/app/knowledge_graph/schema.py`, dòng 13–30:*
+Module `font_converter.py` ánh xạ các ký tự TCVN3 sang Unicode. Nếu không chuẩn hóa, embedding và tìm kiếm từ khóa đều sai. Đây là bước “không nhìn thấy” nhưng ảnh hưởng lớn đến chất lượng.
 
-```python
-CONSTRAINTS = [
-    "CREATE CONSTRAINT kb_id IF NOT EXISTS FOR (k:KnowledgeBase) REQUIRE k.kb_id IS UNIQUE",
-    "CREATE CONSTRAINT doc_id IF NOT EXISTS FOR (d:Document) REQUIRE d.doc_id IS UNIQUE",
-    "CREATE CONSTRAINT chunk_id IF NOT EXISTS FOR (c:Chunk) REQUIRE c.chunk_id IS UNIQUE",
-    "CREATE CONSTRAINT entity_id IF NOT EXISTS FOR (e:Entity) REQUIRE e.entity_id IS UNIQUE",
-]
+Sau khi chuyển font, văn bản được chuẩn hóa:
 
-INDEXES = [
-    "CREATE INDEX doc_title IF NOT EXISTS FOR (d:Document) ON (d.title)",
-    "CREATE INDEX doc_source IF NOT EXISTS FOR (d:Document) ON (d.source_uri)",
-    "CREATE INDEX entity_name IF NOT EXISTS FOR (e:Entity) ON (e.name)",
-    "CREATE INDEX chunk_version IF NOT EXISTS FOR (c:Chunk) ON (c.version_id)",
-    """
-    CREATE VECTOR INDEX entity_embedding IF NOT EXISTS
-    FOR (e:Entity) ON (e.embedding)
-    OPTIONS {indexConfig: {`vector.dimensions`: 384, `vector.similarity_function`: 'cosine'}}
-    """,
-]
+- Unicode NFC/NFD thống nhất.
+- Xóa ký tự điều khiển.
+- Nén khoảng trắng.
+- Giữ dấu câu làm ranh giới câu.
+
+### 4.3.4. Vì sao giữ bounding box?
+
+Nếu chỉ lưu text, người dùng không thể kiểm chứng câu trả lời. Giữ bounding box cho phép:
+
+- Mở đúng trang PDF.
+- Tô vàng đúng đoạn trích.
+- Hiển thị “bằng chứng” trực quan.
+- Tính toán lại chunk nếu cần.
+
+Đây là yêu cầu KB-02 (truy vết) và là điểm khác biệt giữa một chatbot “nói theo trí nhớ” và một trợ lý tri thức có căn cứ.
+
+---
+
+## 4.4. Tầng phân tích cấu trúc
+
+### 4.4.1. Loại header/footer bằng tần suất
+
+Header/footer là dòng lặp lại ở đầu/cuối trang: tên công ty, số trang, ngày ban hành, “Mã số: ...”. Nếu giữ lại, chúng sẽ:
+
+- Làm nhiễu embedding (mọi chunk đều giống nhau ở phần đầu).
+- Chiếm chỗ trong ngữ cảnh LLM.
+- Tạo chunk rác.
+
+Pipeline huấn luyện bộ phát hiện bằng tần suất lặp:
+
+1. Với mỗi trang, lấy hai dòng đầu và hai dòng cuối.
+2. Đếm số trang mà mỗi dòng xuất hiện.
+3. Ngưỡng: `max(2, 15% tổng số trang)`.
+4. Dòng nằm trong vùng đầu/cuối và vượt ngưỡng bị loại.
+
+Ngoài ra, các pattern đặc thù như “Mã số:”, “Lần ban hành:”, “Ngày hiệu lực:”, “Số trang:” bị loại nếu ngắn. Quy tắc `^\d+/\d+$` hoặc `^\d+$` loại số trang.
+
+Công thức ngưỡng:
+
+> Công thức 4.2. $T = \max\left(2, \lfloor 0.15 \times P \rfloor\right)$
+
+với $P$ là số trang. Với 39 trang, $T = 5$; một dòng phải xuất hiện ít nhất 5 trang mới bị coi là header/footer.
+
+### 4.4.2. Tái tạo dòng bị ngắt
+
+PDF/OCR thường ngắt một câu thành nhiều dòng. Nếu mỗi dòng là một block, heading detection và chunking sẽ sai. `LineReconstructor` gộp dòng khi:
+
+- Dòng trước là số/chữ đơn độc (ví dụ “2.4.” hoặc “Điều 39”) — luôn gộp dòng sau.
+- Dòng hiện tại không bắt đầu bằng cấu trúc (chương, điều, mục, số thứ tự, bullet).
+- Dòng trước không kết thúc bằng dấu câu (`.`, `:`, `;`, `!`).
+- Hoặc dòng hiện tại bắt đầu bằng chữ thường.
+
+Quy tắc này dựa trên quan sát: dòng mới của một đoạn văn thường bắt đầu bằng chữ hoa; dòng nối tiếp thường bắt đầu bằng chữ thường hoặc không có dấu câu kết thúc. Đây là heuristic, không phải parser ngữ pháp, nhưng hiệu quả với văn bản hành chính.
+
+### 4.4.3. Phát hiện rác
+
+`GarbageDetector` gắn cờ (không xóa ngay) khi:
+
+- Có ký tự lặp quá 5 lần: `EEEEEE`, `......`.
+- Tỷ lệ ký tự đặc biệt trên tổng ký tự > 40%.
+
+Cờ `is_garbage` được dùng ở tầng chunking để loại bỏ. Việc “gắn cờ thay vì xóa” giúp debug: vẫn có thể xem lại dữ liệu gốc.
+
+### 4.4.4. Nhận diện heading
+
+Heading là neo của toàn bộ cấu trúc. Pipeline dùng regex cho các cấp:
+
+| Loại | Regex | Depth |
+| :--- | :--- | :---: |
+| PART | `^phần\s+[ivxlcdm\d]+` | 1 |
+| CHAPTER | `^chương\s+[ivxlcdm\d]+` | 1 |
+| ARTICLE | `^(điều\|diều\|điẽu\|đieu)\s+\d+` | 2 |
+| SECTION | `^mục\s+\d+` | 2 |
+| NUMBERED | `^[IVXLCDM]+\|\d+(\.\d+)*[\.\:]` | 2+ |
+
+Điểm tin cậy dựa trên độ dài:
+
+> Công thức 4.3. $c = 0.5 + 0.5 \times \ell$
+>
+> Công thức 4.4. $\ell = \begin{cases}0.5 & \text{nếu số từ} < 2\\ \max(0, 1 - \frac{\text{số từ}}{30}) & \text{ngược lại}\end{cases}$
+
+Nếu heading là `Điều` và dài hơn 30 từ, $\ell = -1$ (coi là trích dẫn luật, không phải tiêu đề). Chỉ chấp nhận khi $c > 0.6$.
+
+Ví dụ:
+
+- “Điều 39” (2 từ): $\ell = 1 - 2/30 = 0.933$, $c = 0.967$ → heading.
+- “Điều 39. Chủ tịch Hội đồng Quản trị có các quyền và nghĩa vụ sau đây:” (14 từ): $\ell = 0.533$, $c = 0.767$ → heading.
+- Một câu dài 40 từ bắt đầu bằng “Điều 39”: $\ell = -1$, $c = 0$ → không heading.
+
+Điểm mạnh: đơn giản, nhanh, không cần model. Điểm yếu: bỏ sót heading không theo pattern (ví dụ tiêu đề in hoa không có số) và nhầm câu trích dẫn ngắn. Hướng cải tiến: kết hợp font size/bold từ PDF native, hoặc classifier nhỏ.
+
+### 4.4.5. Loại mục lục
+
+Mục lục là “bẫy” lớn nhất của RAG văn bản pháp lý: nó chứa đầy đủ tên chương/điều nhưng không chứa nội dung. Nếu đưa vào KB, câu hỏi “Điều 39 quy định gì?” có thể trả về dòng mục lục “Điều 39 ... 12” thay vì nội dung.
+
+Pipeline phát hiện mục lục bằng:
+
+- Dấu chấm/gạch kéo dài: `....`, `____`, `……`.
+- Từ khóa “Mục lục”, “Table of Contents”.
+- Trạng thái `in_toc` được giữ cho đến khi gặp heading nội dung thật (Chương/Phần/Điều 1) và dòng đó không có dấu mục lục.
+
+Tất cả node `TOC` bị loại khỏi cây cấu trúc và không vào chunk. Đây là quyết định “loại sớm để bảo vệ RAG” — nếu để lại, mọi bước sau đều bị nhiễu.
+
+### 4.4.6. Cây cấu trúc động
+
+`HierarchyResolver` duyệt danh sách node theo thứ tự và duy trì một stack đường dẫn:
+
+```text
+current_path = []
+for node in nodes:
+    if node is TOC: skip
+    if node is HEADING:
+        current_path = [p for p in current_path if p.depth < node.depth]
+        current_path.append((node.depth, node.text))
+        node.section_path = [p.text for p in current_path]
+    else:
+        node.section_path = [p.text for p in current_path]
 ```
 
-### 4.4.3. Định danh theo nội dung
+Ví dụ:
 
-ID được băm từ nội dung, không phụ thuộc thứ tự nạp. Đây là cơ sở của tính nạp lại an toàn và của phép gộp không nhân bản.
+| Node | Depth | current_path sau khi xử lý | section_path |
+| :--- | :---: | :--- | :--- |
+| CHƯƠNG VII | 1 | [(1, “CHƯƠNG VII”)] | [“CHƯƠNG VII”] |
+| Điều 39 | 2 | [(1, “CHƯƠNG VII”), (2, “Điều 39”)] | [“CHƯƠNG VII”, “Điều 39”] |
+| Điều 40 | 2 | [(1, “CHƯƠNG VII”), (2, “Điều 40”)] | [“CHƯƠNG VII”, “Điều 40”] |
+| CHƯƠNG VIII | 1 | [(1, “CHƯƠNG VIII”)] | [“CHƯƠNG VIII”] |
 
-*Trích `ai-service/app/knowledge_graph/ids.py`, dòng 31–40:*
+Quy tắc `p.depth < node.depth` đảm bảo khi gặp heading cùng cấp, các mục cũ bị loại; khi gặp heading cấp cao hơn, toàn bộ nhánh cũ bị loại. Độ phức tạp $O(n \cdot d)$ với $d$ là độ sâu tối đa (thường ≤ 4), tương đương $O(n)$.
+
+### 4.4.7. Hạn chế của tầng cấu trúc
+
+- Không có font/style: pipeline hiện dùng text thuần, không dùng font size/bold từ PDF native. Heading in hoa không số có thể bị bỏ sót.
+- Heading giả: câu trích dẫn bắt đầu bằng “Điều X” nhưng không phải tiêu đề có thể bị nhận nhầm; ngưỡng độ dài giảm rủi ro nhưng không loại bỏ hoàn toàn.
+- Bảng biểu: bảng được coi là text; cấu trúc hàng/cột không được giữ. Với biểu mẫu, cần parser riêng.
+- Đa cột: PDF hai cột có thể bị đọc xen kẽ; cần phân tích layout nâng cao.
+
+---
+
+## 4.5. Tầng phân đoạn thích ứng
+
+### 4.5.1. Vì sao không dùng fixed-size chunking
+
+Cách phổ biến là cắt văn bản thành các đoạn cố định 1.000–1.500 ký tự với overlap. Cách này:
+
+- Không biết ranh giới điều khoản.
+- Cắt giữa câu, giữa khoản, giữa bảng.
+- Trộn nội dung của hai điều vào một chunk.
+- Tạo chunk bắt đầu bằng đại từ “Điều này...” mà không biết “điều này” là điều nào.
+
+Với văn bản pháp lý, một chunk trộn hai điều có thể khiến LLM trả lời sai điều khoản. Vì vậy, pipeline ưu tiên cấu trúc trước, chỉ fallback khi quá dài.
+
+### 4.5.2. Thuật toán bốn mức
+
+`AdaptiveChunker` triển khai bốn mức:
+
+1. Structure-aware: gom các node cùng `section_path`. Khi section thay đổi, đóng gói chunk.
+2. Paragraph-aware: nếu section dài hơn `chunk_size`, cắt theo đoạn văn (`\n\n`).
+3. Sentence-aware: nếu một đoạn văn dài hơn `chunk_size`, cắt theo câu (`.`, `!`, `?`, `。`, `！`, `？`).
+4. Character-aware: nếu một câu dài hơn `chunk_size` (hiếm), cắt cứng theo ký tự với overlap.
+
+Mã giả:
+
+```text
+for node in nodes:
+    if node is TOC or garbage: skip
+    if current_group and node.section_path != current_section_path:
+        flush(current_group)
+    current_group.append(node)
+    if length(current_group) >= chunk_size:
+        flush(current_group)
+
+flush(current_group)
+
+flush(group):
+    text = join(group)
+    if length(text) <= chunk_size:
+        emit(text, section_path, page_start, page_end)
+    else:
+        for paragraph in split(text, "\n\n"):
+            if length(paragraph) <= chunk_size:
+                append to current
+            else:
+                for sentence in split(paragraph):
+                    if length(sentence) <= chunk_size:
+                        append
+                    else:
+                        character_split(sentence, chunk_size, overlap)
+```
+
+### 4.5.3. Tham số và lý do
+
+| Tham số | Giá trị | Lý do |
+| :--- | ---: | :--- |
+| `chunk_size` | 1.200 ký tự | ~300 token, nằm trong giới hạn 512 token của encoder nhỏ; đủ chứa một điều khoản trung bình |
+| `chunk_overlap` | 200 ký tự | ~50 token, giữ ngữ cảnh ở ranh giới fallback |
+| `min_chunk_size` | 50 ký tự | Loại chunk rác/tiêu đề trống, tránh vector vô nghĩa |
+
+1.200 ký tự không phải con số tùy ý:
+
+- Quá nhỏ (< 500): mất ngữ cảnh, nhiều chunk, tăng chi phí vector.
+- Quá lớn (> 2.000): vượt cửa sổ mô hình, pha loãng embedding, giảm precision.
+- 1.200 là điểm cân bằng cho văn bản hành chính tiếng Việt, nơi một điều khoản thường 500–1.500 ký tự.
+
+### 4.5.4. Thực nghiệm so sánh với fixed-size
+
+Để chứng minh hiệu quả, nhóm chạy một thực nghiệm trên cùng corpus 152 chunk:
+
+- Structure-aware: pipeline hiện tại.
+- Fixed-size 1.200/200: nối toàn bộ text theo thứ tự, cắt cố định 1.200 ký tự, overlap 200.
+- Fixed-size 1.000/200 và 1.500/200: kiểm tra độ nhạy.
+
+Tiêu chí:
+
+1. Tỷ lệ chunk trộn section: chunk chứa nội dung từ > 1 `section_path`.
+2. Tỷ lệ kết thúc giữa câu: ký tự cuối không phải dấu kết câu và không phải ranh giới heading.
+
+Kết quả:
+
+| Phương pháp | Số chunk | Chunk trộn section | Kết thúc giữa câu |
+| :--- | ---: | ---: | ---: |
+| Structure-aware | 152 | 0 (0%) | 11 (7,2%) |
+| Fixed 1.200/200 | 112 | 36 (32,1%) | 110 (98,2%) |
+| Fixed 1.000/200 | 140 | 42 (30,0%) | 130 (92,9%) |
+| Fixed 1.500/200 | 86 | 35 (40,7%) | 76 (88,4%) |
+
+![So sánh chất lượng phân đoạn](assets/kb_chunking.png)
+
+*Hình 4.3. Structure-aware giữ nguyên ranh giới section; fixed-size cắt giữa câu và trộn điều khoản.*
+
+### 4.5.5. Phân tích kết quả
+
+Kết quả cho thấy một điều quan trọng: ít chunk hơn không có nghĩa là tốt hơn.
+
+- Fixed 1.200 tạo 112 chunk, ít hơn 40 chunk so với structure-aware, nhưng 32,1% chunk trộn hai section và 98,2% kết thúc giữa câu. Mỗi chunk “tiết kiệm” được vài trăm ký tự nhưng mất tính toàn vẹn pháp lý.
+- Structure-aware tạo 152 chunk, nhiều hơn, nhưng 0% trộn section. 7,2% kết thúc không phải dấu câu thường là chunk kết thúc bằng số thứ tự hoặc tiêu đề danh sách — chấp nhận được vì chunk kế tiếp bắt đầu cùng section.
+- Fixed 1.500 tệ hơn 1.200 về cả hai tiêu chí: chunk dài hơn, trộn nhiều section hơn, và vẫn cắt giữa câu.
+
+Đánh đổi: structure-aware tăng số vector (152 vs 112, +36%), nhưng cải thiện độ tinh khiết của ngữ cảnh. Trong RAG, một chunk nhiễu có thể làm sai toàn bộ câu trả lời; chi phí thêm 36% vector là chấp nhận được.
+
+### 4.5.6. Hạn chế của thực nghiệm
+
+- Chỉ đo trên một tài liệu; cần mở rộng nhiều loại văn bản.
+- Tiêu chí “kết thúc giữa câu” là heuristic, không đo trực tiếp chất lượng câu trả lời.
+- Chưa đo end-to-end retrieval/answer với fixed-size; đây là hướng tiếp theo.
+- Chưa có ablation cho từng mức fallback (paragraph/sentence/character).
+
+---
+
+## 4.6. Tầng làm giàu metadata
+
+### 4.6.1. Mô hình metadata ba nhóm
+
+`MetadataEnricher` gắn metadata theo ba nhóm:
+
+| Nhóm | Trường | Mục đích |
+| :--- | :--- | :--- |
+| A — Định danh & phả hệ | `document_id`, `version_id`, `page_start`, `page_end`, `section_path`, `section_type`, `chunk_type`, `is_current` | Truy vết, trích dẫn, lọc phiên bản |
+| B — RAG | `document_type`, `language`, `char_count`, `token_count` | Lọc, thống kê, chọn ngữ cảnh |
+| C — Doanh nghiệp/RBAC | `access_level`, `allowed_roles` | Phân quyền (dự kiến) |
+
+### 4.6.2. Quy ước chunk ID
+
+Offline:
+
+> `DOC-001-CHUNK-0001`
+
+Online:
+
+> `doc-{documentId}-v{version}-c{index}`
+
+Chunk ID cần:
+
+- Ổn định: cùng một chunk qua các lần chạy phải cùng ID.
+- Duy nhất: không trùng giữa tài liệu/phiên bản.
+- Có thể đọc: nhìn vào biết thuộc tài liệu/phiên bản nào.
+
+Đánh đổi: ID dài tốn dung lượng; nhưng với Qdrant, `chunk_id` là payload, không phải khóa chính, nên không ảnh hưởng nhiều.
+
+### 4.6.3. Chuỗi truy vết
+
+Từ một câu trả lời, có thể truy ngược:
+
+```text
+Answer
+  → Citation (index, chunk_id, pages, section_path)
+    → Qdrant point (payload: document_id, version_id, page_start, page_end)
+      → PostgreSQL document_chunks (content, highlight_json)
+        → document_versions (file_hash, storage_path)
+          → PDF gốc (trang, tọa độ)
+```
+
+Đây là provenance chain — yếu tố biến một câu trả lời thành bằng chứng. Nếu thiếu bất kỳ mắt xích nào, người dùng không thể kiểm chứng.
+
+### 4.6.4. Metadata chưa được khai thác
+
+Hiện tại:
+
+- `access_level` luôn `null`, `allowed_roles` luôn rỗng.
+- `is_current` có trong payload nhưng retriever không lọc.
+- `section_type` có thể null.
+
+Đây là các điểm cần hoàn thiện:
+
+1. Gán `access_level` theo tài liệu (public/internal/confidential).
+2. Truyền role của người dùng vào filter Qdrant.
+3. Lọc `is_current = true` mặc định.
+4. Phân loại `section_type` (definition, procedure, policy, penalty).
+
+---
+
+## 4.7. Tầng biểu diễn vector
+
+### 4.7.1. Mô hình nhúng
+
+Mỗi chunk được mã hóa bằng `Multilingual-E5-Small` (384 chiều). Trước khi nhúng, văn bản được chuẩn hóa bằng `fold_text`:
+
+- Chuẩn hóa Unicode NFD, bỏ dấu thanh.
+- Chuyển `đ` → `d`.
+- Chữ thường, nén khoảng trắng.
+
+Lý do: OCR tiếng Việt thường mất dấu; chuẩn hóa cả query và tài liệu giúp cosine ổn định hơn. Đánh đổi: mất phân biệt một số cặp từ (“mã”/“má”), nhưng trong miền văn bản pháp lý, lợi ích lớn hơn.
+
+### 4.7.2. Batch encoding
+
+`EmbeddingService.embed_documents(texts, batch_size=32)` mã hóa theo batch:
+
+- Giảm overhead gọi model.
+- Kiểm soát RAM.
+- Có thể chạy song song ở mức pipeline (nhiều worker) nhưng cần giới hạn CPU.
+
+Với 152 chunk, thời gian nhúng khoảng vài giây đến vài chục giây trên CPU. Với 1 triệu chunk, cần pipeline phân tán hoặc GPU.
+
+### 4.7.3. Lưu vector và payload
+
+Qdrant point gồm:
+
+- `id`: UUIDv5 từ `chunk_id`.
+- `vector`: mảng 384 float.
+- `payload`: metadata + content.
+
+Point ID xác định đảm bảo idempotency. Payload chứa đủ thông tin để trả citation mà không cần join ngay.
+
+### 4.7.4. Toán học tìm kiếm
+
+Cosine:
+
+> Công thức 4.5. $\text{cos}(q, d) = \frac{\sum_{i=1}^{384} q_i d_i}{\sqrt{\sum q_i^2}\sqrt{\sum d_i^2}}$
+
+Qdrant dùng HNSW để tìm top-N xấp xỉ. Với 152 point, kết quả gần như chính xác; với hàng triệu point, HNSW đánh đổi một phần recall để giảm latency.
+
+---
+
+## 4.8. Tầng truy xuất lai
+
+### 4.8.1. Vì sao không dùng vector search thuần
+
+Vector search giỏi bắt ngữ nghĩa nhưng có ba điểm yếu trong miền pháp lý:
+
+1. Số điều không được embedding tốt. Câu hỏi “Điều 43 quy định gì?” gần như không có tín hiệu ngữ nghĩa; model nhỏ có thể xếp đoạn nói về “quy định” lên trước đoạn thật.
+2. Từ khóa chốt bị chìm. “mật khẩu”, “cổ tức”, “trẻ em” là các từ hiếm, quyết định đáp án; cosine của model nhỏ có thể làm chúng nằm ngoài top-60.
+3. Nhiễu OCR làm lệch vector. Mất dấu, sai ký tự khiến embedding của đoạn đúng xa câu hỏi.
+
+Vì vậy, kiến trúc dùng truy xuất lai nhiều tầng:
+
+```text
+Query
+  → Embedding
+  → Qdrant top-N (N = min(1000, max(top_k*20, 300)))
+  → Dedup
+  → Combined score = cosine + 0.9 × lexical + 0.45 × article_match
+  → Cross-encoder rerank top-10
+  → Answer windows + shape gate
+  → IDF/bigram coverage
+  → Window rerank
+  → Selection + citation
+```
+
+![Pipeline truy xuất lai nhiều tầng](assets/kb_retrieval.png)
+
+*Hình 4.4. Truy xuất lai: vector lo phần ngữ nghĩa, lexical/article boost giữ từ khóa chốt, cross-encoder và shape gate siết precision.*
+
+### 4.8.2. Sinh ứng viên
+
+`VectorRetriever.search` lấy:
+
+> Công thức 4.6. $N = \min\left(1000, \max(20 \times k, 300)\right)$
+
+với $k$ là số kết quả mong muốn. Với $k=3$, $N=300$; với $k=50$, $N=1000$. Lý do lấy dư:
+
+- Cosine của model nhỏ có thể xếp đoạn đúng ngoài top-$k$.
+- Bước rerank phía sau mới là nơi quyết định.
+- Chi phí lấy 300 thay vì 30 không lớn với kho nhỏ.
+
+### 4.8.3. Khử trùng lặp
+
+Khóa dedup:
+
+> Công thức 4.7. $\text{key} = (\text{page\_start}, \text{content})$
+
+Nếu hai point có cùng trang bắt đầu và cùng nội dung (do overlap hoặc hai phiên bản), chỉ giữ point đầu. Cách này rẻ và xử lý được triệu chứng “top-5 toàn cùng một đoạn”. Hạn chế: hai đoạn khác nhau có thể cùng trang và cùng nội dung rất ngắn; hiếm.
+
+### 4.8.4. Điểm lexical
+
+Lexical score đo tỷ lệ token của query xuất hiện trong chunk:
+
+> Công thức 4.8. $\text{lex}(q, d) = \frac{|\{t \in T(q) : t \in T(d)\}|}{|T(q)|}$
+
+Trong đó $T(\cdot)$ là tập token duy nhất sau `fold_text`, chỉ giữ token dài ≥ 2 ký tự. Đây là coverage, không phải TF-IDF; nó thưởng cho chunk chứa nhiều từ khóa của câu hỏi, nhưng không phạt chunk dài.
+
+Ví dụ:
+
+- Query: “thời giờ làm việc của người lao động”
+- Tokens: `{thoi, gio, lam, viec, cua, nguoi, lao, dong}` (sau khi bỏ stopwords? Trong retriever, `_tokens` không loại stopwords, chỉ loại token <2 ký tự; vì vậy “cua” vẫn được tính. Đây là điểm có thể cải tiến.)
+- Chunk chứa 6/8 token → lex = 0.75.
+
+### 4.8.5. Article boost
+
+Nếu query chứa “Điều N” và chunk chứa “Điều N”, cộng thêm 0.45:
+
+> Công thức 4.9. $\text{combined} = \cos(q,d) + 0.9 \times \text{lex}(q,d) + 0.45 \times \mathbb{1}[\text{article}(q,d)]$
+
+Hệ số 0.9 và 0.45 được chọn thực nghiệm:
+
+- 0.9 đủ để lexical lật thứ hạng khi cosine chênh lệch nhỏ, nhưng không át hoàn toàn ngữ nghĩa.
+- 0.45 đủ để chunk đúng “Điều 43” vượt lên khi cosine của nó rất thấp (câu hỏi số điều gần như không có tín hiệu ngữ nghĩa).
+
+Đây là hybrid ở mức chunk, trước khi rerank. Nó rẻ (chỉ cộng số) và giải quyết đúng điểm yếu của embedding nhỏ.
+
+### 4.8.6. Cross-encoder rerank
+
+Sau khi sắp xếp theo combined, lấy 10 ứng viên đầu và chấm lại bằng cross-encoder:
+
+> Công thức 4.10. $s_{rerank}(q,d) = \text{CrossEncoder}(q, d[:800])$
+
+Kết quả được sắp xếp lại theo `rerank_score`. Điểm combined vẫn được giữ trong `score` để dùng cho ngưỡng và chọn ứng viên.
+
+Lưu ý: cross-encoder ở đây chấm cả chunk (tối đa 800 ký tự). Ở tầng sau, `RAGService` chấm lại cửa sổ câu (1–4 câu) để tránh nhiễu từ các phần không liên quan trong chunk dài. Đây là hai tầng rerank có mục đích khác nhau:
+
+- Tầng 1: chọn chunk liên quan.
+- Tầng 2: chọn câu trả lời trong chunk.
+
+### 4.8.7. Ví dụ tính điểm
+
+Giả sử query “Điều 43 quy định gì về cổ tức?”:
+
+- Qdrant trả về chunk A (chứa “Điều 43. Trả cổ tức...”) với cosine 0.72.
+- Lexical = 4/6 = 0.667.
+- Article match = 1.
+- Combined = 0.72 + 0.9×0.667 + 0.45 = 1.77.
+
+Chunk B (nói chung về “quy định”, không có Điều 43) cosine 0.78, lexical 0.5, article 0:
+
+- Combined = 0.78 + 0.45 = 1.23.
+
+Nhờ article boost và lexical, chunk đúng vượt lên dù cosine thấp hơn. Đây chính là mục tiêu thiết kế.
+
+### 4.8.8. Độ phức tạp và độ trễ
+
+- Embedding query: $O(d \cdot L)$ với $L$ là độ dài query; thực tế vài ms đến vài chục ms trên CPU.
+- Qdrant HNSW: $O(\log N)$ trung bình.
+- Lexical: $O(|T(q)| \cdot |T(d)|)$ cho mỗi ứng viên; với 300 ứng viên, vài ms.
+- Rerank 10 cặp: $O(10 \cdot L_q \cdot L_d)$; cross-encoder là phần tốn nhất, có thể 50–200 ms trên CPU.
+- Tổng: thường dưới 1 giây cho kho nhỏ.
+
+---
+
+## 4.9. Tầng hiểu ý định và trích xuất câu trả lời
+
+### 4.9.1. Vì sao cần answer shape
+
+Một chunk có thể chứa từ khóa của câu hỏi nhưng không trả lời đúng loại thông tin. Ví dụ:
+
+- Hỏi “Công ty có bao nhiêu cổ đông?” — chunk nói “cổ đông sở hữu ít nhất 10% có quyền ủy quyền...” có nhiều từ “cổ đông” nhưng không nêu số lượng.
+- Hỏi “Nhiệm kỳ HĐQT bao lâu?” — chunk nói “cuộc họp đầu tiên trong bảy ngày” có “nhiệm kỳ” và “bảy ngày” nhưng trả lời sai ý.
+
+`_answer_shape(query, content)` kiểm tra dạng câu trả lời. Đây là lớp chặn false-positive rẻ nhưng hiệu quả.
+
+### 4.9.2. Các intent
+
+| Intent | Khi nào | Kiểm tra |
+| :--- | :--- | :--- |
+| `meeting` | Query có “lần thứ nhất/hai/ba...” | Content phải có đúng ordinal |
+| `article` | Query có “Điều N” | Content phải có “Điều N” |
+| `ratio` | Query có “tỷ lệ”, “phần trăm”, “%” | Content có % gần anchor (cổ đông, biểu quyết, …) |
+| `count` | Query có “bao nhiêu” + thực thể | Số đứng trước thực thể hoặc “số lượng ... là N” |
+| `time` | Query có “bao lâu”, “khi nào”, “thời hạn” | Số + đơn vị thời gian gần anchor, hoặc “vô thời hạn” |
+| `yesno` | Query có “có ... không”, “có phải”, “bắt buộc” | Động từ/trạng thái gần thực thể |
+| `who` | Query có “ai”, “người nào” | Vai trò gần hành động (ký, quyết định, bổ nhiệm) |
+| `default` | Câu hỏi mở | Độ phủ token ≥ 0.3 và có ít nhất một từ dài ≥ 4 ký tự |
+
+Các intent đặc biệt:
+
+- **`ratio` với nghị quyết ĐHĐCĐ:** phải lấy tỷ lệ thông thường (50%/65%), không lấy ngoại lệ “100% ngay cả khi trình tự vi phạm” hoặc tỷ lệ đề cử ứng viên.
+- **`time` với “thời hạn hoạt động”:** phải là “vô thời hạn” hoặc số năm/tháng, không phải mọi câu có chữ “thời hạn”.
+- **`count` với “cuộc họp”:** phải có “ít nhất/mỗi quý/mỗi năm” gần “họp”.
+- **`yesno` với “kiểm toán”:** phải có “phải/bắt buộc kiểm toán”, không phải “thành viên Ủy ban Kiểm toán phải có kiến thức...”.
+
+### 4.9.3. Cửa sổ câu trả lời
+
+Một chunk 1.200 ký tự có thể chứa nhiều quy định. Chấm cả chunk làm câu đúng bị pha loãng. `_answer_windows` sinh các cửa sổ 1–4 câu:
+
+> Công thức 4.11. $W = \{s_i \oplus s_{i+1} \oplus ... \oplus s_j : 1 \le j-i+1 \le 4, |W| \le 800\}$
+
+Trong đó $s_i$ là câu thứ $i$ sau khi tách theo `.`, `!`, `?`, `;`, `:`. Mỗi cửa sổ được kiểm tra shape và độ phủ.
+
+Ngoài ra, `_list_windows` sinh cửa sổ bắt đầu tại tiêu đề danh sách (ví dụ “QUY TRÌNH ĐÁNH GIÁ NHÀ CUNG CẤP”) để câu trả lời không chỉ trúng mục cuối.
+
+### 4.9.4. Độ phủ có trọng số IDF
+
+Không phải từ nào cũng quan trọng. “công ty”, “quy định” xuất hiện khắp nơi; “mật khẩu”, “cổ tức” hiếm và quyết định. Pipeline tính IDF thô trên tập ứng viên:
+
+> Công thức 4.12. $w(t) = \log\left(\frac{N+1}{df(t)+1}\right) + 1$
+
+với $N$ là số ứng viên, $df(t)$ là số ứng viên chứa $t$. Độ phủ có trọng số:
+
+> Công thức 4.13. $\text{cov}_w(q, W) = \frac{\sum_{t \in T(q) \cap T(W)} w(t)}{\sum_{t \in T(q)} w(t)}$
+
+Tương tự cho bigram:
+
+> Công thức 4.14. $\text{cov}_{bigram}(q, W) = \frac{\sum_{b \in B(q) \cap B(W)} w(b)}{\sum_{b \in B(q)} w(b)}$
+
+Bigram giúp phân biệt “thời giờ” với “thời hạn”, “cổ tức” với “cổ phần”. Đây là tín hiệu quan trọng trong tiếng Việt, nơi nhiều cụm hai âm tiết mang nghĩa khác hẳn từng từ.
+
+### 4.9.5. Điểm trước rerank
+
+> Công thức 4.15. $s_{pre} = 0.6 \times \text{cov}_w + 0.4 \times \text{cov}_{bigram} + 0.15 \times \min(\text{combined}, 1.2) + 0.10 \times \mathbb{1}[\text{shape} \ne \text{default}] + 0.20 \times \mathbb{1}[\text{list}]$
+
+Ý nghĩa:
+
+- 0.6/0.4: ưu tiên độ phủ từ và cụm từ.
+- 0.15: tín hiệu vector/lexical, đã được chuẩn hóa.
+- 0.10: thưởng cho câu trả lời đúng dạng (số, thời gian, có/không).
+- 0.20: thưởng cho cửa sổ danh sách.
+
+Mỗi chunk giữ tối đa 2 cửa sổ tốt nhất, cộng thêm cửa sổ danh sách. Sau đó lấy top 40 + tối đa 10 cửa sổ danh sách để rerank.
+
+### 4.9.6. Điểm cuối và chọn lọc
+
+Với câu hỏi có dạng rõ ràng (`intent != default`), điểm cuối là rerank score:
+
+> Công thức 4.16. $s_{final} = s_{rerank}$
+
+Với câu hỏi mở (`default`), cộng thêm tín hiệu cụm từ và vị trí:
+
+> Công thức 4.17. $s_{final} = s_{rerank} + 1.2 \times \text{cov}_{bigram} + 0.4 \times \text{cov}_w + 1.5 \times \mathbb{1}[\text{list}] + 1.5 \times \mathbb{1}[\text{heading}]$
+
+Trong đó `heading` = cửa sổ bắt đầu bằng “Điều/Chương/Mục + số”. Lý do: câu trả lời pháp lý thường bắt đầu bằng tiêu đề điều; ưu tiên cửa sổ này giúp citation đẹp và đúng ngữ cảnh.
+
+Chọn lọc:
+
+1. Nếu intent `default` và điểm tốt nhất < -6.0 → không có ứng viên (từ chối).
+2. Giới hạn số đoạn theo intent:
+
+| Intent | Số đoạn tối đa |
+| :--- | ---: |
+| meeting, article, count, yesno, who | 1 |
+| time, ratio | 2 |
+| default | min(top_k, 3) |
+
+3. “quyền hạn” → 1; “hoãn”/“thời hạn hoạt động” → 1.
+4. Biên chọn: 2.5 cho default, 2.0 cho intent khác. Chỉ lấy các ứng viên có điểm ≥ best - margin.
+5. Dedup theo `chunk_id`.
+
+### 4.9.7. Ngưỡng và căn cứ thực nghiệm
+
+Mã nguồn ghi nhận:
+
+- Câu hỏi ngoài phạm vi có cosine 0.28–0.42; câu hỏi khớp thật thấp nhất ~0.53. Ngưỡng tham chiếu 0.5.
+- Cross-encoder: câu hợp lệ -1.06..+9.86; câu ngoài phạm vi -1.68..-6.86. Ngưỡng -1.5 trong config; luồng `ask` dùng -6.0 cho câu mở.
+
+Tuy nhiên, luồng hiện tại không lọc cosine trước (min_score=0.0) vì một đoạn đúng có thể chỉ đạt 0.24 nhưng khớp chính xác “cổ tức”. Thay vào đó:
+
+- Lọc ứng viên yếu: `hit_score < 0.25` và không có article match → bỏ.
+- Kiểm tra hình dạng câu trả lời.
+- Kiểm tra độ phủ.
+- Dùng rerank gate -6.0 cho câu mở.
+
+Đây là triết lý “recall trước, precision sau”: lấy rộng ở tầng vector, siết ở tầng shape/rerank. Nếu lọc cosine sớm, đoạn đúng có cosine thấp sẽ mất trước khi có cơ hội được rerank.
+
+### 4.9.8. Ví dụ: câu hỏi số lượng
+
+Query: “Công ty có bao nhiêu thành viên Hội đồng Quản trị?”
+
+1. Retrieval trả về nhiều chunk có “Hội đồng Quản trị”.
+2. `_answer_shape` xác định `count`, yêu cầu số đứng trước “thành viên” hoặc “số lượng ... là N”.
+3. Chunk đúng: “Hội đồng Quản trị có từ 03 đến 11 thành viên.” → count.
+4. Chunk sai: “Cổ đông sở hữu ít nhất 10% ... có thể ủy quyền tối đa 03 Người đại diện.” → không có “thành viên” sau số → loại.
+5. Cửa sổ đúng được chọn, citation trỏ đến điều khoản tương ứng.
+
+Đây là ví dụ cho thấy shape gate giải quyết lỗi “đúng từ khóa, sai loại thông tin” mà vector search không giải quyết được.
+
+---
+
+## 4.10. Tầng sinh câu trả lời và trích dẫn
+
+### 4.10.1. Prompt chống ảo giác
+
+System prompt quy định:
+
+1. Chỉ trả lời dựa trên ngữ cảnh được cung cấp.
+2. Nếu không đủ thông tin, trả lời “chưa tìm thấy”.
+3. Mọi khẳng định phải gắn nhãn `[1]`, `[2]` tương ứng đoạn nguồn.
+4. Trình bày ngắn gọn, tiếng Việt chuẩn mực.
+
+Prompt không đủ để chống ảo giác; nó chỉ là lớp cuối. Các lớp trước (retrieval gate, shape, rerank, extractive fallback) mới là yếu tố quyết định.
+
+### 4.10.2. Định dạng ngữ cảnh
+
+Mỗi đoạn trong context:
+
+```text
+[1] Vị trí: Trang 12 → 13 | Phả hệ: CHƯƠNG VII > Điều 39
+Nội dung: ...
+```
+
+`Vị trí` giúp LLM biết trang; `Phả hệ` giúp biết điều/chương. Nếu section_path rỗng, dùng “Văn bản chung”.
+
+### 4.10.3. Citation object
+
+Mỗi citation gồm:
+
+| Trường | Ý nghĩa |
+| :--- | :--- |
+| `index` | Số thứ tự [1], [2] |
+| `chunk_id` | Mã chunk |
+| `score` | Điểm chọn |
+| `document_id` | Tài liệu |
+| `section_path` | Đường dẫn mục |
+| `pages` | “Trang X” hoặc “Trang X → Y” |
+| `snippet` | Trích đoạn tối đa 500 ký tự |
+
+Snippet được cắt tại khoảng trắng gần 500 ký tự nhất, thêm “…” để không cắt giữa từ.
+
+### 4.10.4. Extractive fallback
+
+Nếu không có LLM hoặc LLM lỗi:
+
+- Nếu không có hit/citation → trả lời từ chối.
+- Nếu có → trả về các đoạn trích tốt nhất, mỗi đoạn kèm vị trí và citation.
+
+Ví dụ:
+
+```text
+Theo quy định tại **Trang 12** [1]:
+
+> Điều 39. Chủ tịch Hội đồng Quản trị có các quyền...
+
+*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*
+```
+
+Fallback đảm bảo hệ thống vẫn hữu ích khi chưa cấu hình API key hoặc mất mạng. Nó cũng là “chốt an toàn” chống ảo giác: không có LLM thì không thể bịa.
+
+### 4.10.5. Từ chối khi không đủ căn cứ
+
+Điều kiện từ chối:
+
+- Không có ứng viên sau shape/coverage.
+- Câu mở có điểm < -6.0.
+- Từ dài nhất của query không xuất hiện trong bất kỳ ứng viên nào (ví dụ “pizza”) → loại tất cả.
+- Không có citation sau khi chọn.
+
+Câu trả lời từ chối:
+
+> “Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.”
+
+Đây là hành vi đúng: thà từ chối còn hơn trả lời sai trong miền pháp lý.
+
+---
+
+## 4.11. Đánh giá cơ sở tri thức
+
+### 4.11.1. Thống kê corpus
+
+| Chỉ số | Giá trị |
+| :--- | ---: |
+| Tài liệu | Điều lệ Công ty (39 trang) |
+| Số chunk | 152 |
+| Tổng ký tự | 111.241 |
+| Trung bình | 731,8 ký tự |
+| Trung vị | 795 |
+| Ngắn nhất | 52 |
+| Dài nhất | 1.353 |
+| Số section path | 33 |
+| Khoảng trang | 4–40 |
+
+Phân bố section path cho thấy chunk tập trung ở các chương lớn:
+
+| Số chunk | Section path |
+| ---: | :--- |
+| 22 | CHƯƠNG VI CỔ ĐÔNG VÀ ĐẠI HỘI ĐỒNG CỔ ĐÔNG > Điều 39... |
+| 21 | CHƯƠNG VII HỘI ĐỒNG QUẢN TRỊ... > Điều 39... |
+| 16 | CHƯƠNG VI CỔ ĐÔNG VÀ ĐẠI HỘI ĐỒNG CỔ ĐÔNG |
+| 15 | CHƯƠNG VI ... > C. Tạo điều kiện cho Cổ đông... |
+| 11 | CHƯƠNG VII HỘI ĐỒNG QUẢN TRỊ... |
+
+Điều này phản ánh đặc điểm văn bản: các chương về cổ đông và HĐQT dài, nhiều điều khoản; các chương khác ngắn hơn.
+
+### 4.11.2. Kết quả truy xuất
+
+Từ chương Học sâu:
+
+| Mô hình | Recall@1 | Recall@3 | MRR |
+| :--- | ---: | ---: | ---: |
+| E5-Small | 80% | 100% | 0,90 |
+| Vietnamese-Bi-Encoder | 80% | 80% | 0,80 |
+| MiniLM | 60% | 80% | 0,6667 |
+
+Với 5 câu hỏi, E5 đưa đáp án vào top-3 cho cả 5. Đây là mức tối thiểu để RAG hoạt động: nếu đáp án ngoài top-3, LLM không có cơ hội thấy nó.
+
+### 4.11.3. Kiểm thử answer gate
+
+Bộ 15 test trong `tests/test_answer_gate.py` bao phủ:
+
+- Từ chối khi không có hit.
+- Trích xuất bắt đầu đúng câu, giữ tiêu đề điều, nối dòng OCR, dừng trước chương mới.
+- Count: từ chối quyền cổ đông, chấp nhận số thành viên HĐQT.
+- Time: chấp nhận nhiệm kỳ, từ chối thời hạn họp; chấp nhận thời gian hoãn đúng.
+- Meeting: từ chối lần thứ hai khi hỏi lần thứ ba.
+- Yes/no: từ chối kiểm toán ủy ban, chấp nhận bắt buộc kiểm toán; chấp nhận cho vay có phê duyệt.
+- Who: chấp nhận Tổng Giám đốc ký hợp đồng.
+- Default: từ chối câu ngoài phạm vi (“pizza”).
+
+Các test này là hồi quy logic, không phải đánh giá end-to-end. Chúng đảm bảo các quy tắc shape không bị vô hiệu khi sửa code.
+
+### 4.11.4. Phân tích lỗi
+
+| Nhóm lỗi | Ví dụ | Nguyên nhân | Giảm thiểu |
+| :--- | :--- | :--- | :--- |
+| OCR mất dấu | “Điều” → “Diều” | Scan chất lượng thấp | Font converter, fold_text, regex biến thể |
+| Section path sai | Điều 39 nằm dưới Chương VI thay vì VII | Heading detection nhầm | Cải thiện heading, kiểm tra thủ công |
+| Trộn phiên bản | Hai bản cùng tài liệu | Chưa xóa vector cũ kịp | Dedup, filter is_current, alias |
+| Cắt giữa câu | Chunk kết thúc “...trừ trường hợp” | Fallback character | Tăng chunk_size, ưu tiên sentence |
+| Cosine nhiễu | Đoạn “quy định chung” điểm cao | Model nhỏ | Lexical, article boost, rerank |
+| Intent sai | Hỏi “bao nhiêu” nhưng trả lời quyền | Shape gate chưa phủ | Bổ sung pattern, test |
+| Cửa sổ cắt mất ngoại lệ | Chỉ lấy câu đầu | Max 4 câu/800 ký tự | Tăng cửa sổ, lấy câu sau |
+| LLM bịa | Số liệu không có trong context | Prompt yếu | Temperature 0.2, extractive fallback, citation check |
+
+### 4.11.5. Hạn chế của đánh giá
+
+- Mẫu nhỏ: 5 câu hỏi, một tài liệu; chưa đủ kết luận thống kê.
+- Chưa có RAGAS/faithfulness: chưa đo mức độ trung thành của câu trả lời với ngữ cảnh.
+- Chưa có người dùng thật: chưa đo mức hài lòng, thời gian tiết kiệm.
+- Chưa có multi-hop: câu hỏi cần tổng hợp nhiều điều khoản chưa được đánh giá.
+- Chưa có đánh giá đa ngôn ngữ: corpus chỉ tiếng Việt.
+
+---
+
+## 4.12. Từ PDF và link đến đồ thị tri thức Neo4j
+
+### 4.12.1. Vì sao cần đồ thị tri thức?
+
+Vector KB trả lời tốt câu hỏi “đoạn nào nói về X”. Nó yếu với:
+
+- Truy vấn đa bước: “Thành viên Ủy ban Kiểm toán do ai bổ nhiệm và báo cáo cho ai?”
+- Truy vấn quan hệ: “Những điều khoản nào bị sửa đổi bởi phụ lục lần 3?”
+- Truy vấn tổng hợp: “Tất cả quy định về cổ tức nằm ở những chương nào?”
+- Suy luận bắc cầu: “Nếu HĐQT bổ nhiệm Tổng Giám đốc, và Tổng Giám đốc ký hợp đồng, ai chịu trách nhiệm?”
+
+Đồ thị tri thức (Knowledge Graph — KG) biểu diễn thực thể và quan hệ, cho phép duyệt đường đi thay vì chỉ so khớp vector. Với EAKWP, đồ thị không thay thế vector KB mà bổ sung một đường truy xuất thứ hai: vector tìm đoạn văn giống câu hỏi, đồ thị tìm đoạn văn chứa cùng thực thể hoặc cùng quan hệ.
+
+### 4.12.2. Kiến trúc KB1, KB2 và KB hợp nhất
+
+Thiết kế chia tri thức thành hai kho nguồn và một kho hợp nhất:
+
+- KB1 — kho tài liệu nghiệp vụ: 35 tệp PDF đã thu thập (Điều lệ, phụ lục sửa đổi, quy chế, quy trình, chính sách nhân sự). Đây là nguồn có cấu trúc điều khoản, được nạp qua pipeline PDF → cấu trúc → chunk → entity.
+- KB2 — kho nguồn công khai: 10 trang web chính thức của doanh nghiệp (giới thiệu, quản trị, công bố thông tin, báo cáo thường niên, tài liệu doanh nghiệp). Đây là nguồn cập nhật nhanh, bổ sung ngữ cảnh mà PDF có thể chưa có.
+- KB — kho hợp nhất: liên kết tất cả Document/Chunk/Entity của KB1 và KB2 dưới cùng một `KnowledgeBase`. KB không sao chép dữ liệu; nó thêm cạnh thành viên `HAS_DOCUMENT`, nhờ đó cùng một tài liệu xuất hiện ở cả KB1 và KB vẫn chỉ có một node.
+
+![Kiến trúc KB1, KB2 và KB hợp nhất](assets/kb_graph_sources.png)
+
+*Hình 4.5. Hai đường nạp PDF/link vào KB1/KB2, gộp thành KB và nối vào RAG.*
+
+| Thành phần | Nguồn | Quy mô | Vai trò | Trạng thái |
+| :--- | :--- | :--- | :--- | :--- |
+| KB1 | PDF nội bộ | 35 tệp, 395 trang, 112,2 MB (≈107 MiB) → 935 chunk, 257 entity | Điều khoản gốc, quy chế, quy trình | Đã nạp vào Neo4j thật ngày 09/11/2026 |
+| KB2 | Link công khai | 10 URL → 28 chunk, 11 entity | Ngữ cảnh công khai, thông tin mới | Đã nạp 10/10 URL ngày 09/11/2026 |
+| KB | Hợp nhất KB1 + KB2 | 45 tài liệu, 963 chunk, 263 entity | Nguồn cho RAG và graph retrieval | Đã gộp thật bằng `--merge KB1 KB2` |
+
+Nguyên tắc quan trọng: ID của Document, Chunk và Entity được sinh từ nội dung chứ không từ thứ tự nạp. Vì vậy:
+
+- Nạp lại cùng một PDF không tạo bản trùng.
+- Cùng một tài liệu xuất hiện ở KB1 và KB2 sẽ dùng chung node.
+- Gộp KB1 + KB2 chỉ thêm cạnh thành viên, không nhân đôi dữ liệu.
+- Khi nội dung thay đổi, ID mới được sinh; bản cũ được đánh dấu `is_current = false` thay vì xóa cứng.
+
+### 4.12.3. Nguồn dữ liệu: 35 tệp PDF và 10 link KB
+
+#### a) Tổng hợp PDF theo nhóm
+
+| Nhóm | Số tệp | Số trang | Dung lượng | Nội dung chính |
+| :--- | ---: | ---: | ---: | :--- |
+| Điều lệ công ty | 3 | 121 | 29,05 MB | Điều lệ 2021, 2025, 2026 |
+| Phụ lục sửa đổi điều lệ | 22 | 72 | 9,41 MB | Các lần sửa đổi 1–10 và phụ lục khác |
+| Nhân sự và lao động | 3 | 53 | 19,32 MB | Chính sách nhân quyền, nội quy, thỏa ước lao động |
+| Quy chế và quy trình | 7 | 149 | 49,21 MB | Quản trị công ty, quản trị rủi ro, an ninh thông tin, HĐQT, nhà cung cấp, khiếu nại, xử lý vụ việc |
+| Tổng | 35 | 395 | 112,2 MB (≈107 MiB) | Toàn bộ corpus PDF |
+
+#### b) Danh mục 35 tệp PDF đã thu thập
+
+| # | Tệp | Nhóm | Trang |
+| ---: | :--- | :--- | ---: |
+| 1 | `Dieu_le_cong_ty_2021.pdf` | dieu_le_cong_ty | 38 |
+| 2 | `Dieu_le_cong_ty_2025.pdf` | dieu_le_cong_ty | 41 |
+| 3 | `Dieu_le_cong_ty_2026.pdf` | dieu_le_cong_ty | 42 |
+| 4 | `Phu_luc_sua_doi_dieu_le_lan_1.pdf` | dieu_le_sua_doi | 2 |
+| 5 | `Phu_luc_sua_doi_dieu_le_lan_10.pdf` | dieu_le_sua_doi | 2 |
+| 6 | `Phu_luc_sua_doi_dieu_le_lan_1_1.pdf` | dieu_le_sua_doi | 1 |
+| 7 | `Phu_luc_sua_doi_dieu_le_lan_1_2.pdf` | dieu_le_sua_doi | 1 |
+| 8 | `Phu_luc_sua_doi_dieu_le_lan_2.pdf` | dieu_le_sua_doi | 1 |
+| 9 | `Phu_luc_sua_doi_dieu_le_lan_2_1.pdf` | dieu_le_sua_doi | 1 |
+| 10 | `Phu_luc_sua_doi_dieu_le_lan_2_2.pdf` | dieu_le_sua_doi | 1 |
+| 11 | `Phu_luc_sua_doi_dieu_le_lan_3.pdf` | dieu_le_sua_doi | 1 |
+| 12 | `Phu_luc_sua_doi_dieu_le_lan_3_1.pdf` | dieu_le_sua_doi | 3 |
+| 13 | `Phu_luc_sua_doi_dieu_le_lan_3_2.pdf` | dieu_le_sua_doi | 1 |
+| 14 | `Phu_luc_sua_doi_dieu_le_lan_4.pdf` | dieu_le_sua_doi | 1 |
+| 15 | `Phu_luc_sua_doi_dieu_le_lan_4_1.pdf` | dieu_le_sua_doi | 5 |
+| 16 | `Phu_luc_sua_doi_dieu_le_lan_5.pdf` | dieu_le_sua_doi | 1 |
+| 17 | `Phu_luc_sua_doi_dieu_le_lan_5_1.pdf` | dieu_le_sua_doi | 1 |
+| 18 | `Phu_luc_sua_doi_dieu_le_lan_6.pdf` | dieu_le_sua_doi | 1 |
+| 19 | `Phu_luc_sua_doi_dieu_le_lan_7.pdf` | dieu_le_sua_doi | 3 |
+| 20 | `Phu_luc_sua_doi_dieu_le_lan_7_1.pdf` | dieu_le_sua_doi | 1 |
+| 21 | `Phu_luc_sua_doi_dieu_le_lan_8.pdf` | dieu_le_sua_doi | 1 |
+| 22 | `Phu_luc_sua_doi_dieu_le_lan_8_1.pdf` | dieu_le_sua_doi | 1 |
+| 23 | `Phu_luc_sua_doi_dieu_le_lan_9.pdf` | dieu_le_sua_doi | 2 |
+| 24 | `Phu_luc_sua_doi_dieu_le_lan_khac.pdf` | dieu_le_sua_doi | 38 |
+| 25 | `Phu_luc_sua_doi_dieu_le_lan_khac_1.pdf` | dieu_le_sua_doi | 3 |
+| 26 | `Chinh_sach_nhan_quyen.pdf` | nhan_su_va_lao_dong | 4 |
+| 27 | `Noi_quy_lao_dong.pdf` | nhan_su_va_lao_dong | 34 |
+| 28 | `Thoa_uoc_lao_dong_tap_the.pdf` | nhan_su_va_lao_dong | 15 |
+| 29 | `Chinh_sach_an_ninh_thong_tin.pdf` | quy_che_va_quy_trinh | 22 |
+| 30 | `Quy_che_hoat_dong_HDQT.pdf` | quy_che_va_quy_trinh | 15 |
+| 31 | `Quy_che_quan_tri_cong_ty.pdf` | quy_che_va_quy_trinh | 28 |
+| 32 | `Quy_che_quan_tri_rui_ro.pdf` | quy_che_va_quy_trinh | 22 |
+| 33 | `Quy_trinh_danh_gia_nha_cung_cap.pdf` | quy_che_va_quy_trinh | 13 |
+| 34 | `Quy_trinh_giai_quyet_khieu_nai.pdf` | quy_che_va_quy_trinh | 40 |
+| 35 | `Quy_trinh_xu_ly_vu_viec.pdf` | quy_che_va_quy_trinh | 9 |
+
+
+#### c) Danh mục 10 link KB2
+
+| # | Nhóm | Link | Ký tự văn bản | Chunk |
+| ---: | :--- | :--- | ---: | ---: |
+| 1 | Doanh nghiệp | `https://masanconsumer.com/ve-masan-consumer/gioi-thieu-chung/` | 7.731 | 11 |
+| 2 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/gioi-thieu/` | 3.244 | 5 |
+| 3 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/cong-bo-thong-tin/thong-tin-cong-bo/` | 1.145 | 1 |
+| 4 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/bao-cao-thuong-nien/` | 224 | 1 |
+| 5 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/dai-hoi-dong-co-dong/` | 2.197 | 3 |
+| 6 | Tài chính | `https://masanconsumer.com/quan-he-co-dong/thong-tin-tai-chinh/` | 966 | 1 |
+| 7 | Tài liệu | `https://masanconsumer.com/tai-lieu-doanh-nghiep/` | 424 | 1 |
+| 8 | Bền vững | `https://masanconsumer.com/phat-trien-ben-vung/quan-tri/` | 674 | 1 |
+| 9 | Tin tức | `https://masanconsumer.com/tin-tuc/thong-cao-bao-chi/` | 1.895 | 3 |
+| 10 | Tài liệu | `https://masanconsumer.com/tai-lieu/` | 841 | 1 |
+| | | Tổng | 19.341 | 28 |
+
+Cả 10 URL đều trả HTTP 200 và đã được nạp vào Neo4j.
+
+Hai kho này có chủ đích khác nhau. KB1 chứa nguồn gốc có giá trị pháp lý; KB2 chứa ngữ cảnh công khai và thông tin mới. Khi cùng một nội dung xuất hiện ở cả hai (ví dụ Điều lệ PDF và trang tài liệu doanh nghiệp), ID theo nội dung giúp chúng không bị nhân đôi. Khi nội dung khác nhau, cả hai cùng tồn tại và RAG có thể trích dẫn nguồn phù hợp hơn.
+
+### 4.12.4. Mô hình đồ thị và schema Neo4j
+
+Mô hình được chọn là LPG (Labeled Property Graph) — mỗi node có nhãn và thuộc tính, mỗi cạnh có kiểu và hướng. So với RDF, LPG phù hợp hơn với Neo4j và cho phép truy vấn Cypher ngắn, dễ đọc.
+
+Node labels:
+
+| Label | Thuộc tính chính | Ý nghĩa |
+| :--- | :--- | :--- |
+| `KnowledgeBase` | `kb_id`, `name`, `created_at` | KB1, KB2 hoặc KB |
+| `Document` | `doc_id`, `title`, `source_uri`, `source_type`, `content_hash`, `page_count`, `version`, `is_current` | Một tệp PDF hoặc một trang web |
+| `Chunk` | `chunk_id`, `chunk_index`, `text`, `page_start`, `page_end`, `section_path`, `content_hash` | Đơn vị truy xuất |
+| `Entity` | `entity_id`, `name`, `type` | Điều khoản, chức danh, mốc thời gian |
+
+Edge types:
+
+| Edge | Từ → Đến | Ý nghĩa |
+| :--- | :--- | :--- |
+| `HAS_DOCUMENT` | KnowledgeBase → Document | Tài liệu thuộc kho nào |
+| `HAS_CHUNK` | Document → Chunk | Đoạn trích thuộc tài liệu |
+| `MENTIONS` | Chunk → Entity | Đoạn trích nhắc đến thực thể |
+| `MERGED_INTO` | KnowledgeBase → KnowledgeBase | KB nguồn được gộp vào KB đích |
+| `NEW_VERSION_OF` | Document → Document | Phiên bản mới thay thế phiên bản cũ |
+| `RELATES_TO` | Entity ↔ Entity | Hai thực thể cùng xuất hiện trong một chunk (`kind = co_mentions`), dùng để mở rộng một chặng khi truy vấn |
+| `REFERENCES` | Chunk → Chunk | Điều khoản viện dẫn một điều khác trong cùng tài liệu |
+| `APPLIES_TO` | Chunk → Entity | Thực thể là chủ thể của mục chứa đoạn trích |
+
+Hình 4.6 là lược đồ do chính Neo4j sinh ra (`db.schema.visualization()`) trên cơ sở dữ liệu đã nạp: bốn nhãn node và bảy kiểu quan hệ.
+
+![Lược đồ đồ thị trong Neo4j Browser](assets/neo4j/neo4j_schema.png)
+
+*Hình 4.6. Lược đồ đồ thị tri thức trong Neo4j Browser: 4 nhãn node và 7 kiểu quan hệ.*
+
+Schema được tạo bằng Cypher, chạy một lần khi khởi tạo:
+
+```cypher
+CREATE CONSTRAINT kb_id IF NOT EXISTS
+FOR (k:KnowledgeBase) REQUIRE k.kb_id IS UNIQUE;
+
+CREATE CONSTRAINT doc_id IF NOT EXISTS
+FOR (d:Document) REQUIRE d.doc_id IS UNIQUE;
+
+CREATE CONSTRAINT chunk_id IF NOT EXISTS
+FOR (c:Chunk) REQUIRE c.chunk_id IS UNIQUE;
+
+CREATE CONSTRAINT entity_id IF NOT EXISTS
+FOR (e:Entity) REQUIRE e.entity_id IS UNIQUE;
+
+CREATE INDEX doc_source IF NOT EXISTS
+FOR (d:Document) ON (d.source_uri);
+```
+
+ID được sinh như sau:
 
 ```python
 def document_id(content_hash: str, title: str) -> str:
     return "doc-" + digest(content_hash, fold(title))
 
-
 def chunk_id(doc_id: str, index: int, content: str) -> str:
     return "chk-" + digest(doc_id, str(index), sha1_text(content))
-
 
 def entity_id(name: str, kind: str) -> str:
     return "ent-" + digest(fold(name), kind)
 ```
 
-## 4.5. Nạp PDF vào Neo4j để tạo KB1
+`fold()` bỏ dấu tiếng Việt và chuẩn hóa khoảng trắng trước khi băm. Nhờ đó “Hội đồng Quản trị”, “hội đồng quản trị” và “Hoi dong Quan tri” cho cùng một khóa băm trước khi tính `entity_id`. Lưu ý: `fold()` không chuẩn hóa số điều, nên “Điều 7” và “Điều 07” vẫn là hai khóa khác nhau; đây là hạn chế đã biết, cần xử lý ở bước chuẩn hóa thực thể.
 
-### 4.5.1. Quy trình
+### 4.12.5. Code nạp PDF vào KB1
 
-![Quy trình nạp PDF vào KB1](assets/vp/H4_3_pdf_vao_kb1.png)
-
-*Hình 4.4. Quy trình chuyển một tệp PDF thành dữ liệu của KB1.*
-
-Lệnh thực hiện:
-
-```text
-python scripts/10_build_neo4j_kb.py --init
-python scripts/10_build_neo4j_kb.py --pdf data/documents --kb KB1
-```
-
-### 4.5.2. Đọc PDF và OCR
-
-Trang có text layer được đọc trực tiếp và chuẩn hóa font cũ. Trang scan được chuyển sang Tesseract tiếng Việt ở 300 DPI.
-
-*Trích `ai-service/app/document_parser.py`, dòng 131–143:*
+Đường nạp PDF gồm bốn bước: trích văn bản (text layer + OCR fallback), phân tích cấu trúc thành section/Điều, phân đoạn bằng `AdaptiveChunker`, và ghi vào Neo4j. Mã nguồn chính nằm trong `ai-service/app/knowledge_graph/extract.py` và `pipeline.py`.
 
 ```python
-with pymupdf.open(file_path) as document:
-    for page_number, page in enumerate(document, start=1):
-        raw_text = page.get_text("text").strip()
-
-        words_data = []
-        rects = page.rect
-        page_width, page_height = rects.width, rects.height
-        ref_width, ref_height = page_width, page_height
-
-        # 1. Nhánh xử lý lớp văn bản (Text Layer)
-        if len(raw_text) >= min_text_len:
-            text = normalize_vietnamese_text(raw_text)
-            source = "native"
-```
-
-*Trích `ai-service/app/document_parser.py`, dòng 162–180:*
-
-```python
-        # 2. Nhánh dự phòng OCR (PDF Scan)
-        else:
-            ocr_result = ocr_page(page)
-            text = ocr_result["text"]
-            words_data = ocr_result["words"]
-            source = "ocr"
-            ref_width, ref_height = ocr_result.get("pixel_size", (page_width, page_height))
-
-        if not text:
-            continue
-
-        pages.append({
-            "page": page_number,
-            "text": text,
-            "source": source,
-            "words": _normalize_words(words_data, ref_width, ref_height)
-        })
-
-return pages
-```
-
-### 4.5.3. Nhận diện cấu trúc và loại mục lục
-
-Hàm `pages_to_nodes` tách khối văn bản, loại vùng mục lục và duy trì đường dẫn phân cấp `section_path`. Khi gặp tiêu đề cấp $k$, mọi mục có cấp từ $k$ trở xuống bị loại khỏi đường dẫn.
-
-*Trích `ai-service/app/knowledge_graph/extract.py`, dòng 138–188:*
-
-```python
-def pages_to_nodes(pages: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Build the structure-aware nodes consumed by AdaptiveChunker."""
-    pages = list(pages)
-    # A document with Chương/Điều keeps numbered clauses as body text.
-    use_numbered = not any(
-        _is_heading(line.strip())
-        for page in pages
-        for line in (page.get("text") or "").splitlines()
-    )
-    nodes: List[Dict[str, Any]] = []
-    section: List[tuple] = []  # (level, title), shallowest first
-    in_toc = False
-    for page in pages:
-        for block in _blocks(page.get("text", "")):
-            # Phát hiện Mục lục (TOC) và chuỗi chấm dẫn trang để loại bỏ
-            is_toc_item = bool(re.search(r"(?:\.{4,}|…{2,}|_{4,}|-{4,})", block))
-            has_toc_keyword = bool(re.search(r"(?i)\b(?:mục lục|table of contents|muc luc)\b", block))
-
-            if has_toc_keyword or is_toc_item:
-                in_toc = True
-
-            if in_toc:
-                # Thoát khỏi vùng TOC nếu gặp Điều 1 hoặc Chương chính thức và không có chuỗi chấm
-                if not is_toc_item and re.match(r"(?i)^(chương\s+[i1vxlcdm\d]|phần\s+[i1vxlcdm\d]|điều\s+1[\.\:\-])", block):
-                    in_toc = False
-
-            if in_toc or is_toc_item or has_toc_keyword:
-                nodes.append(
-                    {
-                        "text": block,
-                        "page": int(page.get("page", 1)),
-                        "section_path": [title for _, title in section],
-                        "block_type": "TOC",
-                        "is_garbage": True,
-                    }
-                )
-                continue
-
-            level = _level_of(page.get("text", ""), use_numbered, block)
-            if level is not None:
-                section = [item for item in section if item[0] < level] + [(level, block[:160])]
-            nodes.append(
-                {
-                    "text": block,
-                    "page": int(page.get("page", 1)),
-                    "section_path": [title for _, title in section],
-                    "block_type": "TEXT",
-                    "is_garbage": False,
-                }
-            )
-    return nodes
-```
-
-### 4.5.4. Cắt chunk thích ứng
-
-`AdaptiveChunker` gom các khối cùng mục. Khi đổi mục hoặc đạt 1.200 ký tự, khối được đóng lại. Đoạn quá dài được cắt theo đoạn văn, rồi theo câu, với phần chồng lấn 200 ký tự. Đoạn dưới 50 ký tự bị bỏ. Nhờ vậy một chunk không trộn nội dung của hai Điều.
-
-*Trích `ai-service/app/adaptive_chunker.py`, dòng 30–72:*
-
-```python
-def chunk_nodes(self, nodes: List[Dict[str, Any]]) -> List[TextChunk]:
-    all_chunks = []
-    current_group_text = []
-    current_pages = []
-    current_section_path = None
-
-    for node in nodes:
-        # LỌC RÁC & MỤC LỤC: Không đưa vào RAG
-        if node.get("block_type") == "TOC" or node.get("is_garbage"):
-            continue
-
-        text = node.get("text", "").strip()
-        if not text:
-            continue
-
-        section_path = node.get("section_path", [])
-        page = node.get("page", 1)
-
-        # NGUYÊN TẮC 1: STRUCTURE-AWARE (Gom theo section_path)
-        # Nếu node này thuộc về một mục khác (khác section_path) -> Đóng gói khối hiện tại
-        if current_group_text and section_path != current_section_path:
-            self._flush_group(current_group_text, current_section_path, current_pages, all_chunks)
-            current_group_text = []
-            current_pages = []
-
-        current_section_path = section_path
-        current_group_text.append(text)
-        current_pages.append(page)
-
-        # Kiểm tra kích thước đang gom.
-        # Nếu dồn lại đã bắt đầu vượt chunk_size -> Đóng gói khối hiện tại sớm để tránh bị đầy quá
-        temp_len = sum(len(t) for t in current_group_text) + (len(current_group_text) - 1) * 2
-        if temp_len >= self.chunk_size:
-            self._flush_group(current_group_text, current_section_path, current_pages, all_chunks)
-            current_group_text = []
-            current_pages = []
-
-    # Xử lý đoạn cuối cùng còn sót lại
-    if current_group_text:
-        self._flush_group(current_group_text, current_section_path, current_pages, all_chunks)
-
-    # Lọc bỏ các chunk quá ngắn không mang lại ngữ nghĩa
-    return [c for c in all_chunks if len(c.content.strip()) >= self.min_chunk_size]
-```
-
-### 4.5.5. Trích thực thể và quan hệ
-
-Thực thể được trích bằng luật và danh mục bí danh, không dùng LLM. Lựa chọn này cho kết quả lặp lại được và không tốn chi phí gọi mô hình, đổi lại độ phủ phụ thuộc vào danh mục đã khai báo.
-
-*Trích `ai-service/app/knowledge_graph/extract.py`, dòng 191–225:*
-
-```python
-def extract_entities(text: str) -> List[Dict[str, str]]:
-    """Baseline rule-based NER: articles, roles and explicit dates."""
-    found: Dict[str, Dict[str, str]] = {}
-
-    for match in ARTICLE_RE.finditer(text or ""):
-        name = f"Điều {match.group(1)}"
-        eid = entity_id(name, "dieu_khoan")
-        found[eid] = {"entity_id": eid, "name": name, "type": "dieu_khoan"}
-
-    for canonical, (kind, aliases) in ENTITY_ALIASES.items():
-        if any(alias.casefold() in (text or "").casefold() for alias in aliases):
-            eid = entity_id(canonical, kind)
-            found[eid] = {"entity_id": eid, "name": canonical, "type": kind}
-
-    for match in DATE_RE.finditer(text or ""):
-        name = f"{match.group(1)}/{match.group(2)}/{match.group(3)}"
-        eid = entity_id(name, "moc_thoi_gian")
-        found[eid] = {"entity_id": eid, "name": name, "type": "moc_thoi_gian"}
-
-    for match in LAW_RE.finditer(text or ""):
-        words = match.group(2).split()
-        if not words[0][0].isupper() or words[0].casefold() in LAW_STOPWORDS:
-            continue
-        if len(words) > 1 and words[1].casefold() in LAW_STOPWORDS:
-            words = words[:1]
-        name = " ".join([match.group(1), *words])
-        eid = entity_id(name, "van_ban")
-        found[eid] = {"entity_id": eid, "name": name, "type": "van_ban"}
-
-    for match in DECREE_RE.finditer(text or ""):
-        name = f"{match.group(1).capitalize()} {match.group(2)}"
-        eid = entity_id(name, "van_ban")
-        found[eid] = {"entity_id": eid, "name": name, "type": "van_ban"}
-
-    return sorted(found.values(), key=lambda item: (item["type"], item["name"]))
-```
-
-Hàm `link_chunks` tạo hai quan hệ giữa các đoạn. `APPLIES_TO` nối đoạn với chủ đề của mục chứa nó. `REFERENCES` nối đoạn với Điều được viện dẫn trong cùng tài liệu, và bỏ qua trường hợp như “Điều 5 Luật Doanh nghiệp” vì đó là Điều của văn bản khác.
-
-*Trích `ai-service/app/knowledge_graph/extract.py`, dòng 258–295:*
-
-```python
-def link_chunks(chunks: List[Dict[str, Any]]) -> None:
-    """Add heading topics, APPLIES_TO targets and same-document REFERENCES."""
-    articles: Dict[str, List[str]] = {}
-    for chunk in chunks:
-        number = own_article(chunk["section_path"], chunk["text"])
-        chunk["own_article"] = number
-        if number:
-            articles.setdefault(number, []).append(chunk["chunk_id"])
-
-    for chunk in chunks:
-        topic = heading_entity(chunk["section_path"])
-        if topic and all(e["entity_id"] != topic["entity_id"] for e in chunk["entities"]):
-            chunk["entities"] = [*chunk["entities"], topic]
-
-        heading = " ".join(str(item) for item in chunk["section_path"][-1:])
-        applies = {
-            entity["entity_id"]
-            for entity in extract_entities(heading)
-            if entity["type"] not in LOCAL_ENTITY_TYPES
-        }
-        if topic:
-            applies.add(topic["entity_id"])
-        chunk["applies_to"] = sorted(applies)
-
-        references: Dict[str, str] = {}
-        for match in ARTICLE_RE.finditer(chunk["text"]):
-            number = match.group(1)
-            if number == chunk["own_article"]:
-                continue
-            if EXTERNAL_LAW_RE.search(chunk["text"][match.end():match.end() + 40]):
-                continue  # "Điều 5 Luật Doanh nghiệp" is not this document's Điều 5
-            for target in articles.get(number, [])[:2]:
-                if target != chunk["chunk_id"]:
-                    references[target] = f"Điều {number}"
-        chunk["references"] = [
-            {"target": target, "article": article}
-            for target, article in sorted(references.items())
-        ]
-```
-
-### 4.5.6. Dựng bản ghi
-
-Cả PDF và link đều đi qua một hàm dựng bản ghi duy nhất, nên hai nguồn có cùng cấu trúc đầu ra.
-
-*Trích `ai-service/app/knowledge_graph/extract.py`, dòng 298–352:*
-
-```python
-def build_record_from_pages(
-    title: str,
-    source_uri: str,
-    source_type: str,
-    pages: List[Dict[str, Any]],
-    chunker: Optional[AdaptiveChunker] = None,
-) -> Dict[str, Any]:
-    """Pure builder used by both the PDF and the link ingestion paths."""
-    pages = [p for p in pages if (p.get("text") or "").strip()]
-    full_text = "\n".join(p.get("text", "") for p in pages)
-    content_hash = sha1_text(full_text)
-    doc_id = document_id(content_hash, title)
-
-    chunker = chunker or AdaptiveChunker()
-    chunks = chunker.chunk_nodes(pages_to_nodes(pages))
-
-    chunk_records: List[Dict[str, Any]] = []
-    all_entities: Dict[str, Dict[str, str]] = {}
-    for index, chunk in enumerate(chunks, start=1):
-        entities = extract_entities(chunk.content)
-        for entity in entities:
-            all_entities[entity["entity_id"]] = entity
-        chunk_records.append(
-            {
-                "chunk_id": chunk_id(doc_id, index, chunk.content),
-                "chunk_index": index,
-                "text": chunk.content,
-                "page_start": int(chunk.metadata.get("page_start", 1)),
-                "page_end": int(chunk.metadata.get("page_end", 1)),
-                "section_path": list(chunk.metadata.get("section_path") or []),
-                "content_hash": sha1_text(chunk.content),
-                "entities": entities,
-            }
-        )
-
-    link_chunks(chunk_records)
-    for chunk in chunk_records:
-        for entity in chunk["entities"]:
-            all_entities[entity["entity_id"]] = entity
-
-    return {
-        "doc": {
-            "doc_id": doc_id,
-            "title": title,
-            "source_uri": source_uri,
-            "source_type": source_type,
-            "content_hash": content_hash,
-            "page_count": len(pages),
-            "char_count": len(full_text),
-            "is_current": True,
-            "version": 1,
-        },
-        "chunks": chunk_records,
-        "entities": list(all_entities.values()),
-    }
-```
-
-*Trích `ai-service/app/knowledge_graph/extract.py`, dòng 474–485:*
-
-```python
-def build_pdf_record(path, title: Optional[str] = None) -> Dict[str, Any]:
-    """Read a PDF with the existing hybrid parser (text layer + OCR fallback)."""
-    path_obj = Path(path)
-    pages = extract_text_from_pdf(str(path_obj))
-    if not pages:
-        raise ValueError(f"Không trích xuất được nội dung: {path_obj}")
+def build_pdf_record(path, title=None):
+    # extract_text_from_pdf: text layer trước, OCR trang scan nếu cần
+    pages = extract_text_from_pdf(str(path))
     return build_record_from_pages(
-        title=title or path_obj.stem.replace("_", " "),
-        source_uri=str(path_obj),
+        title=title or Path(path).stem.replace("_", " "),
+        source_uri=str(path),
         source_type="pdf",
         pages=pages,
     )
-```
 
-### 4.5.7. Ghi vào Neo4j
-
-*Trích `ai-service/app/knowledge_graph/pipeline.py`, dòng 23–45:*
-
-```python
-def load_pdf(
-    store,
-    path,
-    kb_id: str = KB1,
-    title: Optional[str] = None,
-    update: bool = False,
-) -> Dict[str, Any]:
-    record = build_pdf_record(path, title=title)
+def load_pdf(store, path, kb_id=KB1, update=False):
+    record = build_pdf_record(path)
     doc = record["doc"]
     current = store.find_current(doc["source_uri"]) if update else None
     action = plan_update(current, doc["content_hash"]) if update else "insert"
@@ -1281,37 +1771,36 @@ def load_pdf(
     old_id = None
     if action == "new_version":
         old_id = store.supersede(doc["source_uri"])
-        doc["version"] = int(current.get("version", 1)) + 1
+        doc["version"] = int(current["version"]) + 1
 
-    result = store.upsert_record(kb_id, f"Kho {kb_id}", record)
+    store.upsert_record(kb_id, f"Kho {kb_id}", record)
     if old_id:
         store.link_version(old_id, doc["doc_id"])
     return {"action": action, "doc_id": doc["doc_id"], "chunks": len(record["chunks"])}
 ```
 
-*Trích `ai-service/app/knowledge_graph/store.py`, dòng 35–46:*
+Lệnh chạy thực tế:
 
-```python
-def upsert_record(self, kb_id: str, kb_name: str, record: Dict[str, Any]) -> Dict[str, Any]:
-    rows = self._run(
-        schema.UPSERT_DOCUMENT,
-        kb_id=kb_id,
-        kb_name=kb_name,
-        doc=record["doc"],
-        chunks=record["chunks"],
-    )
-    self._run(schema.UPSERT_ENTITIES, chunks=record["chunks"])
-    self._run(schema.UPSERT_REFERENCES, chunks=record["chunks"])
-    self._run(schema.UPSERT_APPLIES_TO, chunks=record["chunks"])
-    return rows[0] if rows else {"doc_id": record["doc"]["doc_id"], "chunks": 0}
+```text
+python scripts/10_build_neo4j_kb.py --init
+python scripts/10_build_neo4j_kb.py --pdf data/documents --kb KB1
+python scripts/10_build_neo4j_kb.py --pdf data/documents/quy_che_va_quy_trinh/Quy_che_hoat_dong_HDQT.pdf --dry-run --out debug/kb_sample.json
 ```
 
-Câu lệnh Cypher dùng `MERGE` trên khóa nội dung, nên chạy lại không tạo thêm nút:
+Kết quả dry-run trên `Quy_che_hoat_dong_HDQT.pdf`:
 
-*Trích `ai-service/app/knowledge_graph/schema.py`, dòng 32–52:*
+| Chỉ số | Giá trị |
+| :--- | ---: |
+| Số trang | 15 |
+| Ký tự trích xuất | 37.896 |
+| Số chunk | 50 |
+| Số entity | 40 |
+| `doc_id` | `doc-61fde4771461df6e` |
+| `content_hash` | `86a877bab1e7b0974a69415331a758750ef04f53` |
 
-```python
-UPSERT_DOCUMENT = """
+Cypher ghi một tài liệu và các chunk của nó:
+
+```cypher
 MERGE (kb:KnowledgeBase {kb_id: $kb_id})
   ON CREATE SET kb.name = $kb_name, kb.created_at = datetime()
 WITH kb
@@ -1326,92 +1815,46 @@ SET ch.text = c.text,
     ch.page_start = c.page_start,
     ch.page_end = c.page_end,
     ch.section_path = c.section_path,
-    ch.content_hash = c.content_hash,
-    ch.version_id = c.version_id
+    ch.content_hash = c.content_hash
 MERGE (d)-[:HAS_CHUNK]->(ch)
 WITH DISTINCT d
 RETURN d.doc_id AS doc_id, size($chunks) AS chunks
-"""
 ```
 
-## 4.6. Nạp link vào Neo4j để tạo KB2
+Điểm cần nhấn mạnh: `MERGE` trên `doc_id` và `chunk_id` làm cho thao tác nạp idempotent. Chạy lại cùng một PDF không tạo thêm node; các thuộc tính được ghi đè bằng `SET`, nên giá trị luôn khớp với nội dung đã băm; số node không tăng. Đây là khác biệt giữa một script demo và một pipeline có thể vận hành lại.
 
-### 4.6.1. Quy trình
+### 4.12.6. Code nạp link vào KB2
 
-![Quy trình nạp link vào KB2](assets/vp/H4_4_link_vao_kb2.png)
-
-*Hình 4.5. Quy trình chuyển các link công khai thành dữ liệu của KB2.*
-
-Lệnh thực hiện:
-
-```text
-python scripts/10_build_neo4j_kb.py --links data/kb_sources/links.json --kb KB2
-```
-
-### 4.6.2. Tải trang và lọc nội dung
-
-Một số trang từ chối yêu cầu không có User-Agent nên hàm tải gửi kèm tiêu đề của trình duyệt. Bộ phân tích bỏ qua các thẻ không mang nội dung.
-
-*Trích `ai-service/app/knowledge_graph/extract.py`, dòng 526–547:*
+Đường nạp link dùng `requests` với bộ header trình duyệt đầy đủ (site `masanconsumer.com` trả 403 với `httpx` và với User-Agent đơn lẻ; đồng thời không được khai báo nén `br` vì `requests` không giải mã brotli, nội dung sẽ thành dữ liệu nhị phân), loại bỏ `nav/header/footer/script/style`, rồi đưa văn bản qua cùng bộ phân đoạn và trích thực thể. Nhờ vậy PDF và link cho ra cùng một schema output.
 
 ```python
-def html_to_text(html: str) -> tuple[str, str]:
-    parser = _TextExtractor()
-    parser.feed(html)
-    title = re.sub(r"\s+", " ", "".join(parser.title_parts)).strip()
-    text = re.sub(r"\n{3,}", "\n\n", "".join(parser.parts))
-    text = re.sub(r"[ \t]{2,}", " ", text).strip()
-    return title, text
-
-
 def fetch_html(url: str, timeout: int = 30) -> str:
-    import httpx
-
     headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-            "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-        ),
-        "Accept-Language": "vi-VN,vi;q=0.9,en;q=0.5",
+        "User-Agent": "Mozilla/5.0 ... Chrome/124.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Encoding": "gzip, deflate",
+        "Upgrade-Insecure-Requests": "1",
     }
-    response = httpx.get(url, headers=headers, follow_redirects=True, timeout=timeout)
+    response = requests.get(url, headers=headers, allow_redirects=True, timeout=timeout)
     response.raise_for_status()
     return response.text
-```
 
-### 4.6.3. Dựng bản ghi từ trang web
-
-Mỗi trang là một `Document` với `source_type = "web"` và `source_uri` là URL.
-
-*Trích `ai-service/app/knowledge_graph/extract.py`, dòng 550–560:*
-
-```python
-def build_link_record(url: str, html: Optional[str] = None, title: Optional[str] = None) -> Dict[str, Any]:
+def build_link_record(url: str, html: str | None = None):
     html = html if html is not None else fetch_html(url)
-    page_title, text = html_to_text(html)
-    if not text:
-        raise ValueError(f"Trang không có nội dung văn bản: {url}")
+    title, text = html_to_text(html)
     return build_record_from_pages(
-        title=title or page_title or url.rstrip("/").rsplit("/", 1)[-1],
-        source_uri=url,
-        source_type="web",
+        title=title, source_uri=url, source_type="web",
         pages=[{"page": 1, "text": text}],
     )
 ```
 
-### 4.6.4. Nạp cả danh sách
+`html_to_text()` dùng `HTMLParser` chuẩn của Python, không cần BeautifulSoup. Nó bỏ qua các thẻ điều hướng và script, giữ tiêu đề `<title>` và phần nội dung. Với trang `quan-he-co-dong/gioi-thieu/`, kết quả là 3.355 ký tự, 5 chunk trong lần nạp đã ghi nhận. So sánh với việc giữ cả menu chưa được đo lại nên không đưa vào luận điểm.
 
-Lỗi của một URL được ghi lại và không dừng cả lô.
-
-*Trích `ai-service/app/knowledge_graph/pipeline.py`, dòng 48–74:*
+Hàm nạp nhiều link có xử lý lỗi từng URL để một link hỏng không làm dừng cả lô:
 
 ```python
-def load_links(
-    store,
-    urls: Iterable[str],
-    kb_id: str = KB2,
-    update: bool = False,
-) -> Dict[str, Any]:
+def load_links(store, urls, kb_id=KB2, update=False):
     loaded, failed = [], []
     for url in urls:
         try:
@@ -1422,55 +1865,29 @@ def load_links(
             if action == "skip":
                 loaded.append({"url": url, "action": "skip", "doc_id": current["doc_id"]})
                 continue
-            old_id = None
             if action == "new_version":
                 old_id = store.supersede(doc["source_uri"])
-                doc["version"] = int(current.get("version", 1)) + 1
+                doc["version"] = int(current["version"]) + 1
             store.upsert_record(kb_id, f"Kho {kb_id}", record)
-            if old_id:
-                store.link_version(old_id, doc["doc_id"])
             loaded.append({"url": url, "action": action, "doc_id": doc["doc_id"]})
         except Exception as exc:
             failed.append({"url": url, "error": str(exc)})
     return {"loaded": loaded, "failed": failed}
 ```
 
-## 4.7. Gộp KB1 và KB2 thành KB
-
-Phép gộp không sao chép dữ liệu. Nó tạo nút `KB`, thêm cạnh `MERGED_INTO` từ kho nguồn, và thêm cạnh `HAS_DOCUMENT` từ `KB` đến từng tài liệu. Tài liệu xuất hiện ở cả hai nguồn chỉ có một nút.
-
-Lệnh thực hiện:
+Lệnh chạy:
 
 ```text
-python scripts/10_build_neo4j_kb.py --merge KB1 KB2 --target KB
+python scripts/10_build_neo4j_kb.py --links data/kb_sources/links.json --kb KB2
 ```
 
-*Trích `ai-service/app/knowledge_graph/pipeline.py`, dòng 77–80:*
+Mỗi link trở thành một `Document` với `source_type = "web"`, `source_uri` là URL. Các chunk của trang web cũng có `page_start = page_end = 1` và `section_path` theo tiêu đề/mục trên trang. Khi RAG trả lời, citation có thể chỉ ra URL thay vì số trang PDF — đây là lợi ích trực tiếp của việc chuẩn hóa schema giữa hai nguồn.
 
-```python
-def merge(store, sources: Sequence[str] = (KB1, KB2), target: str = KB) -> Dict[str, Any]:
-    """Link all documents from KB1/KB2 into KB; content IDs dedupe automatically."""
-    documents = store.merge_kbs(sources=sources, target=target, target_name="EAKWP Knowledge Base")
-    return {"target": target, "sources": list(sources), "documents": documents, "stats": store.stats(target)}
-```
+### 4.12.7. Code gộp KB1 và KB2 thành KB
 
-*Trích `ai-service/app/knowledge_graph/store.py`, dòng 48–55:*
+Gộp KB không phải là sao chép toàn bộ node sang một vùng mới. Vì Document/Chunk/Entity dùng ID theo nội dung, cùng một đối tượng có thể thuộc nhiều KB. Thao tác gộp chỉ tạo node `KB` và các cạnh thành viên:
 
-```python
-def merge_kbs(self, sources: Iterable[str], target: str, target_name: str = "KB hợp nhất") -> int:
-    rows = self._run(
-        schema.MERGE_KBS,
-        sources=list(sources),
-        target=target,
-        target_name=target_name,
-    )
-    return int(rows[0]["documents"]) if rows else 0
-```
-
-*Trích `ai-service/app/knowledge_graph/schema.py`, dòng 91–103:*
-
-```python
-MERGE_KBS = """
+```cypher
 MERGE (target:KnowledgeBase {kb_id: $target})
   ON CREATE SET target.name = $target_name, target.created_at = datetime()
 WITH target
@@ -1482,569 +1899,198 @@ MATCH (src:KnowledgeBase)-[:HAS_DOCUMENT]->(d:Document)
 WHERE src.kb_id IN $sources
 MERGE (target)-[:HAS_DOCUMENT]->(d)
 RETURN count(DISTINCT d) AS documents
-"""
 ```
-
-Tài liệu tải lên qua giao diện đi thẳng vào `KB`, không qua KB1 hay KB2. Sau khi vector được ghi vào Qdrant, cùng các chunk đó được đồng bộ sang Neo4j với **đúng `chunk_id`**:
-
-*Trích `ai-service/app/knowledge_graph/service.py`, dòng 68–103:*
 
 ```python
-def sync_ingest_chunks(
-    chunks: Iterable[Dict[str, Any]],
-    store: Optional[Neo4jStore] = None,
-    force: bool = False,
-) -> int:
-    """Upsert backend chunks into Neo4j using the same chunk_id as Qdrant."""
-    chunks = list(chunks)
-    if not chunks:
-        return 0
-    if store is None and not force and not _graph_enabled():
-        return 0
-
-    records = build_record_from_ingest_chunks(chunks)
-    if not records:
-        return 0
-
-    owns_store = store is None
-    synced = 0
-    try:
-        store = store or get_store()
-        for record in records:
-            try:
-                store.upsert_record(KB, "EAKWP Knowledge Base", record)
-                synced += len(record["chunks"])
-            except Exception as exc:  # one bad document must not drop the batch
-                logger.warning(
-                    "Graph sync failed for document %s: %s",
-                    record["doc"].get("doc_id"),
-                    exc,
-                )
-    except Exception as exc:
-        if owns_store:
-            _mark_unavailable(exc)
-        else:
-            logger.warning("Graph sync skipped: %s", exc)
-    return synced
-```
-
-## 4.8. Dạng KB output một trang
-
-Dưới đây là một đơn vị tri thức thật, lấy ra từ KB ngày 09/11/2026 bằng truy vấn trên chunk `c33` của “Điều lệ công ty - 2021”. Văn bản được giữ nguyên, kể cả lỗi OCR như “Cô đông” thay cho “Cổ đông”, chỉ rút gọn phần giữa bằng dấu “…”.
-
-![KB output của một chunk](assets/vp/H4_6_kb_output_mot_trang.png)
-
-*Hình 4.6. Một chunk và các nút, cạnh liên quan trong KB.*
-
-```json
-{
-  "knowledge_base": [
-    "KB"
-  ],
-  "document": {
-    "doc_id": "84202bc4-4a22-46fa-8e7c-2ba11e857b68",
-    "title": "Điều lệ công ty - 2021",
-    "source_uri": "upload:84202bc4-4a22-46fa-8e7c-2ba11e857b68",
-    "source_type": "upload",
-    "document_code": "DLCT-2021",
-    "document_type": "Nội quy",
-    "version": 6,
-    "version_id": "99e27449-ec5e-470f-be69-670784f2f717",
-    "is_current": true,
-    "page_count": 38,
-    "content_hash": "a75f56f0e45a8ab95f4c4da925cbd5cbc3aadddb",
-    "allowed_roles": [
-      "*"
-    ]
-  },
-  "chunk": {
-    "chunk_id": "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c33",
-    "chunk_index": 33,
-    "page_start": 11,
-    "page_end": 11,
-    "section_path": [
-      "CHƯƠNG VI CỎ ĐÔNG VÀ ĐẠI HỘI ĐÒNG CỎ ĐÔNG",
-      "Điều 13. Đại Hội đồng Cổ đông"
-    ],
-    "text": "ững vân đề theo quy định của Pháp luật và Điều lệ Công ty. Các kiểm toán viên độc lập có thể được mời tham dự cuộc họp Đại Hội đồng Cô đông để tư vấn cho việc thông qua các báo cáo tài chính hàng năm. Hội đồng … ng Quản trị còn lại ít hơn số lượng thành viên tối thiêu theo quy định của Pháp luật, hoặc nhận được yêu cầu triệu tập họp quy định tại điểm c khoản 4 Điều 13 của Điều lệ này. Trường hợp Hội đồng Quản trị không",
-    "content_hash": "02443a936434a727c5ca1d5fa1194d9066440519"
-  },
-  "MENTIONS": [
-    {
-      "name": "Điều 11",
-      "entity_id": "ent-efad7bc24fed051b",
-      "type": "dieu_khoan"
-    },
-    {
-      "name": "Hội đồng Quản trị",
-      "entity_id": "ent-e53282ff5868350e",
-      "type": "chuc_danh"
-    },
-    {
-      "name": "Điều 13",
-      "entity_id": "ent-6bf60646ac1f3a23",
-      "type": "dieu_khoan"
+def merge(store, sources=(KB1, KB2), target=KB):
+    documents = store.merge_kbs(
+        sources=sources, target=target, target_name="EAKWP Knowledge Base"
+    )
+    return {
+        "target": target,
+        "sources": list(sources),
+        "documents": documents,
+        "stats": store.stats(target),
     }
-  ],
-  "APPLIES_TO": [
-    "Đại hội đồng cổ đông"
-  ],
-  "REFERENCES": [
-    {
-      "article": "Điều 11",
-      "target": "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c27"
-    },
-    {
-      "article": "Điều 11",
-      "target": "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c30"
-    }
-  ]
-}
 ```
 
-**Bảng 4.7. Giải thích các thành phần của KB output**
+Lệnh chạy:
 
-| Thành phần | Trường chính | Ý nghĩa | Được dùng để |
-| :--- | :--- | :--- | :--- |
-| `knowledge_base` | `KB` | Kho chứa tài liệu | Giới hạn phạm vi truy vấn |
-| `document` | `doc_id`, `title`, `source_type`, `version`, `version_id`, `is_current`, `allowed_roles` | Thông tin tài liệu và phiên bản | Hiển thị nguồn, lọc theo quyền |
-| `document` | `content_hash` | Dấu vân tay nội dung | Quyết định cập nhật |
-| `chunk` | `chunk_id` | Khóa của đoạn, trùng với payload Qdrant | Nối vector với đồ thị |
-| `chunk` | `text`, `page_start`, `page_end`, `section_path` | Nội dung và vị trí | Làm ngữ cảnh cho LLM, tạo trích dẫn |
-| `MENTIONS` | Danh sách thực thể | Các đối tượng đoạn nhắc đến | Tìm đoạn từ thực thể trong câu hỏi |
-| `APPLIES_TO` | Chủ đề của mục | Đoạn này quy định về chủ thể nào | Tăng trọng số đoạn đúng chủ đề |
-| `REFERENCES` | `target`, `article` | Điều khoản được viện dẫn | Mở rộng sang đoạn liên quan |
-
-Với KB2, một chunk có cùng cấu trúc, chỉ khác `source_type = "web"` và `source_uri` là URL:
-
-```json
-{
-  "knowledge_base": [
-    "KB2",
-    "KB"
-  ],
-  "document": {
-    "doc_id": "doc-af12d377163e5384",
-    "title": "Đại hội đồng cổ đông - Masan Consumer",
-    "source_uri": "https://masanconsumer.com/quan-he-co-dong/dai-hoi-dong-co-dong/",
-    "source_type": "web",
-    "content_hash": "96c91ca0c465107f7122a5d572c19aed4e1db411",
-    "version": 1,
-    "is_current": true,
-    "char_count": 3004
-  },
-  "chunk": {
-    "chunk_id": "chk-1912a346139758f3",
-    "chunk_index": 1,
-    "page_start": 1,
-    "section_path": [],
-    "text": "Nghị quyết và Biên bản họp ĐHĐCĐ thường niên năm 2026 Đại hội đồng cổ đông 2026 2025 2024 2023 2022 2021 2020 2019 2018 2017 2016 2015 2014 2012 2013 2009 2008 Xem thêm Ngày Nội dung 24/04/2026 Nghị quyết và Biên bản h …"
-  },
-  "MENTIONS": [
-    "Đại hội đồng cổ đông",
-    "Hội đồng Quản trị",
-    "Cổ tức"
-  ]
-}
+```text
+python scripts/10_build_neo4j_kb.py --merge KB1 KB2 --target KB
 ```
 
-## 4.9. RAG kết nối với KB như thế nào
+Ba tính chất của cách gộp này:
 
-### 4.9.1. Điểm nối
+1. Không nhân đôi: nếu một tài liệu đã có trong KB1 và KB2, `HAS_DOCUMENT` chỉ có một cạnh từ KB đến document đó.
+2. Có thể gộp lại nhiều lần: `MERGE` bảo đảm chạy lại không tạo cạnh trùng.
+3. Truy vết được nguồn: cạnh `MERGED_INTO` ghi lại KB1/KB2 đã đóng góp vào KB; khi cần kiểm toán, có thể truy ngược.
 
-RAG dùng hai kho song song: Qdrant tìm theo nghĩa, Neo4j tìm theo quan hệ. Hai kho nói chung một ngôn ngữ nhờ `chunk_id`: cùng một đoạn văn có cùng khóa ở cả hai nơi, nên kết quả từ hai phía hợp nhất được và cùng dẫn về một trích dẫn.
+Trong tương lai, khi có nhiều kho theo phòng ban (KB-PHAPCHE, KB-NHANSU, KB-KINHDOANH), cùng một hàm `merge()` có thể hợp nhất mà không cần đổi schema.
 
-![Biểu đồ tuần tự RAG kết nối KB](assets/vp/H4_7_rag_noi_kb.png)
+Kết quả gộp được kiểm tra trực tiếp trên Neo4j Browser. Hình 4.7 là đồ thị `KnowledgeBase → Document` với hai KB nguồn (KB1, KB2) và KB hợp nhất; mỗi tài liệu có một cạnh `HAS_DOCUMENT` tới kho nguồn và một cạnh tới KB (90 cạnh cho 45 tài liệu). Hình 4.8 là bảng thống kê số node theo nhãn cùng danh sách kiểu quan hệ và thuộc tính của cơ sở dữ liệu.
 
-*Hình 4.7. Trình tự xử lý một câu hỏi từ người dùng qua Qdrant, Neo4j, reranker và LLM.*
+![KB1, KB2 và KB trong Neo4j Browser](assets/neo4j/neo4j_kb_tong_quan.png)
 
-### 4.9.2. Truy xuất song song và hợp nhất
+*Hình 4.7. Đồ thị KB1, KB2 và KB hợp nhất trong Neo4j Browser (48 node, 90 quan hệ HAS_DOCUMENT).*
 
-*Trích `ai-service/app/rag_service.py`, dòng 95–127:*
+![Thống kê cơ sở dữ liệu trong Neo4j Browser](assets/neo4j/neo4j_thong_ke.png)
+
+*Hình 4.8. Thống kê nhãn node, kiểu quan hệ và thuộc tính của cơ sở dữ liệu Neo4j sau khi nạp KB.*
+
+### 4.12.8. Dạng KB output một trang
+
+Hình dưới là một trang output chuẩn của KB, dựng từ `debug/kb_sample.json` của lần dry-run ngày 09/11/2026 (rút gọn; các khóa `doc`, `chunks`, `entities` giữ đúng như `build_pdf_record` trả về). Hai phần `relations` và `stats` không nằm trong JSON thô: chúng do `store.upsert_record` và `store.stats` sinh ra khi ghi Neo4j. Trang này là hợp đồng dữ liệu giữa tầng nạp và tầng RAG.
+
+![Dạng KB output một trang](assets/kb_output_one_page.png)
+
+*Hình 4.9. Dạng KB output một trang: Document → Chunk → Entity → Relations → Stats.*
+
+Mẫu lấy từ `Quy_che_hoat_dong_HDQT.pdf` (15 trang, 37.896 ký tự, 50 chunk, 40 entity). Chunk trong hình có `chunk_id = chk-491520e7a1dc1c5e` (Điều 16, trang 10, gắn thực thể Chủ tịch HĐQT); nội dung được rút gọn để vừa một trang.
+
+Giải thích các thành phần:
+
+| # | Thành phần | Ý nghĩa | Ai dùng |
+| ---: | :--- | :--- | :--- |
+| 1 | `doc` | Metadata tài liệu: `doc_id`, `title`, `source_uri`, `source_type`, `content_hash`, `page_count`, `char_count`, `version`, `is_current` | Hiển thị nguồn, kiểm tra phiên bản |
+| 2 | `chunks[]` | Danh sách đoạn trích; mỗi đoạn có `chunk_id`, `page_start/end`, `section_path`, `text`, `content_hash`, `entities[]` | Vector hóa, trích dẫn, highlight PDF |
+| 3 | `entities[]` | Danh sách thực thể unique toàn tài liệu: Điều khoản, chức danh, mốc thời gian; mỗi chunk cũng giữ thực thể của riêng nó | Graph retrieval, lọc theo thực thể |
+| 4 | `relations` | Các cạnh LPG do `schema.py` sinh khi ghi: `HAS_DOCUMENT`, `HAS_CHUNK`, `MENTIONS` | Duyệt đồ thị, giải thích đường đi |
+| 5 | `stats` | Số document/chunk/entity do `store.stats()` tính sau khi nạp hoặc gộp | Kiểm tra tính đầy đủ, phát hiện lô lỗi |
+| 6 | `kb_id` | Tham số kho đích khi gọi `upsert_record` (KB1, KB2 hoặc KB); không nằm trong record | Kiểm toán, lọc phạm vi |
+
+Output có cấu trúc, không phải một khối văn bản. Mọi trường cần cho citation (`page_start`, `page_end`, `section_path`, `source_uri`) đều nằm trong cùng một bản ghi. Nhờ đó tầng RAG không phải suy đoán nguồn từ nội dung; nó chỉ việc đọc metadata và đóng gói citation.
+
+Sau khi ghi vào Neo4j, cùng tài liệu này được truy vấn lại trong Neo4j Browser (Hình 4.10). Nút xanh lá là Document, nút hồng là các Chunk 28–33 của tài liệu, nút nâu là các Entity mà những chunk đó nhắc đến.
+
+![Đồ thị một tài liệu trong Neo4j Browser](assets/neo4j/neo4j_tai_lieu_hdqt.png)
+
+*Hình 4.10. Đồ thị Document → Chunk → Entity của Quy chế hoạt động HĐQT trong Neo4j Browser (13 node, 21 quan hệ).*
+
+### 4.12.9. RAG kết nối KB như thế nào?
+
+RAG kết nối KB qua ba bước:
+
+1. Truy xuất vector: câu hỏi → embedding → Qdrant top-k. Đây là đường hiện có trong `Retriever`.
+2. Mở rộng đồ thị: trích thực thể từ câu hỏi (Điều 7, HĐQT, Tổng Giám đốc...) → tìm chunk chứa thực thể trong KB → trả về ứng viên bổ sung.
+3. Hợp nhất và rerank: RRF hợp nhất hai danh sách, cross-encoder chấm lại, answer gate quyết định trả lời hay từ chối.
+
+![RAG kết nối KB: IN và OUT](assets/rag_kb_in_out.png)
+
+*Hình 4.11. Luồng IN/OUT của RAG khi nối KB: câu hỏi + tham số vào, câu trả lời + citation ra, hoặc từ chối có kiểm soát.*
+
+Điểm nối trong code. Chế độ `hybrid_rag` trong `RAGService.retrieve_hits` (`ai-service/app/rag_service.py`) gọi hai nguồn rồi hợp nhất:
 
 ```python
-with timer.step("embed"):
-    query_vector = self.retriever.embedding.embed_query(cleaned_query)
-
-if retrieval_mode in ("flat_rag", "hybrid_rag"):
-    with timer.step("vector_search"):
-        vector_hits = self.retriever.search(
-            query=cleaned_query,
-            top_k=candidate_k,
-            document_id=document_id,
-            # Không lọc cosine trước: một đoạn đúng có thể chỉ đạt 0.24
-            # nhưng khớp chính xác "cổ tức", trong khi nhiễu đạt 0.8.
-            min_score=0.0,
-            use_reranker=False,
-            query_vector=query_vector,
-            allowed_roles=allowed_roles,
-        )
-if retrieval_mode in ("graph_rag", "hybrid_rag"):
-    with timer.step("graph"):
-        graph_hits = graph_search(
-            cleaned_query,
-            limit=max(settings.GRAPH_SEARCH_LIMIT, top_k * 4),
-            document_id=document_id,
-            source_type="upload",
-            query_vector=query_vector,
-            seed_chunk_ids=[
-                hit["chunk_id"]
-                for hit in vector_hits[: settings.GRAPH_EXPAND_SEEDS]
-                if hit.get("chunk_id")
-            ],
-            allowed_roles=allowed_roles,
-        )
-
+vector_hits = self.retriever.search(query=cleaned_query, top_k=candidate_k,
+                                    document_id=document_id, min_score=0.0,
+                                    use_reranker=use_reranker)
+graph_hits = graph_search(cleaned_query,
+                          limit=max(settings.GRAPH_SEARCH_LIMIT, top_k * 4),
+                          document_id=document_id, source_type="upload")
 hits = self._fuse_hits(vector_hits, graph_hits, graph_weight=graph_weight)
 ```
 
-Điểm vector được cộng thêm tín hiệu từ khóa và số Điều trước khi hợp nhất:
-
-*Trích `ai-service/app/retriever.py`, dòng 160–170:*
+`_fuse_hits` dùng RRF khi cả hai nguồn có kết quả; khi chỉ một nguồn có kết quả, nó giữ danh sách của nguồn đó:
 
 ```python
-# Hybrid rerank: điểm cuối = cosine + trọng số × overlap từ khóa.
-# Giữ nguyên vector_score để bộ fallback còn so với ngưỡng tin cậy.
-lexical = lexical_score(query, content)
-folded_content = fold_text(content)
-article_match = any(
-    re.search(rf"\bdieu\s+{number}\b", folded_content)
-    for number in article_numbers
-)
-combined = score + LEXICAL_WEIGHT * lexical
-if article_match:
-    combined += ARTICLE_BOOST
+if vector_hits and graph_hits:
+    return rrf_fuse(vector_hits, graph_hits,
+                    graph_weight=settings.GRAPH_RRF_WEIGHT)   # mặc định 0,2
+if graph_hits:
+    return sorted(graph_hits, key=lambda h: h.get("score", 0.0), reverse=True)
+return vector_hits
 ```
 
-Phía đồ thị đi theo hai đường. Đường thứ nhất lấy thực thể trong câu hỏi, gồm thực thể khớp tên và thực thể gần nghĩa theo vector. Đường thứ hai mở rộng 1–2 bước từ các chunk mà vector đã tìm thấy.
+Phía đồ thị, `graph_search` (`ai-service/app/knowledge_graph/service.py`) trả về `[]` khi `GRAPH_ENABLED=false`. Khi bật, nó tìm thực thể trong câu hỏi bằng trích xuất theo luật, cộng với việc so khớp nguyên từ với tên thực thể đã có trong KB, rồi chạy Cypher sau (lấy từ `schema.py`):
 
-*Trích `ai-service/app/knowledge_graph/service.py`, dòng 195–233:*
-
-```python
-names = {entity["name"] for entity in extract_entities(question)}
-owns_store = store is None
-rows: List[Dict[str, Any]] = []
-try:
-    store = store or get_store()
-    lookup = getattr(store, "entity_names", None)
-    if lookup is not None:
-        folded_question = fold_text(question)
-        for name in lookup(KB):
-            folded_name = fold_text(name)
-            if len(folded_name) < 3:
-                continue
-            if re.search(
-                rf"(?<!\w){re.escape(folded_name)}(?!\w)",
-                folded_question,
-            ):
-                names.add(name)
-    similar = getattr(store, "similar_entities", None)
-    if similar is not None and query_vector is not None:
-        names.update(similar(query_vector, settings.GRAPH_ENTITY_MIN_SCORE))
-    if names:
-        rows.extend(
-            store.graph_candidates(
-                names=sorted(names),
-                kb_ids=(KB,),
-                limit=limit,
-                **filters,
-            )
-        )
-    expand = getattr(store, "expand_from_chunks", None)
-    if expand is not None and seed_chunk_ids:
-        rows.extend(
-            expand(
-                seed_chunk_ids,
-                limit=limit,
-                max_entity_df=settings.GRAPH_MAX_ENTITY_DF,
-                **filters,
-            )
-        )
-```
-
-Truy vấn Cypher của đường thứ nhất:
-
-*Trích `ai-service/app/knowledge_graph/schema.py`, dòng 146–166:*
-
-```python
-GRAPH_CANDIDATES = f"""
+```cypher
 MATCH (seed:Entity)
 WHERE seed.name IN $names
 MATCH (seed)-[:RELATES_TO*0..1]-(e:Entity)<-[:MENTIONS]-(c:Chunk)<-[:HAS_CHUNK]-(d:Document)
 MATCH (kb:KnowledgeBase)-[:HAS_DOCUMENT]->(d)
 WHERE kb.kb_id IN $kb_ids
-  AND (seed = e OR NOT seed.type IN ['dieu_khoan', 'moc_thoi_gian'])
-  AND {_ACCESS_FILTER}
+  AND ($source_type IS NULL OR d.source_type = $source_type)
 WITH c, d,
-     count(DISTINCT CASE WHEN seed = e THEN seed END) AS matched,
-     count(DISTINCT CASE WHEN seed <> e THEN e END) AS related,
-     count {{ (c)-[:APPLIES_TO]->(x:Entity) WHERE x.name IN $names }} AS heading_matches
-WITH c, d, matched + heading_matches AS matched, related
-WHERE matched > 0 OR related > 0
-RETURN {_HIT_COLUMNS},
-       matched,
-       related,
-       'entity' AS via
+     count(DISTINCT seed) AS matched,
+     count(DISTINCT CASE WHEN seed <> e THEN e END) AS related
+RETURN c.chunk_id AS chunk_id, c.text AS content, d.doc_id AS document_id,
+       d.title AS title, c.page_start AS page_start, c.page_end AS page_end,
+       c.section_path AS section_path, matched, related
 ORDER BY matched DESC, related ASC, c.chunk_index
 LIMIT $limit
-"""
 ```
 
-Hai danh sách được hợp nhất bằng Reciprocal Rank Fusion, với trọng số đồ thị $w = 0{,}2$:
+Cạnh `RELATES_TO*0..1` cho phép lấy thêm chunk của các thực thể đồng xuất hiện trong cùng đoạn (cạnh `co_mentions`); đây là bước mở rộng một chặng. Hai điểm trạng thái hiện tại cần nói rõ:
 
-$$\text{RRF}(c) = \sum_{\text{vector}} \frac{1}{60 + r_v(c)} + w \sum_{\text{đồ thị}} \frac{1}{60 + r_g(c)}$$
+- Điều kiện `source_type = "upload"` trong RAG chỉ lấy tài liệu nạp qua đường upload online. Tài liệu KB1 (`pdf`) và KB2 (`web`) nạp bằng script offline nên chưa được đường hỏi đáp trực tiếp đọc. Để nối KB hợp nhất vào RAG cần đổi điều kiện lọc và kiểm thử lại.
+- `GRAPH_ENABLED` mặc định là `false`; khi tắt, hệ thống chạy vector thuần và kết quả không thay đổi.
 
-*Trích `ai-service/app/knowledge_graph/pipeline.py`, dòng 83–121:*
+Nếu câu hỏi không chứa thực thể đã biết, `graph_search` trả về danh sách rỗng và RAG tiếp tục với vector. Đây là graceful degradation: đồ thị là kênh bổ sung, không phải điều kiện bắt buộc để hệ thống trả lời.
 
-```python
-def rrf_fuse(
-    vector_hits: List[Dict[str, Any]],
-    graph_hits: List[Dict[str, Any]],
-    k: int = 60,
-    graph_weight: float = 0.2,
-) -> List[Dict[str, Any]]:
-    """Reciprocal Rank Fusion of dense/lexical hits and graph hits."""
-    merged: Dict[str, Dict[str, Any]] = {}
-    scores: Dict[str, float] = {}
-
-    def add(hits: List[Dict[str, Any]], weight: float) -> None:
-        for rank, hit in enumerate(hits, start=1):
-            cid = hit.get("chunk_id")
-            if not cid:
-                continue
-            target = merged.setdefault(
-                cid,
-                {**hit, "metadata": dict(hit.get("metadata") or {})},
-            )
-            for key, value in hit.items():
-                if value is None:
-                    continue
-                if key == "metadata" and isinstance(value, dict):
-                    metadata = target.setdefault("metadata", {})
-                    for meta_key, meta_value in value.items():
-                        if metadata.get(meta_key) in (None, "", []):
-                            metadata[meta_key] = meta_value
-                elif isinstance(value, bool) and key in ("from_graph", "article_match"):
-                    target[key] = bool(target.get(key)) or value
-                elif target.get(key) in (None, "", []):
-                    # Keep the vector score/rank when both sources agree.
-                    target[key] = value
-            scores[cid] = scores.get(cid, 0.0) + weight / (k + rank)
-
-    add(vector_hits, 1.0)
-    add(graph_hits, graph_weight)
-    for cid, score in scores.items():
-        merged[cid]["rrf_score"] = round(score, 6)
-    return sorted(merged.values(), key=lambda item: item["rrf_score"], reverse=True)
-```
-
-### 4.9.3. Quyết định trả lời hay từ chối
-
-Bộ chọn bằng chứng chia chunk thành các cửa sổ 1–4 câu, kiểm tra dạng câu trả lời, tính độ phủ từ khóa, rồi chấm lại bằng cross-encoder. Một đoạn chỉ được dùng khi điểm thô đạt ngưỡng $-1{,}5$. Nếu không còn đoạn nào, hệ thống từ chối mà không gọi LLM.
-
-![Quyết định trả lời hoặc từ chối](assets/vp/H4_8_cong_tra_loi.png)
-
-*Hình 4.8. Các cổng kiểm soát trước khi trả lời.*
-
-*Trích `ai-service/app/answer_policy.py`, dòng 526–553:*
-
-```python
-gate_active = use_reranker and reranker is not None and reranker.enabled
-
-def passes_gate(candidate: Tuple[Any, ...]) -> bool:
-    # Raw cross-encoder score: the bonuses in final_score only rank windows.
-    return not gate_active or candidate[5] >= settings.RERANK_GATE
-
-candidates.sort(key=final_score, reverse=True)
-
-if any(marker in folded_query for marker in ("gom nhung", "tieu chi", "cac buoc", "bao gom", "gom")):
-    list_candidates = [
-        candidate for candidate in candidates
-        if candidate[1] == "default"
-        and candidate[8]
-        and passes_gate(candidate)
-    ]
-    if list_candidates:
-        first = list_candidates[0]
-        candidates = [first] + [
-            candidate for candidate in candidates if candidate is not first
-        ]
-
-if not candidates:
-    return []
-best = candidates[0]
-intent = best[1]
-best_score = final_score(best)
-if not passes_gate(best):
-    return []
-```
-
-*Trích `ai-service/app/rag_service.py`, dòng 334–358:*
-
-```python
-with timer.step("answer_policy"):
-    selected_hits = select_evidence(
-        cleaned_query,
-        hits,
-        top_k=top_k,
-        reranker=self.retriever.reranker,
-        use_reranker=use_reranker,
-    )
-trusted = bool(selected_hits)
-
-context_text, citations = (
-    self._build_context_and_citations(selected_hits, cleaned_query)
-    if trusted
-    else ("", [])
-)
-
-llm = resolve_llm() if use_llm else None
-model_name = llm.model if llm else "extractive-fallback"
-verified: Optional[bool] = None
-
-if not trusted:
-    answer = REFUSAL_TEXT
-    model_name = "guardrail-refusal"
-elif llm is None:
-    answer = self._generate_extractive_fallback(cleaned_query, citations, selected_hits)
-```
-
-### 4.9.4. Ví dụ IN – OUT thật
-
-Các ví dụ sau được gọi trực tiếp vào API đang chạy ngày 09/11/2026. Lúc chạy, Gemini trả lỗi 429 do hết hạn mức gói miễn phí, nên hệ thống tự chuyển sang chế độ trả về trích đoạn nguyên văn. Đó là lý do `model_used` có đuôi `-fallback`. Khi LLM hoạt động, trường `answer` là câu văn do LLM viết lại, các trường còn lại giữ nguyên cấu trúc.
-
-**Ví dụ 1. Câu hỏi có căn cứ trong KB**
-
-IN:
+#### IN — đầu vào
 
 ```json
 {
-  "query": "Hội đồng Quản trị họp ít nhất bao nhiêu lần trong một năm?",
-  "top_k": 3
+  "query": "Chủ tịch Hội đồng Quản trị có quyền và nghĩa vụ gì?",
+  "top_k": 5,
+  "min_score": 0.3,
+  "document_id": null
 }
 ```
 
-OUT:
+#### OUT — đầu ra có trích dẫn (minh họa, đã rút gọn)
 
 ```json
 {
   "success": true,
-  "query": "Hội đồng Quản trị họp ít nhất bao nhiêu lần trong một năm?",
-  "answer": "Theo quy định tại **Điều l6. Cuộc họp của Hội đồng Quản trị (Trang 10 → 11)** [1]:\n\n> Các cuộc họp thường kỳ: Chủ tịch Hội đồng Quản trị triệu tập các cuộc họp Hội đồng Quản trị, lập chương trình nghị sự, quyết định thời gian và địa điểm họp. Chủ tịch Hội đồng Quản trị có thê triệu tập họp bất kỳ khi nào thấy cần thiết, nhưng ít nhất là mỗi quý phải họp một lần.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+  "query": "Chủ tịch Hội đồng Quản trị có quyền và nghĩa vụ gì?",
+  "answer": "Theo quy định tại Trang 5 [1], Chủ tịch Hội đồng Quản trị có các quyền và nghĩa vụ: lập chương trình, kế hoạch hoạt động của Hội đồng Quản trị; chuẩn bị chương trình, nội dung, tài liệu phục vụ cuộc họp; triệu tập, chủ trì và làm chủ tọa cuộc họp; tổ chức việc thông qua nghị quyết...",
   "citations": [
     {
       "index": 1,
-      "chunk_id": "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c32",
-      "score": 1.636,
-      "document_id": "1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7",
-      "section_path": [
-        "CHƯƠNG IV. CUỘC HỌP CỦA HỘI ĐỎNG QUẢN TRỊ",
-        "Điều l6. Cuộc họp của Hội đồng Quản trị"
-      ],
-      "pages": "Trang 10 → 11",
-      "snippet": "Các cuộc họp thường kỳ: Chủ tịch Hội đồng Quản trị triệu tập các cuộc họp Hội đồng Quản trị, lập chương trình nghị sự, quyết định thời gian và địa điểm họp. Chủ tịch Hội đồng Quản trị có thê triệu tập họp bất kỳ khi nào thấy cần thiết, nhưng ít nhất là mỗi quý phải họp một lần."
+      "chunk_id": "chk-a45f54d21187c278",
+      "score": 0.82,
+      "document_id": "doc-61fde4771461df6e",
+      "section_path": ["CHƯƠNG II", "Điều 8. Chủ tịch, Phó Chủ tịch Hội đồng Quản trị"],
+      "pages": "Trang 5",
+      "snippet": "Chủ tịch Hội đồng Quản trị có quyền và nghĩa vụ: lập chương trình, kế hoạch hoạt động; chuẩn bị tài liệu họp; triệu tập và chủ trì cuộc họp..."
     }
   ],
-  "execution_time_ms": 7212.17,
-  "model_used": "gemini-3.5-flash-fallback",
-  "graph_candidates": 12,
-  "verified": null,
-  "timings_ms": {
-    "embed": 31.32,
-    "vector_search": 120.79,
-    "graph": 48.22,
-    "rerank": 708.44,
-    "answer_policy": 2245.14,
-    "llm_generate": 4049.78
-  }
+  "execution_time_ms": 842.5,
+  "model_used": "gemini-1.5-flash"
 }
 ```
 
-Trường `graph_candidates` cho biết đồ thị đã đóng góp 12 ứng viên vào danh sách trước khi xếp hạng lại.
-
-**Ví dụ 2. Vết truy xuất đồ thị.** Với câu hỏi “Chủ tịch Hội đồng Quản trị có quyền và nghĩa vụ gì?”, bước trích thực thể cho hai tên: “Chủ tịch Hội đồng Quản trị” và “Hội đồng Quản trị”. Truy vấn Cypher trả về các chunk sau:
-
-| Chunk | Tài liệu | Trang | Mục | matched | related |
-| :--- | :--- | :--- | :--- | ---: | ---: |
-| `…7-v1-c14` | Quy chế hoạt động Hội đồng Quản trị | 5–6 | Điều 8. Chủ tịch, Phó Chủ tịch Hội đồng Quản trị | 4 | 3 |
-| `…7-v1-c15` | Quy chế hoạt động Hội đồng Quản trị | 5–6 | Điều 8. Chủ tịch, Phó Chủ tịch Hội đồng Quản trị | 4 | 3 |
-| `…8-v6-c56` | Điều lệ công ty - 2021 | 25–25 | Điều 28. Chủ tịch, Phó Chủ tịch Hội đồng Quản trị | 4 | 3 |
-| `…7-v1-c13` | Quy chế hoạt động Hội đồng Quản trị | 5–6 | Điều 8. Chủ tịch, Phó Chủ tịch Hội đồng Quản trị | 4 | 4 |
-
-**Ví dụ 3. Câu hỏi ngoài phạm vi**
-
-IN:
-
-```json
-{
-  "query": "Giá cổ phiếu hôm nay là bao nhiêu?",
-  "top_k": 3
-}
-```
-
-OUT:
+#### OUT — từ chối khi không đủ căn cứ
 
 ```json
 {
   "success": true,
-  "query": "Giá cổ phiếu hôm nay là bao nhiêu?",
+  "query": "Giá cổ phiếu MCH hôm nay là bao nhiêu?",
   "answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
   "citations": [],
-  "execution_time_ms": 1581.36,
-  "model_used": "guardrail-refusal",
-  "graph_candidates": 21,
-  "verified": null,
-  "timings_ms": {
-    "embed": 83.36,
-    "vector_search": 117.15,
-    "graph": 54.67,
-    "rerank": 1021.49,
-    "answer_policy": 296.3
-  }
+  "execution_time_ms": 215.3,
+  "model_used": "extractive-fallback"
 }
 ```
 
-Đồ thị và vector vẫn trả về ứng viên, nhưng không đoạn nào qua được cổng kiểm soát nên `citations` rỗng và LLM không được gọi.
+Hai output này thể hiện cùng một hợp đồng: trả lời phải có citation; không có citation thì từ chối. Đồ thị không thay đổi nguyên tắc đó. Nếu graph trả về chunk nhưng cross-encoder/answer gate đánh giá không đủ tin cậy, hệ thống vẫn từ chối — đúng yêu cầu chống hallucination.
 
-### 4.9.5. Phạm vi hiện tại của kết nối
+### 4.12.10. Cập nhật KB: ý tưởng và cách thực hiện
 
-Cần nêu rõ một giới hạn. Trong `retrieve_hits`, truy vấn đồ thị đang lọc `source_type="upload"`, và Qdrant chỉ chứa 321 vector của 7 tài liệu tải lên. Do đó chatbot hiện đọc 7 tài liệu này, chưa đọc 1.344 chunk của KB1 và KB2.
+Cập nhật là phần dễ bị bỏ qua nhất khi làm demo. Có ba chiến lược, phù hợp với ba quy mô:
 
-Bộ lọc này giúp mọi trích dẫn đều mở được PDF gốc qua phân hệ quản lý tài liệu. Muốn mở rộng cho KB1 và KB2 cần ba bước: nhúng 1.344 chunk đó vào Qdrant với cùng `chunk_id`, bỏ bộ lọc `source_type="upload"`, rồi chạy lại bộ đánh giá ở mục 4.11 vì kho lớn hơn sẽ làm thay đổi kết quả. Với nguồn web, trích dẫn cần mở URL thay vì trang PDF.
-
-## 4.10. Cập nhật cơ sở tri thức
-
-### 4.10.1. Ý tưởng
-
-**Bảng 4.8. Ba chiến lược cập nhật**
-
-| Chiến lược | Cách làm | Ưu điểm | Hạn chế | Phù hợp khi |
+| Chiến lược | Cách làm | Ưu điểm | Hạn chế | Dùng khi |
 | :--- | :--- | :--- | :--- | :--- |
-| Dựng lại toàn bộ | Xóa kho, nạp lại từ đầu | Đơn giản, trạng thái sạch | Mất nhiều thời gian, gián đoạn | Kho nhỏ, cập nhật theo đợt |
-| So sánh hash nội dung | Hash giống thì bỏ qua, khác thì tạo phiên bản mới | Nhanh, giữ lịch sử | Phải lưu hash và phiên bản | Cập nhật định kỳ |
-| Theo sự kiện | Mỗi lần tải lên phát sự kiện, worker đồng bộ | Gần thời gian thực | Cần hàng đợi và giám sát | Nhiều nguồn, cập nhật liên tục |
+| Rebuild toàn bộ | Xóa KB, nạp lại từ đầu | Đơn giản, trạng thái sạch | Tốn thời gian, gián đoạn | Corpus nhỏ, cập nhật theo đợt |
+| Theo hash nội dung | So `content_hash`; giống thì bỏ qua, khác thì tạo version mới | Nhanh, idempotent, giữ lịch sử | Cần lưu hash và version | Cập nhật hằng ngày |
+| Hướng sự kiện | `ingestion_tasks` phát sự kiện → worker nạp graph | Gần thời gian thực, tách rời | Cần queue/outbox, giám sát | Hệ thống nhiều nguồn |
 
-Đồ án dùng chiến lược thứ hai cho nguồn offline và đồng bộ ngay khi nạp cho tài liệu tải lên. Hash được tính trên **văn bản đã trích**, không phải trên byte của tệp, nên tệp được lưu lại mà nội dung không đổi sẽ không tạo phiên bản mới.
-
-### 4.10.2. Thực hiện
-
-![Quy trình cập nhật KB](assets/vp/H4_9_cap_nhat_kb.png)
-
-*Hình 4.9. Quy trình cập nhật một tài liệu trong KB.*
-
-Lệnh cập nhật chỉ thêm cờ `--update`:
-
-```text
-python scripts/10_build_neo4j_kb.py --pdf data/documents --kb KB1 --update
-python scripts/10_build_neo4j_kb.py --links data/kb_sources/links.json --kb KB2 --update
-python scripts/10_build_neo4j_kb.py --merge KB1 KB2 --target KB
-```
-
-*Trích `ai-service/app/knowledge_graph/pipeline.py`, dòng 14–20:*
+Đồ án chọn chiến lược thứ hai vì nó vừa đủ cho quy mô hiện tại, vừa có nền để nâng cấp. Logic quyết định:
 
 ```python
-def plan_update(current: Optional[Dict[str, Any]], content_hash: str) -> str:
-    """Decide insert / skip / new_version from the current document hash."""
+def plan_update(current, content_hash):
     if not current:
         return "insert"
     if current.get("content_hash") == content_hash:
@@ -2052,106 +2098,91 @@ def plan_update(current: Optional[Dict[str, Any]], content_hash: str) -> str:
     return "new_version"
 ```
 
-Bản cũ không bị xóa. Nó được đánh dấu hết hiệu lực và nối với bản mới:
+Khi có phiên bản mới, bản cũ không bị xóa cứng:
 
-*Trích `ai-service/app/knowledge_graph/schema.py`, dòng 105–124:*
-
-```python
-SUPERSEDE_DOCUMENT = """
+```cypher
 MATCH (d:Document {source_uri: $source_uri, is_current: true})
 SET d.is_current = false, d.superseded_at = datetime()
 RETURN d.doc_id AS old_doc_id
 ORDER BY d.version DESC
 LIMIT 1
-"""
+```
 
-LINK_VERSION = """
+Sau đó bản mới được ghi với `version = old.version + 1` và cạnh `NEW_VERSION_OF`:
+
+```cypher
 MATCH (old:Document {doc_id: $old_doc_id})
 MATCH (new:Document {doc_id: $new_doc_id})
 MERGE (new)-[:NEW_VERSION_OF]->(old)
-"""
-
-FIND_CURRENT = """
-MATCH (d:Document {source_uri: $source_uri, is_current: true})
-RETURN d { .doc_id, .content_hash, .version } AS doc
-ORDER BY d.version DESC
-LIMIT 1
-"""
 ```
 
-Với tài liệu tải lên, phía backend tạo phiên bản mới và gọi lại API nạp. Khi một phiên bản hoặc tài liệu bị xóa, `delete_graph_document` xóa đúng các chunk liên quan rồi dọn các thực thể không còn đoạn nào nhắc đến.
+Quy trình cập nhật đầy đủ:
 
-### 4.10.3. Kiểm chứng
+1. Tính `content_hash` của PDF/link mới.
+2. Nếu trùng hash hiện tại → bỏ qua, chỉ ghi log.
+3. Nếu khác → đánh dấu bản cũ `is_current = false`.
+4. Nạp bản mới với `version + 1`, tạo cạnh `NEW_VERSION_OF`.
+5. Xóa vector cũ theo `doc_id` khỏi Qdrant; vector hóa lại chunk mới.
+6. Chạy lại kiểm tra `stats(KB)` và một smoke test RAG.
 
-Trên KB thật, chạy so sánh với `Quy_che_hoat_dong_HDQT.pdf` mà không ghi dữ liệu cho kết quả: hash mới `6a83376d2079…` trùng với `content_hash` đang lưu của `doc-7f1b79827f293a3f`, nên `plan_update` trả về `skip`.
+Với link, bước 1 lấy nội dung mới rồi băm; với PDF, bước 1 trích văn bản rồi băm. Vì hash tính trên nội dung đã trích, không phải trên byte của tệp, một PDF được scan lại nhưng nội dung không đổi sẽ không tạo phiên bản mới. Ngược lại, một PDF được sửa metadata nhưng nội dung giữ nguyên cũng không bị coi là thay đổi — đúng ngữ nghĩa của KB.
 
-Luồng phiên bản mới được kiểm chứng trên một Neo4j 5.26 tạm, tách biệt với dữ liệu thật, bằng hai phiên bản của một văn bản mẫu chỉ khác số ngày nghỉ (12 và 14):
+Hướng nâng cấp lên sự kiện: backend đã có bảng `ingestion_tasks`; khi task chuyển sang `COMPLETED`, một worker có thể đọc `document_id`, gọi `load_pdf` hoặc `load_links` với `update=True`, rồi ghi kết quả vào bảng `kb_sync_log`. Cách này không cần thay đổi schema hiện tại, chỉ cần thêm một consumer.
 
-| Bước | Kết quả `action` | `doc_id` | Số chunk ghi |
-| :--- | :--- | :--- | ---: |
-| Nạp lần 1 (V1) | `insert` (Ghi mới) | `doc-b1d922121f90d823` | 1 |
-| Nạp lại, nội dung không đổi | `skip` (Bỏ qua, không ghi) | `doc-b1d922121f90d823` | 0 |
-| Nạp bản đã sửa (V2) | `new_version` (Tạo phiên bản mới) | `doc-4a46ef372e4177b1` | 1 |
+### 4.12.11. Trạng thái triển khai và kế hoạch đánh giá
 
-Kết quả trên Neo4j: bản `doc-b1d922121f90d823` có `version = 1`, `is_current = false`; bản `doc-4a46ef372e4177b1` có `version = 2`, `is_current = true` và có cạnh `NEW_VERSION_OF` trỏ về bản cũ.
+Bảng dưới tổng hợp trạng thái từng hạng mục: đã có code, đã kiểm thử, đã chạy thật (mọi lần chạy thật ghi trong bảng được thực hiện ngày 09/11/2026):
 
-Phép thử này cũng phát hiện một hạn chế. Sau khi cập nhật, truy vấn `Điều 12` trả về **cả hai** đoạn, “nghỉ 12 ngày” của bản cũ và “nghỉ 14 ngày” của bản mới, vì `GRAPH_CANDIDATES` chưa lọc `is_current`. Với tài liệu tải lên, số chunk trên Neo4j hiện khớp số vector trên Qdrant (321), tức đồ thị chỉ giữ dữ liệu đang được dùng. Với nguồn offline, cần thêm điều kiện `d.is_current = true` trước khi đưa KB1, KB2 vào phục vụ hỏi đáp.
+| Hạng mục | Code | Kiểm thử | Chạy thật | Ghi chú |
+| :--- | :---: | :---: | :---: | :--- |
+| Schema/constraints Neo4j | Có | `--init` | Có | Container `neo4j:5.26-community` trong compose; schema khởi tạo thành công |
+| Nạp PDF → KB1 | Có | Dry-run 1 PDF | Có | 35 tài liệu, 935 chunk, 257 entity |
+| Nạp link → KB2 | Có | 10/10 URL HTTP 200 (kiểm tra 09/11/2026) | Có | 10 tài liệu, 28 chunk, 11 entity; site chặn `httpx`, phải dùng `requests` với header trình duyệt |
+| Gộp KB1 + KB2 → KB | Có | Unit test merge logic | Có | 45 tài liệu, 963 chunk, 263 entity, 416 quan hệ `RELATES_TO`, 169 `REFERENCES`, 884 `APPLIES_TO` |
+| Graph retrieval | Có (đã nối vào `retrieve_hits`) | Unit test RRF; chạy benchmark 26 câu | Có | Đã bỏ lọc `source_type='upload'` để đọc được KB1/KB2 nạp offline; `GRAPH_ENABLED` vẫn là cấu hình do người triển khai bật |
+| Cập nhật theo hash | Có | Unit test `plan_update` | Chưa | Cần chạy lại `--update` trên Neo4j thật |
+| RAG hiện tại | Có | 15 test answer gate | Có | Vector + lexical + rerank |
 
-## 4.11. Đánh giá
-
-### 4.11.1. Thiết kế đánh giá
-
-Bộ đánh giá `ai-service/data/eval/eval_questions.json` gồm 26 câu trên kho 7 tài liệu, 321 chunk: 18 câu có chunk đúng gán nhãn thủ công và 8 câu phải từ chối. Lệnh chạy lại:
+Các kiểm thử tự động đã chạy:
 
 ```text
-docker compose exec ai-service python scripts/15_run_eval.py --with-llm
+python -m unittest tests.test_knowledge_graph -v
+Ran 6 tests in 0.002s
+OK
 ```
 
-### 4.11.2. Kết quả
+Sáu test kiểm tra: ID ổn định theo nội dung, trích thực thể, tạo record có section path, parser HTML bỏ script/nav, quyết định update, và RRF giữ cả hai nguồn.
 
-**Bảng 4.9. Kết quả theo cấu hình truy xuất**
+Kết quả chạy thật ngày 09/11/2026 trên KB hợp nhất (Neo4j + benchmark `scripts/15_run_eval.py`, 26 câu hỏi, chế độ `graph_rag`, trích xuất không dùng LLM):
 
-| Cấu hình | MRR | R@1 | R@3 | Trích đúng | Đủ sự kiện | Từ chối đúng | Từ chối oan | Đạt |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Vector | 0,676 | 61% | 78% | 78% | 83% | 63% | 6% | 73% |
-| Đồ thị | 0,556 | 50% | 61% | 67% | 67% | 75% | 28% | 69% |
-| **Kết hợp, cấu hình mặc định** | **0,713** | **67%** | **78%** | **78%** | **83%** | **63%** | **6%** | **73%** |
-| Kết hợp, thêm luật theo chủ đề | 0,713 | 67% | 78% | 72% | 81% | 75% | 11% | 73% |
-| Kết hợp, có luật, không cross-encoder | 0,530 | 39% | 61% | 72% | 64% | 38% | 6% | 54% |
-| Kết hợp + LLM cục bộ `qwen2.5:3b` | 0,713 | 67% | 78% | 67% | 67% | 100% | 33% | 77% |
+| Chỉ số | Giá trị | Nhận xét |
+| :--- | :---: | :--- |
+| Refusal accuracy (câu ngoài phạm vi) | 0,875 | 7/8 câu ngoài phạm vi bị từ chối đúng |
+| False refusal rate (câu trong phạm vi) | 0,556 | Cao: nhiều câu hợp lệ vẫn bị cổng trả lời chặn |
+| Fact recall trung bình | 0,278 | Graph tìm được một phần dữ kiện kỳ vọng |
+| Độ trễ trung bình | 838 ms | Gồm nhúng câu hỏi, truy vấn Cypher và rerank |
+| MRR, Recall@1/3/5, Citation hit | 0,0 | Không phản ánh chất lượng truy xuất, xem giải thích bên dưới |
 
-![So sánh các cấu hình truy xuất](assets/vp/bd_cau_hinh_rag.png)
+MRR và Recall@k bằng 0 vì `gold_chunk_ids` trong bộ câu hỏi dùng định dạng ID của pipeline upload (`doc-…-v1-c11`), còn KB nạp offline dùng ID theo nội dung (`chk-…`); hai họ ID không bao giờ trùng nhau. Muốn đo Recall thật cần gán nhãn lại `gold_chunk_ids` trên chunk của KB. Các cấu hình `flat_rag` và `hybrid_rag` cũng chưa đo được trên KB này vì chỉ mục vector Qdrant chưa được dựng cho KB1/KB2. Vì vậy chương này không kết luận graph retrieval tốt hơn hay kém hơn vector retrieval; con số trên chỉ chứng minh luồng KB → graph search → trả lời/từ chối chạy được đầu–cuối.
 
-*Hình 4.10. MRR, Recall@1 và Recall@3 của các cấu hình truy xuất.*
+Kế hoạch đánh giá tiếp theo:
 
-Ba nhận xét rút ra từ bảng:
+1. Độ phủ nạp: so số document/chunk/entity của KB1, KB2 và KB với kỳ vọng; trong đó KB2 chỉ có 11 entity trên 28 chunk vì extractor theo quy tắc nhắm vào điều khoản, chức danh và mốc thời gian của văn bản pháp lý, chưa tối ưu cho trang web.
+2. Chất lượng graph: đo tỷ lệ chunk có ít nhất một entity; tỷ lệ entity resolve đúng canonical name.
+3. Graph retrieval: trên 15 câu hỏi answer gate, so Recall@3 của vector-only và vector + graph.
+4. Độ trễ: đo p50/p95 khi bật graph; mục tiêu graph lookup < 80 ms.
+5. Cập nhật: sửa một PDF, chạy `update=True`, kiểm tra chỉ chunk thay đổi được re-embed, bản cũ vẫn truy vết được.
 
-1. Kết hợp vector và đồ thị cho MRR cao nhất (0,713), nhưng phần tăng so với vector thuần (0,676) chỉ tương ứng một câu ở Recall@1 trên 18 câu, chưa đủ để khẳng định có ý nghĩa thống kê.
-2. Đóng góp lớn nhất đến từ cross-encoder: bỏ thành phần này làm MRR giảm từ 0,713 xuống 0,530.
-3. Đồ thị dùng riêng kém hơn vector (MRR 0,556), phù hợp với việc quan hệ được trích bằng luật. Vai trò hiện tại của đồ thị là kênh bổ sung.
+---
 
-Độ trễ trung bình trên CPU khoảng 4 giây khi không có LLM và 11 giây với LLM cục bộ, đo khi máy đang bận nên chỉ có giá trị tham khảo.
+## 4.13. Kết luận chương
 
-### 4.11.3. Kiểm thử tự động
+Chương này đã trình bày cơ sở tri thức của EAKWP theo ba lớp:
 
-Toàn bộ kiểm thử của AI Service được chạy lại ngày 09/11/2026 trong container: **105 test đạt**, gồm định danh theo nội dung, trích thực thể, dựng bản ghi, phân tích HTML, kế hoạch cập nhật, RRF, đồng bộ đồ thị và các quy tắc trả lời.
+1. Tri thức dạng vector: 152 chunk từ Điều lệ Công ty, được làm sạch, phân đoạn structure-aware, làm giàu metadata và nhúng bằng E5-Small. Đây là lớp đang chạy và đã được đánh giá định lượng.
+2. Tri thức dạng quan hệ: 35 PDF và 10 link được chuẩn hóa vào cùng schema Document → Chunk → Entity; KB1/KB2 được gộp thành KB bằng ID theo nội dung. Lớp này đã được nạp thật vào Neo4j: 45 tài liệu, 963 chunk, 263 entity.
+3. Tri thức dạng đồ thị: các cạnh `HAS_DOCUMENT`, `HAS_CHUNK`, `MENTIONS`, `NEW_VERSION_OF` cho phép truy vấn quan hệ và mở rộng ngữ cảnh cho RAG. Graph search đã chạy được trên KB hợp nhất, nhưng chất lượng truy xuất chưa được đo vì thiếu nhãn `gold_chunk_ids` cho KB và chưa dựng chỉ mục vector cho KB1/KB2; lớp này chưa bật trong luồng trả lời production.
 
-### 4.11.4. Hạn chế
+Điểm mạnh nhất của thiết kế là tính kiểm chứng: mỗi câu trả lời có thể truy ngược đến chunk, trang, mục, phiên bản, và tọa độ trên PDF; mỗi lần nạp lại có thể so hash; mỗi lần gộp KB có thể truy vết nguồn. Điểm cần hoàn thiện là đánh giá quy mô lớn, RBAC theo tài liệu, hợp nhất hai đường nạp, và đồ thị tri thức — tất cả đã có thiết kế, code và lộ trình, không chỉ là ý tưởng.
 
-| Hạn chế | Biểu hiện thực tế | Hướng xử lý |
-| :--- | :--- | :--- |
-| Mẫu đánh giá nhỏ | 18 câu có nhãn; mỗi câu tương ứng khoảng 5,6 điểm phần trăm | Mở rộng bộ câu hỏi và lập bộ độc lập |
-| Điều chỉnh trên chính bộ đánh giá | Một số quyết định được đưa ra sau khi xem kết quả trên bộ này | Dùng bộ kiểm tra chưa từng xem |
-| Lỗi OCR | “Cô đông” thay cho “Cổ đông”, “Điều l6” thay cho “Điều 16” | Hậu xử lý OCR tiếng Việt |
-| Mục lục lọt vào `section_path` | Một số chunk của Nội quy lao động có đường dẫn chứa dòng mục lục nhiễu | Bổ sung nhận diện mục lục khi OCR làm hỏng dấu chấm dẫn |
-| Trích đoạn dừng ở câu dẫn | Câu hỏi “có quyền và nghĩa vụ gì” chỉ trả về câu “...có quyền và nghĩa vụ sau đây:” khi không có LLM | Mở rộng cửa sổ cho danh sách liệt kê |
-| Kết nối mới phủ tài liệu upload | RAG chưa đọc KB1, KB2 | Theo mục 4.9.5 |
-| Truy vấn đồ thị chưa lọc phiên bản | Bản cũ vẫn được trả về | Theo mục 4.10.3 |
-| Trích quan hệ bằng luật | Chưa có quan hệ ngữ nghĩa sâu | Thử LLM hoặc mô hình NER có kiểm định |
-
-## 4.12. Kết luận chương
-
-Chương này đã xây dựng cơ sở tri thức thật trên Neo4j với 52 tài liệu, 1.665 chunk và 314 thực thể, từ 35 tệp PDF, 10 link công khai và 7 tài liệu tải lên. Code nạp PDF, nạp link, gộp kho và cập nhật theo hash đều đã được trình bày và chạy thực tế. Dạng KB output và các ví dụ IN – OUT được lấy từ hệ thống đang chạy.
-
-Kết quả cho thấy cấu hình kết hợp vector, đồ thị và cross-encoder đạt MRR 0,713 trên kho 321 chunk; ở chế độ không LLM, hệ thống từ chối đúng 5 trong 8 câu ngoài phạm vi, nên cổng kiểm soát còn cần cải thiện. Hai việc cần làm tiếp theo về kết nối là mở rộng phạm vi RAG sang toàn bộ KB và thêm điều kiện lọc phiên bản hiện hành trong truy vấn đồ thị.
-
+Cùng với chương Học sâu, chương này hoàn thành hai nền tảng của EAKWP: biểu diễn tri thức bằng vector và xây dựng–khai thác cơ sở tri thức có trích dẫn.

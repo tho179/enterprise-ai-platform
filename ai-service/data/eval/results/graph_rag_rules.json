@@ -1,5 +1,5 @@
 {
-  "run_id": "eval_1794164084",
+  "run_id": "eval_1794206450",
   "config": {
     "architecture": "graph_rag",
     "use_reranker": true,
@@ -11,154 +11,118 @@
     "embedding_model": "intfloat/multilingual-e5-small",
     "reranker_model": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
     "domain_rules": true,
-    "created_at": "2026-11-08T18:54:08.350367+00:00"
+    "created_at": "2026-11-09T06:40:28.420879+00:00"
   },
   "total_questions": 26,
-  "passed_count": 19,
-  "pass_rate": 0.7308,
+  "passed_count": 7,
+  "pass_rate": 0.2692,
   "labelled_questions": 18,
-  "mrr": 0.5556,
-  "recall_at_1": 0.5,
-  "recall_at_3": 0.6111,
-  "recall_at_5": 0.6111,
-  "recall_at_10": 0.6111,
-  "citation_hit_rate": 0.6667,
-  "avg_fact_recall": 0.6667,
+  "mrr": 0.0,
+  "recall_at_1": 0.0,
+  "recall_at_3": 0.0,
+  "recall_at_5": 0.0,
+  "recall_at_10": 0.0,
+  "citation_hit_rate": 0.0,
+  "avg_fact_recall": 0.2778,
   "refusal_accuracy": 0.875,
-  "false_refusal_rate": 0.3333,
-  "avg_faithfulness": 0.7103,
+  "false_refusal_rate": 0.5556,
+  "avg_faithfulness": 0.6914,
   "avg_answer_relevance": 1.0,
   "avg_correctness": null,
   "scoring_method": "token_overlap",
-  "avg_latency_ms": 1377.9535,
-  "completed_at": "2026-11-08T18:54:44.186268+00:00",
+  "avg_latency_ms": 837.8542,
+  "completed_at": "2026-11-09T06:40:50.212991+00:00",
   "questions": [
     {
       "question_id": "q001",
       "question": "Hội đồng Quản trị gồm bao nhiêu thành viên?",
       "ground_truth": "Hội đồng Quản trị gồm từ 03 đến 11 thành viên.",
-      "predicted_answer": "Theo quy định tại **Điều 26. Thành phần và nhiệm kỳ của thành viên Hội đồng Quản trị (Trang 21)** [1]:\n\n> Điều 26. Thành phần và nhiệm kỳ của thành viên Hội đồng Quản trị 1. Hội đồng Quản trị có từ 03 đến 11 thành viên. Số lượng cụ thê thành viên Hội đồng Quản trị của Công ty cho từng nhiệm kỳ sẽ được Đại Hội đồng Cổ đông quyết định.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "count",
-      "model_used": "extractive-fallback",
+      "model_used": "guardrail-refusal",
       "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c44",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c11",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c45",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c15",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c48",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c47",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c56",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c12",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c46",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c14"
+        "chk-b3d59c270e430a6d",
+        "chk-9db4081e57669f54",
+        "chk-3cc3885f08a1de30",
+        "chk-8d6fbaffb9c66299",
+        "chk-3fb2edf364e0a7a6",
+        "chk-bbced6f67e7b374e",
+        "chk-a0ed62267924f34e",
+        "chk-9678eaf52d08e18c",
+        "chk-bcd98c61b6e3ad99",
+        "chk-d08bfa7041b8996d"
       ],
-      "cited_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c44"
-      ],
+      "cited_chunk_ids": [],
       "gold_chunk_ids": [
         "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c11",
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c44"
       ],
-      "retrieval_rank": 1,
-      "citation_hit": true,
-      "fact_recall": 1.0,
-      "refused": false,
-      "faithfulness": 0.6154,
-      "answer_relevance": 1.0,
+      "retrieval_rank": 0,
+      "citation_hit": false,
+      "fact_recall": 0.0,
+      "refused": true,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 991.66,
-      "is_passed": true
+      "latency_ms": 3129.76,
+      "is_passed": false
     },
     {
       "question_id": "q002",
       "question": "Hội đồng Quản trị phải họp ít nhất bao nhiêu lần?",
       "ground_truth": "Hội đồng Quản trị phải họp ít nhất mỗi quý một lần.",
-      "predicted_answer": "Theo quy định tại **Điều l6. Cuộc họp của Hội đồng Quản trị (Trang 10 → 11)** [1]:\n\n> Các cuộc họp thường kỳ: Chủ tịch Hội đồng Quản trị triệu tập các cuộc họp Hội đồng Quản trị, lập chương trình nghị sự, quyết định thời gian và địa điểm họp. Chủ tịch Hội đồng Quản trị có thê triệu tập họp bất kỳ khi nào thấy cần thiết, nhưng ít nhất là mỗi quý phải họp một lần.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Theo quy định tại **Điều 16.. Cuộc họp của Hội đồng Quản trị (Trang 10 → 11)** [1]:\n\n> các cuộc họp Hội đồng Quản trị sẽ được tiền hành ở địa chỉ đã đăng ký của Công ty hoặc những địa điêm khác ở Việt Nam hoặc ở nước ngoài theo quyêt định của Chủ tịch Hội đông Quản trị. Thông báo và chương trình họp: thông báo họp Hội đồng Quản trị phải được gửi trước cho các thành viên Hội đồng Quản trị ít nhất 3 ngày làm việc trước ngày họp.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
       "category": "count",
       "model_used": "extractive-fallback",
       "retrieved_chunk_ids": [
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c34",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c32",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c33",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c41",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c35",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c65",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c66",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c42",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c6",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c40"
+        "chk-9db4081e57669f54",
+        "chk-b3d59c270e430a6d",
+        "chk-9678eaf52d08e18c",
+        "chk-8d6fbaffb9c66299",
+        "chk-a0ed62267924f34e",
+        "chk-bcd98c61b6e3ad99",
+        "chk-3fb2edf364e0a7a6",
+        "chk-3cc3885f08a1de30",
+        "chk-d08bfa7041b8996d",
+        "chk-bbced6f67e7b374e"
       ],
       "cited_chunk_ids": [
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c32"
+        "chk-b3d59c270e430a6d"
       ],
       "gold_chunk_ids": [
         "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c32",
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c57"
       ],
-      "retrieval_rank": 2,
-      "citation_hit": true,
-      "fact_recall": 1.0,
+      "retrieval_rank": 0,
+      "citation_hit": false,
+      "fact_recall": 0.0,
       "refused": false,
-      "faithfulness": 0.66,
+      "faithfulness": 0.7037,
       "answer_relevance": 1.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 1261.83,
-      "is_passed": true
+      "latency_ms": 890.44,
+      "is_passed": false
     },
     {
       "question_id": "q003",
       "question": "Số lượng thành viên Ban Kiểm soát của công ty là bao nhiêu?",
       "ground_truth": "",
-      "predicted_answer": "Theo quy định tại **Điều 6. Nhiệm kỳ và số lượng thành viên Hội đồng Quản trị (Trang 5)** [1]:\n\n> Điều 6. Nhiệm kỳ và số lượng thành viên Hội đồng Quản trị I. Hội đồng Quản trị có từ 03 đến 11 thành viên. Số lượng cụ thê thành viên Hội đồng Quản trị của Công ty cho từng nhiệm kỳ sẽ được Đại Hội đông Cô đông quyết định.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
-      "category": "out_of_scope",
-      "model_used": "extractive-fallback",
-      "retrieved_chunk_ids": [
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c11",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c17",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c12",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c4",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c1",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c4",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c52",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c1",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c3",
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c0"
-      ],
-      "cited_chunk_ids": [
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c11"
-      ],
-      "gold_chunk_ids": [],
-      "retrieval_rank": 0,
-      "citation_hit": false,
-      "fact_recall": null,
-      "refused": false,
-      "faithfulness": 0.6111,
-      "answer_relevance": 1.0,
-      "correctness": null,
-      "scoring_method": "token_overlap",
-      "latency_ms": 2550.61,
-      "is_passed": false
-    },
-    {
-      "question_id": "q004",
-      "question": "Nghị quyết Đại hội đồng cổ đông được thông qua khi đạt tỷ lệ bao nhiêu?",
-      "ground_truth": "",
       "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "out_of_scope",
       "model_used": "guardrail-refusal",
       "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c32",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c35",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c42",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c30",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c41",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c40",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c33",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c34",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c19",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c27"
+        "chk-9a919280e6a0baa3",
+        "chk-045accf14ca76cfb",
+        "chk-69b09a75d72a96bf",
+        "chk-21819d35e5f3587b",
+        "chk-a7f062049617293e",
+        "chk-0781fab3b56ea7c0",
+        "chk-11ae1e66d9ec4445",
+        "chk-a3fb4bc601f18569",
+        "chk-07d8769f4ec2a348",
+        "chk-9346766a87c6dea3"
       ],
       "cited_chunk_ids": [],
       "gold_chunk_ids": [],
@@ -170,8 +134,42 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 813.32,
+      "latency_ms": 795.63,
       "is_passed": true
+    },
+    {
+      "question_id": "q004",
+      "question": "Nghị quyết Đại hội đồng cổ đông được thông qua khi đạt tỷ lệ bao nhiêu?",
+      "ground_truth": "",
+      "predicted_answer": "Theo quy định tại **Điều 21. Điều kiện để nghị quyết Đại Hội đồng Cổ đông được thông qua (Trang 17 → 18)** [1]:\n\n> Điều kiện để nghị quyết Đại Hội đồng Cổ đông được thông qua 1. Nghị quyet về nội dung sau đây được thông qua nếu được số Cô đông đại diện từ 65% tổng số cô phần có quyền biều quye't trở lên của tất cả Cô đông dự họp tán thành, trừ trường hợp quy định tại khoản 3. 4 và 5 Điều 21 của Điều lệ này:\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "category": "out_of_scope",
+      "model_used": "extractive-fallback",
+      "retrieved_chunk_ids": [
+        "chk-5f18422fe9ec4840",
+        "chk-6f71d2895475aec0",
+        "chk-b447ae334c026e4f",
+        "chk-96803b5ab21f3a5b",
+        "chk-2be0f0b94ac12e7d",
+        "chk-2a53f0133a1628ab",
+        "chk-7bbfab710e8efc24",
+        "chk-ec3cb4eb481f9e7f",
+        "chk-d711a316264f2a5e",
+        "chk-39fd818f35a6ebd4"
+      ],
+      "cited_chunk_ids": [
+        "chk-5f18422fe9ec4840"
+      ],
+      "gold_chunk_ids": [],
+      "retrieval_rank": 0,
+      "citation_hit": false,
+      "fact_recall": null,
+      "refused": false,
+      "faithfulness": 0.75,
+      "answer_relevance": 1.0,
+      "correctness": null,
+      "scoring_method": "token_overlap",
+      "latency_ms": 1015.77,
+      "is_passed": false
     },
     {
       "question_id": "q005",
@@ -180,18 +178,7 @@
       "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "count",
       "model_used": "guardrail-refusal",
-      "retrieved_chunk_ids": [
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c1",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c6",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c4",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c3",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c4",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c4",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c5",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c1",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c5",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c3"
-      ],
+      "retrieved_chunk_ids": [],
       "cited_chunk_ids": [],
       "gold_chunk_ids": [
         "doc-3cd566e6-35fe-40c0-9020-eda364e05af8-v1-c8",
@@ -205,46 +192,45 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 868.2,
+      "latency_ms": 57.18,
       "is_passed": false
     },
     {
       "question_id": "q006",
       "question": "Nhiệm kỳ của thành viên Hội đồng Quản trị là bao lâu?",
       "ground_truth": "Nhiệm kỳ của thành viên Hội đồng Quản trị không quá 05 năm và có thể được bầu lại với số nhiệm kỳ không hạn chế.",
-      "predicted_answer": "Theo quy định tại **Điều 26. Thành phần và nhiệm kỳ của thành viên Hội đồng Quản trị (Trang 21)** [1]:\n\n> Thành phần và nhiệm kỳ của thành viên Hội đồng Quản trị 1. Hội đồng Quản trị có từ 03 đến 11 thành viên. Số lượng cụ thê thành viên Hội đồng Quản trị của Công ty cho từng nhiệm kỳ sẽ được Đại Hội đồng Cổ đông quyết định. Nhiệm kỳ của thành viên Hội đồng Quản trị không quá năm (05) năm;\n\nTheo quy định tại **Điều 6. Nhiệm kỳ và số lượng thành viên Hội đồng Quản trị (Trang 5)** [2]:\n\n> Số lượng cụ thê thành viên Hội đồng Quản trị của Công ty cho từng nhiệm kỳ sẽ được Đại Hội đông Cô đông quyết định. 2. Nhiệm kỳ của thành viên Hội đồng Quản trị không quá năm (05) năm;\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Theo quy định tại **CHƯƠNG L THÀNH VIÊN HỘI ĐÒNG QUẢN TRỊ (Trang 5)** [1]:\n\n> Số lượng cụ thể thành viên Hội đồng Quản trị của Công ty cho từng nhiệm kỳ sẽ được Đại Hội đông Cô đông quyêt định. 2. Nhiệm kỳ của thành viên Hội đồng Quản trị không quá năm (05) năm;\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
       "category": "time",
       "model_used": "extractive-fallback",
       "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c44",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c11",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c57",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c60",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c47",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c59",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c46",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c45",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c48",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c12"
+        "chk-1331fdc35499c8ff",
+        "chk-d7f38454fb7ac173",
+        "chk-374f85aed0ec0a9a",
+        "chk-522da6b4a1ede20d",
+        "chk-f94bed32138360bd",
+        "chk-ab44a2ae557aea3f",
+        "chk-c00449a8c9cfac99",
+        "chk-8d6fbaffb9c66299",
+        "chk-9f3ee54e0acddf38",
+        "chk-bbced6f67e7b374e"
       ],
       "cited_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c44",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c11"
+        "chk-374f85aed0ec0a9a"
       ],
       "gold_chunk_ids": [
         "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c11",
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c44"
       ],
-      "retrieval_rank": 1,
-      "citation_hit": true,
+      "retrieval_rank": 0,
+      "citation_hit": false,
       "fact_recall": 1.0,
       "refused": false,
-      "faithfulness": 0.6047,
+      "faithfulness": 0.5676,
       "answer_relevance": 1.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 854.62,
-      "is_passed": true
+      "latency_ms": 813.03,
+      "is_passed": false
     },
     {
       "question_id": "q007",
@@ -253,18 +239,7 @@
       "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "time",
       "model_used": "guardrail-refusal",
-      "retrieved_chunk_ids": [
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c12",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c0",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c13",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c11",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c14",
-        "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c21",
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c10",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c10",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c13",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c40"
-      ],
+      "retrieved_chunk_ids": [],
       "cited_chunk_ids": [],
       "gold_chunk_ids": [
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c11"
@@ -277,44 +252,44 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 945.59,
+      "latency_ms": 54.6,
       "is_passed": false
     },
     {
       "question_id": "q008",
       "question": "Thời giờ làm việc bình thường của người lao động được quy định như thế nào?",
       "ground_truth": "Thời giờ làm việc, thời giờ nghỉ ngơi thực hiện theo Nội quy lao động hiện hành và các quy định về ngày công do Công ty ban hành.",
-      "predicted_answer": "Theo quy định tại **Điều 6: Thời Giờ Làm Việc, Thời Giờ Nghĩ Ngơi (Trang 7)** [1]:\n\n> Điều 6: Thời Giờ Làm Việc, Thời Giờ Nghĩ Ngơi Thời giờ làm việc, thời giờ nghỉ ngơi của Người lao động thực hiện theo Nội quy lao động hiện hành mà Người sử dụng lao động đã đăng ký với cơ quan quản lý lao động và/hoặc quy định về xác định ngày công làm việc hoặc các quy định, quy trình liên quan mà Công ty ban hành tùy từng thời điểm.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Theo quy định tại **Điều 8: Thời Giờ Làm Việc, Thời Giờ Nghỉ Ngơi (Trang 8 → 9)** [1]:\n\n> Điều 8: Thời Giờ Làm Việc, Thời Giờ Nghỉ Ngơi 1. Thời giờ làm việc là khoảng thời gian Người lao động phải có mặt tại địa điểm làm việc, công tác và thực hiện nhiệm vụ được giao phù hợp với Nội quy lao động Công ty.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
       "category": "time",
       "model_used": "extractive-fallback",
       "retrieved_chunk_ids": [
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c14",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c12",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c37",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c9",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c10",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c11",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c2",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c3",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c13",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c40"
+        "chk-f9b8fb9a2ebc4dda",
+        "chk-d1c64f3d0d282803",
+        "chk-d1c1df65757e3327",
+        "chk-dfe678917f5d0f4c",
+        "chk-8d4dfb427fee35be",
+        "chk-d959903b435c030a",
+        "chk-f104ee516caec278",
+        "chk-53b0c3e5cbe5c0e1",
+        "chk-229d95ff35763a7e",
+        "chk-c2caf6b837938577"
       ],
       "cited_chunk_ids": [
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c14"
+        "chk-3ec13c9080784754"
       ],
       "gold_chunk_ids": [
         "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c14"
       ],
-      "retrieval_rank": 1,
-      "citation_hit": true,
+      "retrieval_rank": 0,
+      "citation_hit": false,
       "fact_recall": 1.0,
       "refused": false,
-      "faithfulness": 0.7234,
+      "faithfulness": 0.6744,
       "answer_relevance": 1.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 2634.3,
-      "is_passed": true
+      "latency_ms": 1858.02,
+      "is_passed": false
     },
     {
       "question_id": "q009",
@@ -324,16 +299,16 @@
       "category": "out_of_scope",
       "model_used": "guardrail-refusal",
       "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c32",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c42",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c40",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c17",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c41",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c34",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c19",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c36",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c35",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c16"
+        "chk-7bbfab710e8efc24",
+        "chk-ec3cb4eb481f9e7f",
+        "chk-29cae744539ed2de",
+        "chk-68065e18b6423896",
+        "chk-2344b16e2ffc4baa",
+        "chk-53f9954c8d63066d",
+        "chk-5427599fa8bd61d1",
+        "chk-39fd818f35a6ebd4",
+        "chk-10c5f2fd5cfb0c7e",
+        "chk-6f71d2895475aec0"
       ],
       "cited_chunk_ids": [],
       "gold_chunk_ids": [],
@@ -345,45 +320,45 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 1028.51,
+      "latency_ms": 778.04,
       "is_passed": true
     },
     {
       "question_id": "q010",
       "question": "Thông báo mời họp Đại hội đồng cổ đông phải gửi chậm nhất bao nhiêu ngày trước ngày khai mạc?",
       "ground_truth": "Thông báo mời họp phải được gửi chậm nhất hai mươi mốt ngày trước ngày khai mạc cuộc họp.",
-      "predicted_answer": "Theo quy định tại **Điều 16. Triệu tập họp Đại Hội đồng Cổ đông, chương trình và nội dung họp, và mời họp Đại (Trang 14)** [1]:\n\n> và h. _ Các công việc khác phục vụ cuộc họp. Thông báo mời họp Đại Hội đồng Cô đông được gửi cho tất cả các Cô đông có quyền dự họp, đồng thời công bố trên phương tiện thông tin của Ủy ban Chứng khoán Nhà nước, Sở G1ao dịch Chứng khoán và trên website của Công ty. Thông báo mời họp Đại Hội đồng Cô đông phải được gửi chậm nhất là hai mươi mốt ngày trước ngày khai mạc cuộc họp Đại Hội đồng Cô đông bằng phương thức để bảo đảm đến được địa chỉ liên lạc của Cô đông.\n\nTheo quy định tại **Điều 16. Triệu tập họp Đại Hội đồng Cổ đông, chương trình và nội dung họp, và mời họp Đại (Trang 14)** [2]:\n\n> Kiến nghị phải được làm băng văn bản và phải được gửi cho Công ty ít nhất năm ngày làm việc trước ngày khai mạc cuộc họp Đại Hội đồng Cổ đồng. Kiến nghị phải ghi rõ họ và tên Cô đông, số lượng và loại cỗ phần người đó sở hữu, và vấn đề kiến nghị đưa vào chương trình họp. Trường hợp người triệu tập họp Đại Hội đồng Cô đông từ chối kiến nghị quy định tại khoản 4 Điều 16 của Điều lệ này thì chậm nhất là hai ngày làm việc trước ngày khai mạc cuộc họp Đại Hội đồng Cô đông phải trả lời bằng văn bản…\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Theo quy định tại **Điều 16. Triệu tập họp Đại Hội đồng Cổ đông, chương trình và nội dung họp, và mời họp Đại (Trang 18)** [1]:\n\n> Trườởng hợp người triệu tập hợọp Đại liội fflmg Cổ đồng từ chối kiến nghị quy định tại khoản 4 Điều 16 của Điều lệ này thì chậm nhất là hai ngày làm việc trước ngày khai mạc cuộc họp Đại Hội đồng Cỏ dông phải trả lời bằng văn bản và nêu rõ lý do. Người triệu tập họp Dại Hội đồng Cổ đông chỉ được từ chối kiến nghị nếu thuộc một trong các trường hợp sau đây: a Kiến nghị được gửi đến không đúng quy định tại khoản 4 Điều 16 của Điều lệ này;\n\nTheo quy định tại **Điều 16. Triệu tập họp Đại Hội đồng Cổ đông, chương trình và nội dung họp, và mời họp Đại (Trang 17)** [2]:\n\n> các Cổ đông có thể tiếp cận các tài liệu họp đó. Cổ đông hcmc nhóm Cô đông theo quy định tại khoản 3 Điều 11 của Diều lệ này có ựyẻn kiến nghị các vấn dễ đưa vào chương trình họp Đại Hội đồng Cổ đông. Kiến nghị phải dược làm băng văn bản và phải được gửi cho Công ty Ít nhất năm ngày làm việc trước ngảy khai mạc .\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
       "category": "time",
       "model_used": "extractive-fallback",
       "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c41",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c42",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c30",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c40",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c33",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c32",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c19",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c34",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c35",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c27"
+        "chk-b447ae334c026e4f",
+        "chk-96803b5ab21f3a5b",
+        "chk-ec3cb4eb481f9e7f",
+        "chk-7bbfab710e8efc24",
+        "chk-2a53f0133a1628ab",
+        "chk-2be0f0b94ac12e7d",
+        "chk-5f18422fe9ec4840",
+        "chk-39fd818f35a6ebd4",
+        "chk-d711a316264f2a5e",
+        "chk-6f71d2895475aec0"
       ],
       "cited_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c41",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c42"
+        "chk-96803b5ab21f3a5b",
+        "chk-b447ae334c026e4f"
       ],
       "gold_chunk_ids": [
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c41"
       ],
-      "retrieval_rank": 1,
-      "citation_hit": true,
-      "fact_recall": 1.0,
+      "retrieval_rank": 0,
+      "citation_hit": false,
+      "fact_recall": 0.0,
       "refused": false,
-      "faithfulness": 0.8723,
+      "faithfulness": 0.8442,
       "answer_relevance": 1.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 1549.55,
-      "is_passed": true
+      "latency_ms": 1484.79,
+      "is_passed": false
     },
     {
       "question_id": "q011",
@@ -393,16 +368,16 @@
       "category": "yesno",
       "model_used": "guardrail-refusal",
       "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c99",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c63",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c58",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c59",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c62",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c74",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c61",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c60",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c64",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c57"
+        "chk-ba387996c231f3ac",
+        "chk-379d8fada2c6c897",
+        "chk-137cc5f183a81b44",
+        "chk-767bd30b356cb8e4",
+        "chk-c4f1691a52c9fd58",
+        "chk-5122442728785520",
+        "chk-c28578f7e6042b3e",
+        "chk-fc14daefe52e3bd7",
+        "chk-3aa7cf7fea2f68fb",
+        "chk-2e9b1353f5ff3adf"
       ],
       "cited_chunk_ids": [],
       "gold_chunk_ids": [
@@ -417,7 +392,7 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 825.78,
+      "latency_ms": 741.26,
       "is_passed": false
     },
     {
@@ -427,18 +402,7 @@
       "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "yesno",
       "model_used": "guardrail-refusal",
-      "retrieved_chunk_ids": [
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c10",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c31",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c13",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c6",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c5",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c23",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c12",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c40",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c89",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c11"
-      ],
+      "retrieved_chunk_ids": [],
       "cited_chunk_ids": [],
       "gold_chunk_ids": [
         "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c9"
@@ -451,46 +415,44 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 1118.62,
+      "latency_ms": 59.98,
       "is_passed": false
     },
     {
       "question_id": "q013",
       "question": "Công ty có thể mua lại cổ phần của chính mình không?",
       "ground_truth": "Có. Hội đồng Quản trị quyết định việc mua lại không quá 10% tổng số cổ phần của từng loại đã bán trong mỗi mười hai tháng; trên 10% do Đại hội đồng cổ đông quyết định.",
-      "predicted_answer": "Theo quy định tại **Điều 27. Quyền và nghĩa vụ của Hội đồng Quản trị (Trang 22 → 23)** [1]:\n\n> Việc mua hoặc bán cổ phần, phần vốn góp tại các công ty khác được thành lập ở Việt Nam hay nước ngoài; Việc định giá các tài sản góp vào Công ty không phải bằng tiền, bao gồm vàng, quyền sử dụng đất, quyền sở hữu trí tuệ, công nghệ, bí quyết kỹ thuật, tài sản khác có thê định giá được bằng Đồng Việt Nam; Việc Công ty mua lại không quá 10% tông số cô phần của từng loại đã bán trong mỗi mười hai tháng: quyết định giá mua lại cô phần của Công ty phù hợp với quy định của Pháp luật;\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "yesno",
-      "model_used": "extractive-fallback",
+      "model_used": "guardrail-refusal",
       "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c31",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c24",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c28",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c22",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c23",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c25",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c4",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c20",
-        "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c12",
-        "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c13"
+        "chk-c03fdb8005ef97bd",
+        "chk-91a9199928010135",
+        "chk-736a53398039f1cc",
+        "chk-eb466ab8bae472aa",
+        "chk-22d5cfde27443544",
+        "chk-98ed6fbcc5fead41",
+        "chk-5f2f4d7345b3604a",
+        "chk-a85a2aae3603cd2e",
+        "chk-fdb47632580f80a2",
+        "chk-d51a429ad49ce152"
       ],
-      "cited_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c52"
-      ],
+      "cited_chunk_ids": [],
       "gold_chunk_ids": [
         "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c24",
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c36",
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c52"
       ],
       "retrieval_rank": 0,
-      "citation_hit": true,
-      "fact_recall": 1.0,
-      "refused": false,
-      "faithfulness": 0.7297,
-      "answer_relevance": 1.0,
+      "citation_hit": false,
+      "fact_recall": 0.0,
+      "refused": true,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 924.66,
-      "is_passed": true
+      "latency_ms": 690.83,
+      "is_passed": false
     },
     {
       "question_id": "q014",
@@ -499,18 +461,7 @@
       "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "yesno",
       "model_used": "guardrail-refusal",
-      "retrieved_chunk_ids": [
-        "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c5",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c10",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c40",
-        "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c4",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c13",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c12",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c5",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c3",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c4",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c11"
-      ],
+      "retrieved_chunk_ids": [],
       "cited_chunk_ids": [],
       "gold_chunk_ids": [
         "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c62"
@@ -523,198 +474,183 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 1267.71,
+      "latency_ms": 64.64,
       "is_passed": false
     },
     {
       "question_id": "q015",
       "question": "Chủ tịch Hội đồng Quản trị có được kiêm nhiệm chức danh Tổng Giám đốc không?",
       "ground_truth": "Chủ tịch Hội đồng Quản trị không được kiêm nhiệm chức danh Tổng Giám đốc của Công ty.",
-      "predicted_answer": "Theo quy định tại **Điều 28. Chủ tịch, Phó Chủ tịch Hội đồng Quản trị (Trang 24)** [1]:\n\n> Hội đồng Quản trị bầu một trong số các thành viên Hội đồng Quản trị để làm Chủ tịch Hội đồng Quản trị. Nếu xét thấy cần thiết, theo đề xuất của Chủ tịch Hội đồng Quản trị, Hội đồng Quản trị có thê bầu một hoặc một số Phó Chủ tịch từ các thành viên Hội đồng Quản trị. Chủ tịch Hội đồng Quản trị không được kiêm nhiệm chức danh Tổng Giám đốc của Công ty.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Theo quy định tại **Điều 28. Chủ tịch, Phó Chủ tịch Hội đồng Quản trị (Trang 24)** [1]:\n\n> Hội đồng Quản trị bầu một trong số các thành viên Hội đồng Quản trị để làm Chủ tịch Hội đồng Quản trị. Nếu xét thấy cần thiết, theo đề xuất của Chủ tịch Hội đồng Quản trị, Hội đồng Quản trị có thể bầu một hoặc một số Phó Chủ tịch từ các thành viên Hội đồng Quản trị. Chủ tịch Hội đồng Quản trị không được kiêm nhiệm chức danh Tổng Giám đốc của Công ty.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
       "category": "yesno",
       "model_used": "extractive-fallback",
       "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c54",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c13",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c56",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c58",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c55",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c48",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c15",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c14",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c53",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c16"
+        "chk-3badb3d3aaded570",
+        "chk-8bb345188aa955c3",
+        "chk-da13d005282e2ba5",
+        "chk-b4f59366019c4dcc",
+        "chk-4b873e720f933e60",
+        "chk-409bace3817d392c",
+        "chk-efda1235a2463966",
+        "chk-0a47e84782af1710",
+        "chk-0cd78509ca5216bc",
+        "chk-74edfc127fbf4ffa"
       ],
       "cited_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c54"
+        "chk-3badb3d3aaded570"
       ],
       "gold_chunk_ids": [
         "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c13",
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c54"
       ],
-      "retrieval_rank": 1,
-      "citation_hit": true,
+      "retrieval_rank": 0,
+      "citation_hit": false,
       "fact_recall": 1.0,
       "refused": false,
       "faithfulness": 0.6522,
       "answer_relevance": 1.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 1895.72,
-      "is_passed": true
+      "latency_ms": 1646.2,
+      "is_passed": false
     },
     {
       "question_id": "q016",
       "question": "Quyền và nghĩa vụ của Đại hội đồng cổ đông gồm những gì?",
       "ground_truth": "Đại hội đồng cổ đông có quyền thông qua định hướng phát triển, báo cáo tài chính năm được kiểm toán, quyết định mức cổ tức hằng năm và các quyền khác theo Điều 14.",
-      "predicted_answer": "Theo quy định tại **Điều 14. Quyền và nghĩa vụ của Đại Hội đồng Cổ đông (Trang 12)** [1]:\n\n> Quyền và nghĩa vụ của Đại Hội đồng Cổ đông 1. Đại Hội đông Cô đông có các quyên và nghĩa vụ sau: a. b. Thông qua định hướng phát triên của Công ty; Thông qua các báo cáo tài chính năm được kiểm toán của Công ty; Quyết định mức cổ tức thanh toán hàng năm cho mỗi loại cô phần phù hợp với Luật doanh nghiệp.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Theo quy định tại **Điều 14. Quyền và nghĩa vụ của Đại Hội đồng Cổ đông (Trang 12)** [1]:\n\n> Quyền và nghĩa vụ của Đại Hội đồng Cổ đông 1. Đại Hội đồng Cổ đông có các quyền và nghĩa vụ sau: a. Thông qua định hướng phát triển của Công ty; b. Thông qua các báo cáo tài chính năm được kiểm toán của Công ty; c. Quyết định mức cổ tức thanh toán hàng năm cho mỗi loại cổ phần phù hợp với Luật doanh nghiệp. Mức cổ tức này không cao hơn mức mà Hội đồng Quản trị đề nghị; d. Quyết định số lượng thành viên Hội đồng Quản trị; e. Lựa chọn Công ty kiểm toán; f. Bầu, bãi nhiệm, miễn nhiệm thành viên…\n\nTheo quy định tại **Điều 14. Quyền và nghĩa vụ của Đại Hội đồng Cổ đông (Trang 12)** [2]:\n\n> Quyền và nghĩa vụ của Đại Hội đồng Cổ đông R Đại Hội đông Cô đông có các quyên và nghĩa vụ sau: a. b. Thông qua định hướng phát triên của Công ty; Thông qua các báo cáo tài chính năm được kiêm toán của Công ty; Quyết định mức cổ tức thanh toán hàng năm cho mỗi loại cô phần phù hợp với Luật doanh nghiệp.\n\nTheo quy định tại **Điều 14. Quyền và nghĩa vụ của Đại Hội đồng Cổ đông (Trang 14 → 15)** [3]:\n\n> Quyền và nghĩa vụ của Đại Hội đồng Cổ đông I„ Đại Hội đồng Cỏ đông có các quyền và nghĩa vụ sau: ặ. b. Thông qua định hướng phát triển của Công ty; 'Thông qua các báo cáo tài chính năm được kiểm toán của Công ty; Quyết dịnh mức cổ tức thanh toán hàng năm cho mỗi loại cổ phần phù hợp với Luật doanh nghiệp. Mức c tức này không cao hơn mức máả Hội đồng Quản trị đề nghị; 'Cịl.tị~,f='Ắ²l định số lượng thành viên Hội Ủng Quản trị; Lựa chọn Công ty kiểm toán; Bầu, bãi nhiệm, miễn nhiệm thành viên Hội…\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
       "category": "open",
       "model_used": "extractive-fallback",
       "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c35",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c32",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c27",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c30",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c42",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c40",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c41",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c37",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c28",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c36"
+        "chk-53f9954c8d63066d",
+        "chk-5427599fa8bd61d1",
+        "chk-10c5f2fd5cfb0c7e",
+        "chk-e44a144ea446dbf7",
+        "chk-5568988a5b152a5c",
+        "chk-4aa9876c492595c3",
+        "chk-35c3ab9f51b479bc",
+        "chk-a8007334a0491858",
+        "chk-5e67d47bd917136e",
+        "chk-f37cb22335ff52da"
       ],
       "cited_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c35"
+        "chk-53f9954c8d63066d",
+        "chk-5427599fa8bd61d1",
+        "chk-10c5f2fd5cfb0c7e"
       ],
       "gold_chunk_ids": [
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c35",
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c36"
       ],
-      "retrieval_rank": 1,
-      "citation_hit": true,
+      "retrieval_rank": 0,
+      "citation_hit": false,
       "fact_recall": 1.0,
       "refused": false,
-      "faithfulness": 0.6939,
+      "faithfulness": 0.7647,
       "answer_relevance": 1.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 3999.91,
-      "is_passed": true
+      "latency_ms": 1925.75,
+      "is_passed": false
     },
     {
       "question_id": "q017",
       "question": "Quy trình xử lý vụ việc gây rối hoặc vi phạm kỷ luật lao động được thực hiện qua những bước nào?",
       "ground_truth": "Quy trình gồm phát hiện sự việc, thông báo cho đơn vị liên quan, ghi lời khai hoặc lập biên bản làm việc, kiểm tra đánh giá thông tin, rồi báo cáo kết quả.",
-      "predicted_answer": "Theo quy định tại **Điều 13: Kỷ Luật Lao Động (Trang 14 → 15)** [1]:\n\n> Điều 13: Kỷ Luật Lao Động Thực hiện theo Nội quy lao động Công ty đã đăng ký với cơ quan chức năng, các văn bản hướng dẫn khác có liên quan và quy trình xử lý kỷ luật do Công ty ban hành nếu có. Trường hợp nhân viên bị xử lý ký luật từ khiển trách bằng văn bản trở lên, mức đánh giá hoàn thành công tác cuối năm sẽ không vượt quá mức đạt yêu cầu (không vượt quá mức xếp loại E). .”\"sx. “z .. .Z¿. ~>~⁄4U x`' ư“Z Mã số: MSC/NS-TULĐTT-001 M » THỎA ƯỚC Lần ban hành: 05 Sudm LAO ĐỘNG TẬP THÊ, | Ngày…\n\nTheo quy định tại **5.2 QUY TRÌNH XỬ LÝ VỤ VIỆC ĐÃ XÁC ĐỊNH NGƯỜI VI PHẠM (Trang 6)** [2]:\n\n> Masan 2 '5.4 QUY TRÌNH XỬ LÝ VỤ VIỆC KHÁCH HÀNG VI PHẠM TRỘM CẮÁP Lưu đồ Phát hiện | Trách nhiệm QUY TRÌNH Lần ban hành: 01 'Số tài liệu: MCH/QT-AN/02 XƯ LY VỤ VIỆC Ngày hiệu lực: 01/08/2020 Nội dung Biễu mẫu Lo liệu liên quan 'Những hành vi bao gồm: - Hành vi giữ/cất giấu hoặc di chuyển TS không đoàn (sự vụ lớn). khách hà - Các bộ phậ | Trộm cấp DI DĐ,DHNN thuộc quyền sở hữu của mình/đơn vị mình trong | khuôn viên Nhà máy. SỐ BM07.MCH/QT- Lập biên bản hành vi - Đội Bảo Vệ Tiến hành lập Biên…\n\nTheo quy định tại **5.1 QUY TRÌNH XỬ LÝ VỤ VIỆC CHƯA XÁC ĐỊNH NGƯỜI VI PHẠM (Trang 2)** [3]:\n\n> 5.1 QUY TRÌNH XỬ LÝ VỤ VIỆC CHƯA XÁC ĐỊNH NGƯỜI VI PHẠM ] Lưu đồ Trách nhiệm Nội dung Biểu mẫu —— Phát hiện sự việc bao gồm: . - Những hành vi vi phạm Nôi quy, quy định và | Ea - Các bộ phận — 'quy trình Nhà máy (NM). | ' - Những sự cố hay hiện tượng khác xảy ra trong khuôn viên NM. Tiến hành lập Biên bản ghi nhận sự vụ, sự việc đã KT v XYA xảy ra và báo ngay về BP.AN. ĐMOI.MCHIO-T” Lập biên bãn ghi nhận - Đội Bảo VỆ _ | hằng thời vận dụng người, vật dụng, dây báo hiệu EliiitiocHNG Ù = ° ` P +…\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "open",
-      "model_used": "extractive-fallback",
+      "model_used": "guardrail-refusal",
       "retrieved_chunk_ids": [
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c10",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c3",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c39",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c6",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c8",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c14",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c15",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c16",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c18",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c4"
+        "chk-3c35c8d93e2c6a05",
+        "chk-f128537e364eed7b",
+        "chk-52b034ff1745cae3",
+        "chk-87d8b5120566e5fd",
+        "chk-57fad7e8fdfab932",
+        "chk-0278d763a2dd95e5",
+        "chk-8043f1c9c1e1d9a5",
+        "chk-849b85ad445d3e4e",
+        "chk-391f1e1714d27991",
+        "chk-5c0d548deac76f7e"
       ],
-      "cited_chunk_ids": [
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c39",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c10",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c3"
-      ],
+      "cited_chunk_ids": [],
       "gold_chunk_ids": [
         "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c3",
         "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c4",
         "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c5",
         "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c6"
       ],
-      "retrieval_rank": 2,
-      "citation_hit": true,
-      "fact_recall": 1.0,
-      "refused": false,
-      "faithfulness": 0.9351,
-      "answer_relevance": 1.0,
+      "retrieval_rank": 0,
+      "citation_hit": false,
+      "fact_recall": 0.0,
+      "refused": true,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 3025.15,
-      "is_passed": true
+      "latency_ms": 1057.56,
+      "is_passed": false
     },
     {
       "question_id": "q018",
       "question": "Chính sách nhân quyền của công ty cam kết những nội dung cơ bản nào?",
       "ground_truth": "Công ty cam kết tôn trọng và bảo vệ nhân quyền trong hoạt động kinh doanh và chuỗi cung ứng, đối xử công bằng, không phân biệt đối xử, xóa bỏ lao động cưỡng bức và các hình thức lao động trẻ em tồi tệ nhất.",
-      "predicted_answer": "Theo quy định tại **V. NỘI DUNG (Trang 2)** [1]:\n\n> Tuyên bố chính sách chung: 1.1. Công ty cam kết tôn trọng và bảo vệ nhân quyền trong các hoạt động kinh doanh và chuỗi cung ứng của công ty. Công ty cũng kỳ vọng các nhà cung cấp và đối tác kinh doanh của Công ty tuân thủ các nguyên tắc này, đồng thời kêu gọi họ áp dụng các chính sách tương tự cho chính doanh nghiệp của mình.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "open",
-      "model_used": "extractive-fallback",
-      "retrieved_chunk_ids": [
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c5",
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c9",
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c8",
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c10",
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c11",
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c12",
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c7",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c13",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c14",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c38"
-      ],
-      "cited_chunk_ids": [
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c5"
-      ],
+      "model_used": "guardrail-refusal",
+      "retrieved_chunk_ids": [],
+      "cited_chunk_ids": [],
       "gold_chunk_ids": [
         "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c5",
         "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c6",
         "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c9"
       ],
-      "retrieval_rank": 1,
-      "citation_hit": true,
-      "fact_recall": 1.0,
-      "refused": false,
-      "faithfulness": 0.7091,
-      "answer_relevance": 1.0,
+      "retrieval_rank": 0,
+      "citation_hit": false,
+      "fact_recall": 0.0,
+      "refused": true,
+      "faithfulness": 0.0,
+      "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 1942.57,
-      "is_passed": true
+      "latency_ms": 53.36,
+      "is_passed": false
     },
     {
       "question_id": "q019",
       "question": "Ai là người đại diện theo pháp luật của công ty và có thẩm quyền gì?",
       "ground_truth": "Chủ tịch Hội đồng Quản trị và Tổng Giám đốc là người đại diện theo pháp luật, đại diện Công ty thực hiện các quyền và nghĩa vụ phát sinh từ giao dịch.",
-      "predicted_answer": "Theo quy định tại **Điều 2. Tên, hình thức, trụ sở, đại điện theo pháp luật, chỉ nhánh, văn phòng đại diện và thời (Trang 5)** [1]:\n\n> a. _ Chủ tịch Hội đồng Quản trị và Tông Giám đốc là người đại diện theo pháp luật của Công ty. b. _ Mỗi người đại diện theo pháp luật đại diện cho Công ty thực hiện các quyền và nghĩa vụ phát sinh từ các giao dịch của Công ty, đại diện cho Công ty với tư cách người yêu câu giải quyết việc dân sự, nguyên đơn, bị đơn, người có quyên lợi, nghĩa vụ liên quan trước Trọng tài, Tòa án và thực hiện các quyên và nghĩa vụ khác theo quy định của Pháp luật và Điêu lệ này.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Theo quy định tại **Điều 22. T`hẩll] quyề_n và thể thức lấy ý kiến Cổ đông bằng văn bản để thông qua nghị quyết (Trang 20 → 21)** [1]:\n\n> a. Gửi thư: Phiều lấy ý kiến đã được trả lời phải có chữ ký của Cồ đông là cá nhân, của Người dại diện theo ủy quyền hoặc người đại diện theo pháp luật của Cô đông là tổ chức. fflneu lấy ý kiến gửi về Công ty phải được dựng trong phong bì dán kín và không ai được quyền mở trước khi kiểm phiếu;\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
       "category": "open",
       "model_used": "extractive-fallback",
       "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c10",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c39",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c9",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c8",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c107",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c1",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c0",
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c0",
-        "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c1",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c1"
+        "chk-09eb7959b436d9c7",
+        "chk-51b2e809558ea85a",
+        "chk-0b5f887ae1b8f411",
+        "chk-7739e53e5e5f0ac7",
+        "chk-a1e5d4f4887768a3",
+        "chk-44ae3ce82cb30e38",
+        "chk-5ea743e3997152d9",
+        "chk-b14097d01604f883",
+        "chk-1c3350e3300d7639",
+        "chk-644cfe1a84cc2b5a"
       ],
       "cited_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c10"
+        "chk-7739e53e5e5f0ac7"
       ],
       "gold_chunk_ids": [
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c9",
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c10"
       ],
-      "retrieval_rank": 1,
-      "citation_hit": true,
-      "fact_recall": 1.0,
+      "retrieval_rank": 0,
+      "citation_hit": false,
+      "fact_recall": 0.0,
       "refused": false,
-      "faithfulness": 0.7246,
+      "faithfulness": 0.5692,
       "answer_relevance": 1.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 1619.44,
-      "is_passed": true
+      "latency_ms": 1323.61,
+      "is_passed": false
     },
     {
       "question_id": "q020",
@@ -723,18 +659,7 @@
       "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "open",
       "model_used": "guardrail-refusal",
-      "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c49",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c51",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c23",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c26",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c50",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c22",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c52",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c48",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c25",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c24"
-      ],
+      "retrieved_chunk_ids": [],
       "cited_chunk_ids": [],
       "gold_chunk_ids": [
         "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c62",
@@ -748,45 +673,45 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 834.8,
+      "latency_ms": 59.28,
       "is_passed": false
     },
     {
       "question_id": "q021",
       "question": "Cổ đông hoặc nhóm cổ đông theo khoản 3 Điều 11 có quyền gì đối với chương trình họp Đại hội đồng cổ đông?",
       "ground_truth": "Họ có quyền kiến nghị các vấn đề đưa vào chương trình họp Đại hội đồng cổ đông.",
-      "predicted_answer": "Theo quy định tại **Điều 16. Triệu tập họp Đại Hội đồng Cổ đông, chương trình và nội dung họp, và mời họp Đại (Trang 14)** [1]:\n\n> ác Cổ đông có thể tiếp cận các tài liệu họp đó. Cô đông hoặc nhóm Cô đông theo quy định tại khoản 3 Điều 11 của Điều lệ này có quyền kiến nghị các vẫn đề đưa vào chương trình họp Đại Hội đồng Cô đông. Kiến nghị phải được làm băng văn bản và phải được gửi cho Công ty ít nhất năm ngày làm việc trước ngày khai mạc cuộc họp Đại Hội đồng Cổ đồng.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
+      "predicted_answer": "Theo quy định tại **Điều 16. Triệu tập họp Đại Hội đồng Cổ đông, chương trình và nội dung họp, và mời họp Đại (Trang 14)** [1]:\n\n> Cổ đông có thể tiếp cận các tài liệu họp đó. 4. Cổ đông hoặc nhóm Cổ đông theo quy định tại khoản 3 Điều 11 của Điều lệ này có quyền kiến nghị các vấn đề đưa vào chương trình họp Đại Hội đồng Cổ đông. Kiến nghị phải được làm bằng văn bản và phải được gửi cho Công ty ít nhất năm ngày làm việc trước ngày khai mạc cuộc họp Đại Hội đồng Cổ đông.\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*",
       "category": "multi_hop",
       "model_used": "extractive-fallback",
       "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c42",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c34",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c30",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c27",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c33",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c32",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c41",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c35",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c37",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c36"
+        "chk-ad2b5b5a31ada3ba",
+        "chk-b447ae334c026e4f",
+        "chk-5916d1931cd98ab7",
+        "chk-9886e6603f4477d0",
+        "chk-4d01ad3664c7e916",
+        "chk-f49a517699e0145a",
+        "chk-5d03d206f74e5c7c",
+        "chk-716fd481bb245b0b",
+        "chk-3b5cdd4f34b2ab30",
+        "chk-4f146e4051f4e828"
       ],
       "cited_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c42"
+        "chk-ad2b5b5a31ada3ba"
       ],
       "gold_chunk_ids": [
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c41",
         "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c42"
       ],
-      "retrieval_rank": 1,
-      "citation_hit": true,
+      "retrieval_rank": 0,
+      "citation_hit": false,
       "fact_recall": 1.0,
       "refused": false,
-      "faithfulness": 0.7018,
+      "faithfulness": 0.6964,
       "answer_relevance": 1.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 1522.82,
-      "is_passed": true
+      "latency_ms": 2115.68,
+      "is_passed": false
     },
     {
       "question_id": "q101",
@@ -806,7 +731,7 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 40.34,
+      "latency_ms": 51.52,
       "is_passed": true
     },
     {
@@ -827,7 +752,7 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 40.36,
+      "latency_ms": 50.0,
       "is_passed": true
     },
     {
@@ -837,18 +762,7 @@
       "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "out_of_scope",
       "model_used": "guardrail-refusal",
-      "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c13",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c89",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c67",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c68",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c14",
-        "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c5",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c90",
-        "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c20",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c91",
-        "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c4"
-      ],
+      "retrieved_chunk_ids": [],
       "cited_chunk_ids": [],
       "gold_chunk_ids": [],
       "retrieval_rank": 0,
@@ -859,7 +773,7 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 830.79,
+      "latency_ms": 47.12,
       "is_passed": true
     },
     {
@@ -870,16 +784,16 @@
       "category": "out_of_scope",
       "model_used": "guardrail-refusal",
       "retrieved_chunk_ids": [
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c8",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c20",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c17",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c19",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c21",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c16",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c18",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c89",
-        "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c21",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c48"
+        "chk-085983d5883ac21f",
+        "chk-069ff20f0af4de96",
+        "chk-8eca7d766c9afabe",
+        "chk-71c400f6e84d66e4",
+        "chk-098628634e7ec923",
+        "chk-e58a2253130c8dac",
+        "chk-21dcdd2e46d07cdf",
+        "chk-649a2b23aae0f738",
+        "chk-2c2fdac02bd91c9d",
+        "chk-0cd78509ca5216bc"
       ],
       "cited_chunk_ids": [],
       "gold_chunk_ids": [],
@@ -891,7 +805,7 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 790.78,
+      "latency_ms": 968.77,
       "is_passed": true
     },
     {
@@ -901,18 +815,7 @@
       "predicted_answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
       "category": "out_of_scope",
       "model_used": "guardrail-refusal",
-      "retrieved_chunk_ids": [
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c3",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c1",
-        "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c6",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c25",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c91",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c5",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c4",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c3",
-        "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c2",
-        "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c89"
-      ],
+      "retrieved_chunk_ids": [],
       "cited_chunk_ids": [],
       "gold_chunk_ids": [],
       "retrieval_rank": 0,
@@ -923,7 +826,7 @@
       "answer_relevance": 0.0,
       "correctness": null,
       "scoring_method": "token_overlap",
-      "latency_ms": 1649.15,
+      "latency_ms": 51.39,
       "is_passed": true
     }
   ]

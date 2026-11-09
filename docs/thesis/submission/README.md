@@ -6,7 +6,8 @@ Cập nhật: 05/11/2026
 
 | File | Nội dung | Dùng để |
 | :--- | :--- | :--- |
-| `in_chuong_3_4.docx` / `.pdf` | **Bìa + mục lục + Chương 3 (Học sâu) + Chương 4 (Cơ sở tri thức)**. Không in chương Cơ sở dữ liệu. Bản PDF 63 trang. | **Bản chính để in và nộp** |
+| `DO_AN_IN_CHUONG_3_4.docx` / `.pdf` | **Bản in nộp theo form Đồ án v1**: 2 trang bìa lấy nguyên từ Đồ án v1 (`assets/cover/`), mục lục, danh mục hình và bảng, Chương 3 (Học sâu), Chương 4 (Cơ sở tri thức); header theo chương, số trang góc phải. PDF 69 trang (nội dung đánh số 1–62). Dựng bằng `tools/build_do_an_form.py --pdf` từ `in_chuong_3_4.md`. | **Bản chính để in và nộp** |
+| `in_chuong_3_4.docx` / `.pdf` | Bản in 2 chương kiểu cũ (chưa theo form v1, chưa cập nhật số liệu Neo4j thật). | Đối chiếu |
 | `in_chuong_3_4.md` | Markdown nguồn của bản in 2 chương | Chỉnh sửa, tra cứu |
 | `bao_cao_3_chuong.docx` / `.pdf` | Bản tham chiếu đủ 3 chương: Chương 2 (Học sâu), Chương 3 (CSDL), Chương 4 (Cơ sở tri thức) + ghi chú biên tập + tài liệu tham khảo + phụ lục. Bản PDF 101 trang. | Đối chiếu; dùng khi cần bản đủ 3 mảng |
 | `chuong_2_hoc_sau.docx` / `.pdf` / `.md` | Chương Học sâu, **vẫn đánh số 2** cho bản 3 chương | In riêng / tra cứu |

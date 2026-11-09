@@ -42,8 +42,8 @@ Ba chương dưới đây được viết lại theo hướng **“nội dung tr
 
 | Cấu trúc cũ | Cấu trúc mới | Ghi chú |
 | :--- | :--- | :--- |
-| Chương 2: “Các kỹ thuật AI/Deep Learning và thực nghiệm đánh giá mô hình” | **Chương 2: Học sâu trong biểu diễn ngữ nghĩa: từ kiến trúc Transformer đến lựa chọn mô hình nhúng tiếng Việt** | Giữ mã chương 2; đổi tên theo nội dung; bổ sung toán học, InfoNCE, benchmark |
-| Chương 3: “Knowledge Graph và RAG” | **Chương 4: Xây dựng cơ sở tri thức và cơ chế truy xuất tăng cường có trích dẫn** | Chuyển thành chương 4; đào sâu mô hình tri thức, phân đoạn, truy xuất lai, trích dẫn |
+| Chương 2: “Các kỹ thuật AI/Deep Learning và thực nghiệm đánh giá mô hình” | **Chương 2: Deep Learning trong biểu diễn ngữ nghĩa: từ kiến trúc Transformer đến lựa chọn mô hình nhúng tiếng Việt** | Giữ mã chương 2; đổi tên theo nội dung; bổ sung toán học, InfoNCE, benchmark |
+| Chương 3: “Knowledge Graph và RAG” | **Chương 4: Xây dựng Knowledge Base và cơ chế truy xuất tăng cường có trích dẫn** | Chuyển thành chương 4; đào sâu mô hình tri thức, phân đoạn, truy xuất lai, trích dẫn |
 | Chương 4: “Thiết kế hệ thống và pipeline” — Phần III: Thiết kế cơ sở dữ liệu | **Chương 3: Thiết kế cơ sở dữ liệu đa mô hình cho nền tảng quản lý tri thức doanh nghiệp** | Tách Phần III (CSDL) thành chương 3; bổ sung mô hình 5 bảng, DDL, giao dịch, nhất quán đa kho |
 | Chương 4: “Thiết kế hệ thống và pipeline” — các phần còn lại | Phần thiết kế hệ thống, triển khai, kiểm thử, kết luận | Chuyển sang Chương 5 (không nằm trong bản in ba chương này) |
 
@@ -87,7 +87,7 @@ Bản Markdown và Word đi kèm đều chứa **cả ba chương**, để có t
 
 <!-- TOC:START -->
   - GHI CHÚ BIÊN TẬP VÀ CẤU TRÚC BÁO CÁO
-- **CHƯƠNG 2. HỌC SÂU TRONG BIỂU DIỄN NGỮ NGHĨA: TỪ KIẾN TRÚC TRANSFORMER ĐẾN LỰA CHỌN MÔ HÌNH NHÚNG TIẾNG VIỆT**
+- **CHƯƠNG 2. DEEP LEARNING TRONG BIỂU DIỄN NGỮ NGHĨA: TỪ KIẾN TRÚC TRANSFORMER ĐẾN LỰA CHỌN MÔ HÌNH NHÚNG TIẾNG VIỆT**
   - 2.1. Đặt vấn đề: vì sao một hệ thống RAG cần chương về học sâu
   - 2.2. Biểu diễn dữ liệu và bài toán học sâu
   - 2.3. Kiến trúc Transformer
@@ -110,7 +110,7 @@ Bản Markdown và Word đi kèm đều chứa **cả ba chương**, để có t
   - 3.9. Bảo mật và toàn vẹn dữ liệu
   - 3.10. Đánh giá thiết kế
   - 3.11. Kết luận chương
-- **CHƯƠNG 4. XÂY DỰNG CƠ SỞ TRI THỨC VÀ CƠ CHẾ TRUY XUẤT TĂNG CƯỜNG CÓ TRÍCH DẪN**
+- **CHƯƠNG 4. XÂY DỰNG KNOWLEDGE BASE VÀ CƠ CHẾ TRUY XUẤT TĂNG CƯỜNG CÓ TRÍCH DẪN**
   - 4.1. Từ dữ liệu đến tri thức
   - 4.2. Kiến trúc tổng thể của cơ sở tri thức
   - 4.3. Tầng thu nhận và chuẩn hóa
@@ -135,7 +135,7 @@ Bản Markdown và Word đi kèm đều chứa **cả ba chương**, để có t
 <!-- TOC:END -->
 <!-- PAGEBREAK -->
 
-# CHƯƠNG 2. HỌC SÂU TRONG BIỂU DIỄN NGỮ NGHĨA: TỪ KIẾN TRÚC TRANSFORMER ĐẾN LỰA CHỌN MÔ HÌNH NHÚNG TIẾNG VIỆT
+# CHƯƠNG 2. DEEP LEARNING TRONG BIỂU DIỄN NGỮ NGHĨA: TỪ KIẾN TRÚC TRANSFORMER ĐẾN LỰA CHỌN MÔ HÌNH NHÚNG TIẾNG VIỆT
 
 > **Mục tiêu của chương.** Chương này trình bày cơ sở học sâu (Deep Learning) đằng sau thành phần cốt lõi nhất của hệ thống: mô hình biểu diễn ngữ nghĩa (embedding) và mô hình chấm lại (reranker). Nội dung không dừng ở việc liệt kê khái niệm mà đi từ bài toán học biểu diễn, kiến trúc Transformer, hàm mất mát tương phản, đến thiết kế thực nghiệm có kiểm soát và kết quả lựa chọn mô hình nhúng cho tiếng Việt. Kết quả của chương là căn cứ khoa học để chốt cấu hình `intfloat/multilingual-e5-small` (384 chiều, cosine) cho toàn bộ pipeline tri xuất của hệ thống EAKWP.
 
@@ -1800,7 +1800,7 @@ Chương tiếp theo sẽ khai thác dữ liệu này để xây dựng **cơ s�
 
 <!-- PAGEBREAK -->
 
-# CHƯƠNG 4. XÂY DỰNG CƠ SỞ TRI THỨC VÀ CƠ CHẾ TRUY XUẤT TĂNG CƯỜNG CÓ TRÍCH DẪN
+# CHƯƠNG 4. XÂY DỰNG KNOWLEDGE BASE VÀ CƠ CHẾ TRUY XUẤT TĂNG CƯỜNG CÓ TRÍCH DẪN
 
 > **Mục tiêu của chương.** Chương này trình bày cách EAKWP biến tài liệu thô thành **cơ sở tri thức (Knowledge Base — KB)** có cấu trúc, có ngữ nghĩa và có khả năng kiểm chứng. Nội dung đi từ mô hình lý thuyết của tri thức, kiến trúc các lớp L0–L4, pipeline thu nhận–phân tích cấu trúc–phân đoạn–làm giàu metadata–nhúng vector, đến cơ chế truy xuất lai (dense + lexical + article boost + cross-encoder), hiểu ý định câu hỏi, sinh câu trả lời có trích dẫn và từ chối khi không đủ căn cứ. Cuối chương là đánh giá định lượng trên corpus thật, phân tích lỗi, và thiết kế mở rộng đồ thị tri thức (Knowledge Graph).
 

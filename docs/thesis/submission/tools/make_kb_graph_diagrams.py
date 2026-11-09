@@ -74,11 +74,11 @@ def kb_sources_arch():
 
     # sources
     draw_box(d, (60, 180, 430, 380), "KB1 — PDF nội bộ", "35 tệp · 395 trang\nĐiều lệ, quy chế, quy trình", GREEN, 25, 20)
-    draw_box(d, (60, 600, 430, 800), "KB2 — Link công khai", "10 URL · 24.281 ký tự\nGiới thiệu, quản trị, tài liệu", ORANGE, 25, 20)
+    draw_box(d, (60, 600, 430, 800), "KB2 — Link công khai", "10 URL · 28 chunk\nGiới thiệu, quản trị, tài liệu", ORANGE, 25, 20)
 
     # loaders
     draw_box(d, (520, 180, 850, 380), "PDF loader", "extract_text_from_pdf\n+ OCR fallback\nAdaptiveChunker", BLUE, 23, 18)
-    draw_box(d, (520, 600, 850, 800), "Link loader", "httpx + HTMLParser\nbỏ nav/script/style\nAdaptiveChunker", BLUE, 23, 18)
+    draw_box(d, (520, 600, 850, 800), "Link loader", "requests + HTMLParser\nbỏ nav/script/style\nAdaptiveChunker", BLUE, 23, 18)
 
     # KBs
     draw_box(d, (950, 180, 1240, 380), "KB1", "Neo4j\nKnowledgeBase", PURPLE, 25, 19)
@@ -147,7 +147,7 @@ KB_JSON = """{
     "title": "Quy che hoat dong HDQT",
     "source_uri": ".../Quy_che_hoat_dong_HDQT.pdf",
     "source_type": "pdf",
-    "content_hash": "86a877ba...",
+    "content_hash": "86a877bab1e7b097...",
     "page_count": 15,
     "char_count": 37896,
     "version": 1,
@@ -155,23 +155,23 @@ KB_JSON = """{
   },
   "chunks": [
     {
-      "chunk_id": "chk-a45f54d21187c278",
+      "chunk_id": "chk-491520e7a1dc1c5e",
       "chunk_index": 30,
-      "page_start": 5,
-      "page_end": 5,
-      "section_path": ["CHƯƠNG II", "Điều 8. Chủ tịch, Phó Chủ tịch HĐQT"],
-      "text": "Chủ tịch HĐQT có quyền lập chương trình, chuẩn bị tài liệu họp...",
-      "content_hash": "a33ffd69...",
+      "page_start": 10,
+      "page_end": 10,
+      "section_path": ["CHƯƠNG IV. CUỘC HỌP...", "Điều 16. Cuộc họp HĐQT"],
+      "text": "Điều 16. Họp bầu Chủ tịch: trường hợp HĐQT bầu Chủ tịch...",
+      "content_hash": "9d4a6b9c743c87b5...",
       "entities": [
         {"entity_id": "ent-9b3d...", "name": "Chủ tịch HĐQT", "type": "chuc_danh"},
-        {"entity_id": "ent-e532...", "name": "HĐQT", "type": "chuc_danh"}
+        {"entity_id": "ent-072e...", "name": "Điều 16", "type": "dieu_khoan"}
       ]
     }
   ],
   "entities": [
     {"entity_id": "ent-9b3d...", "name": "Chủ tịch HĐQT", "type": "chuc_danh"},
-    {"entity_id": "ent-e532...", "name": "HĐQT", "type": "chuc_danh"},
-    {"entity_id": "ent-c096...", "name": "ĐHĐCĐ", "type": "chuc_danh"}
+    {"entity_id": "ent-e532...", "name": "Hội đồng Quản trị", "type": "chuc_danh"},
+    {"entity_id": "ent-072e...", "name": "Điều 16", "type": "dieu_khoan"}
   ]
 }"""
 
@@ -257,7 +257,7 @@ def kb_output_one_page():
     boxes = [
         (60, gy + 40, 300, gy + 150, "KB1", "KnowledgeBase", PURPLE),
         (390, gy + 40, 700, gy + 150, "Document", "doc-61fde...", BLUE),
-        (790, gy + 40, 1100, gy + 150, "Chunk", "chk-a45f...", GREEN),
+        (790, gy + 40, 1100, gy + 150, "Chunk", "chk-491520e7...", GREEN),
         (1190, gy + 40, 1500, gy + 150, "Entity", "Chủ tịch HĐQT", ORANGE),
     ]
     for x1, y1, x2, y2, title, sub, colors in boxes:
@@ -268,7 +268,7 @@ def kb_output_one_page():
 
     # stats strip
     d.rounded_rectangle([55, 1535, 1599, 1598], radius=12, fill="#E8F0FE", outline="#1A73E8", width=2)
-    d.text((80, 1567), 'store.stats("KB1")  →  {"documents": 1, "chunks": 70, "entities": 26}',
+    d.text((80, 1567), 'store.stats("KB1")  →  {"documents": 1, "chunks": 50, "entities": 40}',
            font=font(18, True, mono=True), fill="#0B2A4A", anchor="lm")
 
     # reading guide
@@ -290,7 +290,7 @@ def kb_output_one_page():
     d.line([55, 2185, 1599, 2185], fill="#DADCE0", width=2)
     d.text((60, 2215), "Hình 4.6 — Dạng KB output một trang. Nguồn: debug/kb_sample.json;",
            font=font(17), fill=MUTED)
-    d.text((60, 2245), "số liệu chunk/entity lấy từ lần dry-run Quy_che_hoat_dong_HDQT.pdf (15 trang).",
+    d.text((60, 2245), "số liệu chunk/entity lấy từ dry-run Quy_che_hoat_dong_HDQT.pdf (15 tr, 09/11/2026).",
            font=font(17), fill=MUTED)
 
     img.save(ASSETS / "kb_output_one_page.png", quality=95)

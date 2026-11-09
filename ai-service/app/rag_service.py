@@ -114,7 +114,7 @@ class RAGService:
                     cleaned_query,
                     limit=max(settings.GRAPH_SEARCH_LIMIT, top_k * 4),
                     document_id=document_id,
-                    source_type="upload",
+                    source_type=None,
                     query_vector=query_vector,
                     seed_chunk_ids=[
                         hit["chunk_id"]

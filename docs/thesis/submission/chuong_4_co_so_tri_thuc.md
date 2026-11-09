@@ -1,4 +1,4 @@
-# CHƯƠNG 4. XÂY DỰNG CƠ SỞ TRI THỨC VÀ CƠ CHẾ TRUY XUẤT TĂNG CƯỜNG CÓ TRÍCH DẪN
+# CHƯƠNG 4. XÂY DỰNG KNOWLEDGE BASE VÀ CƠ CHẾ TRUY XUẤT TĂNG CƯỜNG CÓ TRÍCH DẪN
 
 > **Mục tiêu của chương.** Chương này trình bày cách EAKWP biến tài liệu thô thành **cơ sở tri thức (Knowledge Base — KB)** có cấu trúc, có ngữ nghĩa và có khả năng kiểm chứng. Nội dung đi từ mô hình lý thuyết của tri thức, kiến trúc các lớp L0–L4, pipeline thu nhận–phân tích cấu trúc–phân đoạn–làm giàu metadata–nhúng vector, đến cơ chế truy xuất lai (dense + lexical + article boost + cross-encoder), hiểu ý định câu hỏi, sinh câu trả lời có trích dẫn và từ chối khi không đủ căn cứ. Cuối chương là đánh giá định lượng trên corpus thật, phân tích lỗi, và thiết kế mở rộng đồ thị tri thức (Knowledge Graph).
 
@@ -911,9 +911,9 @@ Thiết kế chia tri thức thành hai kho nguồn và một kho hợp nhất:
 
 | Thành phần | Nguồn | Quy mô | Vai trò | Trạng thái |
 | :--- | :--- | :--- | :--- | :--- |
-| KB1 | PDF nội bộ | 35 tệp, 395 trang, 112,2 MB (≈107 MiB) | Điều khoản gốc, quy chế, quy trình | Có code; đã dry-run 1 PDF |
-| KB2 | Link công khai | 10 URL, ~24.281 ký tự, 31 chunk | Ngữ cảnh công khai, thông tin mới | Có code; 10/10 URL trả 200 ở lần kiểm tra 04/11/2026 |
-| KB | Hợp nhất KB1 + KB2 | Theo nội dung thực tế | Nguồn cho RAG và graph retrieval | Có code merge; chưa nạp toàn bộ |
+| KB1 | PDF nội bộ | 35 tệp, 395 trang, 112,2 MB (≈107 MiB) → 935 chunk, 257 entity | Điều khoản gốc, quy chế, quy trình | Đã nạp vào Neo4j thật ngày 09/11/2026 |
+| KB2 | Link công khai | 10 URL → 28 chunk, 11 entity | Ngữ cảnh công khai, thông tin mới | Đã nạp 10/10 URL ngày 09/11/2026 |
+| KB | Hợp nhất KB1 + KB2 | 45 tài liệu, 963 chunk, 263 entity | Nguồn cho RAG và graph retrieval | Đã gộp thật bằng `--merge KB1 KB2` |
 
 **Nguyên tắc quan trọng:** ID của Document, Chunk và Entity được sinh từ **nội dung** chứ không từ thứ tự nạp. Vì vậy:
 
@@ -980,19 +980,19 @@ Thiết kế chia tri thức thành hai kho nguồn và một kho hợp nhất:
 
 | # | Nhóm | Link | Ký tự văn bản | Chunk |
 | ---: | :--- | :--- | ---: | ---: |
-| 1 | Doanh nghiệp | `https://masanconsumer.com/ve-masan-consumer/gioi-thieu-chung/` | 9.557 | 11 |
-| 2 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/gioi-thieu/` | 3.355 | 5 |
-| 3 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/cong-bo-thong-tin/thong-tin-cong-bo/` | 1.762 | 1 |
-| 4 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/bao-cao-thuong-nien/` | 450 | 1 |
-| 5 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/dai-hoi-dong-co-dong/` | 3.004 | 3 |
-| 6 | Tài chính | `https://masanconsumer.com/quan-he-co-dong/thong-tin-tai-chinh/` | 1.583 | 1 |
-| 7 | Tài liệu | `https://masanconsumer.com/tai-lieu-doanh-nghiep/` | 786 | 4 |
-| 8 | Bền vững | `https://masanconsumer.com/phat-trien-ben-vung/quan-tri/` | 917 | 1 |
-| 9 | Tin tức | `https://masanconsumer.com/tin-tuc/thong-cao-bao-chi/` | 1.896 | 3 |
-| 10 | Tài liệu | `https://masanconsumer.com/tai-lieu/` | 971 | 1 |
-| | | **Tổng** | **24.281** | **31** |
+| 1 | Doanh nghiệp | `https://masanconsumer.com/ve-masan-consumer/gioi-thieu-chung/` | 7.731 | 11 |
+| 2 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/gioi-thieu/` | 3.244 | 5 |
+| 3 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/cong-bo-thong-tin/thong-tin-cong-bo/` | 1.145 | 1 |
+| 4 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/bao-cao-thuong-nien/` | 224 | 1 |
+| 5 | Quản trị | `https://masanconsumer.com/quan-he-co-dong/dai-hoi-dong-co-dong/` | 2.197 | 3 |
+| 6 | Tài chính | `https://masanconsumer.com/quan-he-co-dong/thong-tin-tai-chinh/` | 966 | 1 |
+| 7 | Tài liệu | `https://masanconsumer.com/tai-lieu-doanh-nghiep/` | 424 | 1 |
+| 8 | Bền vững | `https://masanconsumer.com/phat-trien-ben-vung/quan-tri/` | 674 | 1 |
+| 9 | Tin tức | `https://masanconsumer.com/tin-tuc/thong-cao-bao-chi/` | 1.895 | 3 |
+| 10 | Tài liệu | `https://masanconsumer.com/tai-lieu/` | 841 | 1 |
+| | | **Tổng** | **19.341** | **28** |
 
-*Kiểm tra ngày 04/11/2026: cả 10 URL trả HTTP 200; số ký tự là phần văn bản sau khi loại `nav/header/footer/script/style`, không phải toàn bộ HTML.*
+*Kiểm tra ngày 09/11/2026: cả 10 URL trả HTTP 200 và đã nạp vào Neo4j; số ký tự là tổng độ dài các chunk đếm trực tiếp trong Neo4j, sau khi loại `nav/header/footer/script/style`, không phải toàn bộ HTML.*
 
 Hai kho này có chủ đích khác nhau. KB1 chứa **nguồn gốc có giá trị pháp lý**; KB2 chứa **ngữ cảnh công khai và thông tin mới**. Khi cùng một nội dung xuất hiện ở cả hai (ví dụ Điều lệ PDF và trang tài liệu doanh nghiệp), ID theo nội dung giúp chúng không bị nhân đôi. Khi nội dung khác nhau, cả hai cùng tồn tại và RAG có thể trích dẫn nguồn phù hợp hơn.
 
@@ -1019,6 +1019,14 @@ Mô hình được chọn là **LPG (Labeled Property Graph)** — mỗi node c�
 | `MERGED_INTO` | KnowledgeBase → KnowledgeBase | KB nguồn được gộp vào KB đích |
 | `NEW_VERSION_OF` | Document → Document | Phiên bản mới thay thế phiên bản cũ |
 | `RELATES_TO` | Entity ↔ Entity | Hai thực thể cùng xuất hiện trong một chunk (`kind = co_mentions`), dùng để mở rộng một chặng khi truy vấn |
+| `REFERENCES` | Chunk → Chunk | Điều khoản viện dẫn một điều khác trong cùng tài liệu |
+| `APPLIES_TO` | Chunk → Entity | Thực thể là chủ thể của mục chứa đoạn trích |
+
+Hình 4.6 là lược đồ do chính Neo4j sinh ra (`db.schema.visualization()`) trên cơ sở dữ liệu đã nạp: bốn nhãn node và bảy kiểu quan hệ.
+
+![Lược đồ đồ thị trong Neo4j Browser](assets/neo4j/neo4j_schema.png)
+
+*Hình 4.6. Lược đồ đồ thị tri thức trong Neo4j Browser: 4 nhãn node và 7 kiểu quan hệ.*
 
 Schema được tạo bằng Cypher, chạy một lần khi khởi tạo:
 
@@ -1102,8 +1110,8 @@ Kết quả dry-run trên `Quy_che_hoat_dong_HDQT.pdf`:
 | :--- | ---: |
 | Số trang | 15 |
 | Ký tự trích xuất | 37.896 |
-| Số chunk | 51 |
-| Số entity | 26 |
+| Số chunk | 50 |
+| Số entity | 40 |
 | `doc_id` | `doc-61fde4771461df6e` |
 | `content_hash` | `86a877bab1e7b0974a69415331a758750ef04f53` |
 
@@ -1134,15 +1142,18 @@ RETURN d.doc_id AS doc_id, size($chunks) AS chunks
 
 ### 4.12.6. Code nạp link vào KB2
 
-Đường nạp link dùng `httpx` với header trình duyệt (một số site trả 403 nếu thiếu User-Agent), loại bỏ `nav/header/footer/script/style`, rồi đưa văn bản qua cùng bộ phân đoạn và trích thực thể. Nhờ vậy PDF và link cho ra **cùng một schema output**.
+Đường nạp link dùng `requests` với bộ header trình duyệt đầy đủ (site `masanconsumer.com` trả 403 với `httpx` và với User-Agent đơn lẻ; đồng thời không được khai báo nén `br` vì `requests` không giải mã brotli, nội dung sẽ thành dữ liệu nhị phân), loại bỏ `nav/header/footer/script/style`, rồi đưa văn bản qua cùng bộ phân đoạn và trích thực thể. Nhờ vậy PDF và link cho ra **cùng một schema output**.
 
 ```python
 def fetch_html(url: str, timeout: int = 30) -> str:
     headers = {
         "User-Agent": "Mozilla/5.0 ... Chrome/124.0 Safari/537.36",
-        "Accept-Language": "vi-VN,vi;q=0.9,en;q=0.5",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Accept-Encoding": "gzip, deflate",
+        "Upgrade-Insecure-Requests": "1",
     }
-    response = httpx.get(url, headers=headers, follow_redirects=True, timeout=timeout)
+    response = requests.get(url, headers=headers, allow_redirects=True, timeout=timeout)
     response.raise_for_status()
     return response.text
 
@@ -1234,15 +1245,25 @@ Ba tính chất của cách gộp này:
 
 Trong tương lai, khi có nhiều kho theo phòng ban (KB-PHAPCHE, KB-NHANSU, KB-KINHDOANH), cùng một hàm `merge()` có thể hợp nhất mà không cần đổi schema.
 
+Kết quả gộp được kiểm tra trực tiếp trên Neo4j Browser. Hình 4.7 là đồ thị `KnowledgeBase → Document` với hai KB nguồn (KB1, KB2) và KB hợp nhất; mỗi tài liệu có một cạnh `HAS_DOCUMENT` tới kho nguồn và một cạnh tới KB (90 cạnh cho 45 tài liệu). Hình 4.8 là bảng thống kê số node theo nhãn cùng danh sách kiểu quan hệ và thuộc tính của cơ sở dữ liệu.
+
+![KB1, KB2 và KB trong Neo4j Browser](assets/neo4j/neo4j_kb_tong_quan.png)
+
+*Hình 4.7. Đồ thị KB1, KB2 và KB hợp nhất trong Neo4j Browser (48 node, 90 quan hệ HAS_DOCUMENT).*
+
+![Thống kê cơ sở dữ liệu trong Neo4j Browser](assets/neo4j/neo4j_thong_ke.png)
+
+*Hình 4.8. Thống kê nhãn node, kiểu quan hệ và thuộc tính của cơ sở dữ liệu Neo4j sau khi nạp KB.*
+
 ### 4.12.8. Dạng KB output một trang
 
-Một câu hỏi thường gặp khi bảo vệ là: “KB trả ra cái gì?”. Hình dưới là **một trang output chuẩn** của KB, dựng từ `debug/kb_sample.json` của lần dry-run ngày 08/11/2026 (rút gọn; các khóa `doc`, `chunks`, `entities` giữ đúng như `build_pdf_record` trả về). Hai phần `relations` và `stats` không nằm trong JSON thô: chúng do `store.upsert_record` và `store.stats` sinh ra khi ghi Neo4j. Trang này là hợp đồng dữ liệu giữa tầng nạp và tầng RAG.
+Hình dưới là một trang output chuẩn của KB, dựng từ `debug/kb_sample.json` của lần dry-run ngày 09/11/2026 (rút gọn; các khóa `doc`, `chunks`, `entities` giữ đúng như `build_pdf_record` trả về). Hai phần `relations` và `stats` không nằm trong JSON thô: chúng do `store.upsert_record` và `store.stats` sinh ra khi ghi Neo4j. Trang này là hợp đồng dữ liệu giữa tầng nạp và tầng RAG.
 
 ![Dạng KB output một trang](assets/kb_output_one_page.png)
 
-*Hình 4.6. Dạng KB output một trang: Document → Chunk → Entity → Relations → Stats.*
+*Hình 4.9. Dạng KB output một trang: Document → Chunk → Entity → Relations → Stats.*
 
-> Lưu ý trung thực: hình là sơ đồ minh họa, vẽ từ mẫu dry-run của `Quy_che_hoat_dong_HDQT.pdf` (15 trang, 37.896 ký tự, 51 chunk, 26 entity). Chunk trong hình đã làm sạch lỗi OCR và dùng ID ví dụ; chunk đầu thật có `chunk_id = chk-f3bc80d1a0dc0312`, chưa có entity. Trong 51 chunk, 47 chunk có ít nhất một entity.
+Mẫu lấy từ `Quy_che_hoat_dong_HDQT.pdf` (15 trang, 37.896 ký tự, 50 chunk, 40 entity). Chunk trong hình có `chunk_id = chk-491520e7a1dc1c5e` (Điều 16, trang 10, gắn thực thể Chủ tịch HĐQT); nội dung được rút gọn để vừa một trang.
 
 Giải thích các thành phần:
 
@@ -1255,7 +1276,13 @@ Giải thích các thành phần:
 | 5 | `stats` | Số document/chunk/entity do `store.stats()` tính sau khi nạp hoặc gộp | Kiểm tra tính đầy đủ, phát hiện lô lỗi |
 | 6 | `kb_id` | Tham số kho đích khi gọi `upsert_record` (KB1, KB2 hoặc KB); không nằm trong record | Kiểm toán, lọc phạm vi |
 
-Điểm quan trọng là **output có cấu trúc, không phải một blob văn bản**. Mọi trường cần cho citation (`page_start`, `page_end`, `section_path`, `source_uri`) đều nằm trong cùng một bản ghi. Nhờ đó tầng RAG không phải suy đoán nguồn từ nội dung; nó chỉ việc đọc metadata và đóng gói citation.
+Output có cấu trúc, không phải một khối văn bản. Mọi trường cần cho citation (`page_start`, `page_end`, `section_path`, `source_uri`) đều nằm trong cùng một bản ghi. Nhờ đó tầng RAG không phải suy đoán nguồn từ nội dung; nó chỉ việc đọc metadata và đóng gói citation.
+
+Sau khi ghi vào Neo4j, cùng tài liệu này được truy vấn lại trong Neo4j Browser (Hình 4.10). Nút xanh lá là Document, nút hồng là các Chunk 28–33 của tài liệu, nút nâu là các Entity mà những chunk đó nhắc đến.
+
+![Đồ thị một tài liệu trong Neo4j Browser](assets/neo4j/neo4j_tai_lieu_hdqt.png)
+
+*Hình 4.10. Đồ thị Document → Chunk → Entity của Quy chế hoạt động HĐQT trong Neo4j Browser (13 node, 21 quan hệ).*
 
 ### 4.12.9. RAG kết nối KB như thế nào?
 
@@ -1267,7 +1294,7 @@ RAG kết nối KB qua ba bước:
 
 ![RAG kết nối KB: IN và OUT](assets/rag_kb_in_out.png)
 
-*Hình 4.7. Luồng IN/OUT của RAG khi nối KB: câu hỏi + tham số vào, câu trả lời + citation ra, hoặc từ chối có kiểm soát.*
+*Hình 4.11. Luồng IN/OUT của RAG khi nối KB: câu hỏi + tham số vào, câu trả lời + citation ra, hoặc từ chối có kiểm soát.*
 
 Điểm nối trong code. Chế độ `hybrid_rag` trong `RAGService.retrieve_hits` (`ai-service/app/rag_service.py`) gọi hai nguồn rồi hợp nhất:
 
@@ -1421,16 +1448,16 @@ Hướng nâng cấp lên sự kiện: backend đã có bảng `ingestion_tasks`
 
 ### 4.12.11. Trạng thái triển khai và kế hoạch đánh giá
 
-Để tránh tuyên bố quá mức, bảng dưới tách rõ **đã có code**, **đã kiểm thử** và **đã chạy trong môi trường thật**:
+Để tránh tuyên bố quá mức, bảng dưới tách rõ **đã có code**, **đã kiểm thử** và **đã chạy trong môi trường thật** (mọi lần chạy thật ghi trong bảng được thực hiện ngày 09/11/2026):
 
 | Hạng mục | Code | Kiểm thử | Chạy thật | Ghi chú |
 | :--- | :---: | :---: | :---: | :--- |
-| Schema/constraints Neo4j | Có | Chưa | Chưa | Đã thêm service `neo4j` vào compose; cần `docker compose up neo4j` |
-| Nạp PDF → KB1 | Có | Dry-run 1 PDF (08/11/2026) | Chưa | 51 chunk, 26 entity |
-| Nạp link → KB2 | Có | 10/10 URL HTTP 200 (lần kiểm tra 04/11/2026; 08/11 không kiểm lại được vì môi trường không có mạng) | Chưa | 31 chunk (lần chạy trước) |
-| Gộp KB1 + KB2 → KB | Có | Unit test merge logic | Chưa | Cần Neo4j thật |
-| Graph retrieval | Có (đã nối vào `retrieve_hits`) | Unit test RRF | Chưa | Tắt mặc định (`GRAPH_ENABLED=false`); lọc `source_type='upload'` nên chưa đọc được KB1/KB2 nạp offline |
-| Cập nhật theo hash | Có | Unit test `plan_update` | Chưa | Cần Neo4j thật |
+| Schema/constraints Neo4j | Có | `--init` | Có | Container `neo4j:5.26-community` trong compose; schema khởi tạo thành công |
+| Nạp PDF → KB1 | Có | Dry-run 1 PDF | Có | 35 tài liệu, 935 chunk, 257 entity |
+| Nạp link → KB2 | Có | 10/10 URL HTTP 200 (kiểm tra 09/11/2026) | Có | 10 tài liệu, 28 chunk, 11 entity; site chặn `httpx`, phải dùng `requests` với header trình duyệt |
+| Gộp KB1 + KB2 → KB | Có | Unit test merge logic | Có | 45 tài liệu, 963 chunk, 263 entity, 416 quan hệ `RELATES_TO`, 169 `REFERENCES`, 884 `APPLIES_TO` |
+| Graph retrieval | Có (đã nối vào `retrieve_hits`) | Unit test RRF; chạy benchmark 26 câu | Có | Đã bỏ lọc `source_type='upload'` để đọc được KB1/KB2 nạp offline; `GRAPH_ENABLED` vẫn là cấu hình do người triển khai bật |
+| Cập nhật theo hash | Có | Unit test `plan_update` | Chưa | Cần chạy lại `--update` trên Neo4j thật |
 | RAG hiện tại | Có | 15 test answer gate | Có | Vector + lexical + rerank |
 
 Các kiểm thử tự động đã chạy:
@@ -1443,9 +1470,21 @@ OK
 
 Sáu test kiểm tra: ID ổn định theo nội dung, trích thực thể, tạo record có section path, parser HTML bỏ script/nav, quyết định update, và RRF giữ cả hai nguồn.
 
+Kết quả chạy thật ngày 09/11/2026 trên KB hợp nhất (Neo4j + benchmark `scripts/15_run_eval.py`, 26 câu hỏi, chế độ `graph_rag`, trích xuất không dùng LLM):
+
+| Chỉ số | Giá trị | Nhận xét |
+| :--- | :---: | :--- |
+| Refusal accuracy (câu ngoài phạm vi) | 0,875 | 7/8 câu ngoài phạm vi bị từ chối đúng |
+| False refusal rate (câu trong phạm vi) | 0,556 | Cao: nhiều câu hợp lệ vẫn bị cổng trả lời chặn |
+| Fact recall trung bình | 0,278 | Graph tìm được một phần dữ kiện kỳ vọng |
+| Độ trễ trung bình | 838 ms | Gồm nhúng câu hỏi, truy vấn Cypher và rerank |
+| MRR, Recall@1/3/5, Citation hit | 0,0 | **Không phản ánh chất lượng truy xuất**, xem giải thích bên dưới |
+
+MRR và Recall@k bằng 0 vì `gold_chunk_ids` trong bộ câu hỏi dùng định dạng ID của pipeline upload (`doc-…-v1-c11`), còn KB nạp offline dùng ID theo nội dung (`chk-…`); hai họ ID không bao giờ trùng nhau. Muốn đo Recall thật cần gán nhãn lại `gold_chunk_ids` trên chunk của KB. Các cấu hình `flat_rag` và `hybrid_rag` cũng chưa đo được trên KB này vì chỉ mục vector Qdrant chưa được dựng cho KB1/KB2. Vì vậy chương này **không** kết luận graph retrieval tốt hơn hay kém hơn vector retrieval; con số trên chỉ chứng minh luồng KB → graph search → trả lời/từ chối chạy được đầu–cuối.
+
 Kế hoạch đánh giá tiếp theo:
 
-1. **Độ phủ nạp:** chạy toàn bộ 35 PDF + 10 link, so số document/chunk/entity với kỳ vọng.
+1. **Độ phủ nạp:** so số document/chunk/entity của KB1, KB2 và KB với kỳ vọng; trong đó KB2 chỉ có 11 entity trên 28 chunk vì extractor theo quy tắc nhắm vào điều khoản, chức danh và mốc thời gian của văn bản pháp lý, chưa tối ưu cho trang web.
 2. **Chất lượng graph:** đo tỷ lệ chunk có ít nhất một entity; tỷ lệ entity resolve đúng canonical name.
 3. **Graph retrieval:** trên 15 câu hỏi answer gate, so Recall@3 của vector-only và vector + graph.
 4. **Độ trễ:** đo p50/p95 khi bật graph; mục tiêu graph lookup < 80 ms.
@@ -1458,8 +1497,8 @@ Kế hoạch đánh giá tiếp theo:
 Chương này đã trình bày cơ sở tri thức của EAKWP theo ba lớp:
 
 1. **Tri thức dạng vector:** 152 chunk từ Điều lệ Công ty, được làm sạch, phân đoạn structure-aware, làm giàu metadata và nhúng bằng E5-Small. Đây là lớp đang chạy và đã được đánh giá định lượng.
-2. **Tri thức dạng quan hệ:** 35 PDF và 10 link được chuẩn hóa vào cùng schema Document → Chunk → Entity; KB1/KB2 được gộp thành KB bằng ID theo nội dung. Đây là lớp có code tham chiếu, đã kiểm thử phần lõi, chưa nạp toàn bộ vào Neo4j.
-3. **Tri thức dạng đồ thị:** các cạnh `HAS_DOCUMENT`, `HAS_CHUNK`, `MENTIONS`, `NEW_VERSION_OF` cho phép truy vấn quan hệ và mở rộng ngữ cảnh cho RAG. Đây là lớp thiết kế và code, chưa bật trong luồng trả lời production.
+2. **Tri thức dạng quan hệ:** 35 PDF và 10 link được chuẩn hóa vào cùng schema Document → Chunk → Entity; KB1/KB2 được gộp thành KB bằng ID theo nội dung. Lớp này đã được nạp thật vào Neo4j: 45 tài liệu, 963 chunk, 263 entity.
+3. **Tri thức dạng đồ thị:** các cạnh `HAS_DOCUMENT`, `HAS_CHUNK`, `MENTIONS`, `NEW_VERSION_OF` cho phép truy vấn quan hệ và mở rộng ngữ cảnh cho RAG. Graph search đã chạy được trên KB hợp nhất, nhưng chất lượng truy xuất chưa được đo vì thiếu nhãn `gold_chunk_ids` cho KB và chưa dựng chỉ mục vector cho KB1/KB2; lớp này chưa bật trong luồng trả lời production.
 
 Điểm mạnh nhất của thiết kế là **tính kiểm chứng**: mỗi câu trả lời có thể truy ngược đến chunk, trang, mục, phiên bản, và tọa độ trên PDF; mỗi lần nạp lại có thể so hash; mỗi lần gộp KB có thể truy vết nguồn. Điểm cần hoàn thiện là **đánh giá quy mô lớn**, **RBAC theo tài liệu**, **hợp nhất hai đường nạp**, và **đồ thị tri thức** — tất cả đã có thiết kế, code và lộ trình, không chỉ là ý tưởng.
 

@@ -56,8 +56,8 @@ Ba chương dưới đây được viết lại theo hướng **“nội dung tr
 
 | Cấu trúc cũ | Cấu trúc mới | Ghi chú |
 | :--- | :--- | :--- |
-| Chương 2: “Các kỹ thuật AI/Deep Learning và thực nghiệm đánh giá mô hình” | **Chương 2: Học sâu trong biểu diễn ngữ nghĩa: từ kiến trúc Transformer đến lựa chọn mô hình nhúng tiếng Việt** | Giữ mã chương 2; đổi tên theo nội dung; bổ sung toán học, InfoNCE, benchmark |
-| Chương 3: “Knowledge Graph và RAG” | **Chương 4: Xây dựng cơ sở tri thức và cơ chế truy xuất tăng cường có trích dẫn** | Chuyển thành chương 4; đào sâu mô hình tri thức, phân đoạn, truy xuất lai, trích dẫn |
+| Chương 2: “Các kỹ thuật AI/Deep Learning và thực nghiệm đánh giá mô hình” | **Chương 2: Deep Learning trong biểu diễn ngữ nghĩa: từ kiến trúc Transformer đến lựa chọn mô hình nhúng tiếng Việt** | Giữ mã chương 2; đổi tên theo nội dung; bổ sung toán học, InfoNCE, benchmark |
+| Chương 3: “Knowledge Graph và RAG” | **Chương 4: Xây dựng Knowledge Base và cơ chế truy xuất tăng cường có trích dẫn** | Chuyển thành chương 4; đào sâu mô hình tri thức, phân đoạn, truy xuất lai, trích dẫn |
 | Chương 4: “Thiết kế hệ thống và pipeline” — Phần III: Thiết kế cơ sở dữ liệu | **Chương 3: Thiết kế cơ sở dữ liệu đa mô hình cho nền tảng quản lý tri thức doanh nghiệp** | Tách Phần III (CSDL) thành chương 3; bổ sung mô hình 5 bảng, DDL, giao dịch, nhất quán đa kho |
 | Chương 4: “Thiết kế hệ thống và pipeline” — các phần còn lại | Phần thiết kế hệ thống, triển khai, kiểm thử, kết luận | Chuyển sang Chương 5 (không nằm trong bản in ba chương này) |
 
