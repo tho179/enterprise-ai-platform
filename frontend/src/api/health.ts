@@ -1,9 +1,10 @@
-import { aiApi } from '@/api/client'
+import { api } from '@/api/client'
 import type { HealthSnapshot } from '@/api/types'
 import { DEMO_MODE } from '@/lib/constants'
 import { demoHealth } from '@/mocks/fixtures'
 
-interface StatsResponse {
+interface AiHealthResponse {
+  status?: string
   total_points?: number
   embedding_model?: string
 }
@@ -12,14 +13,11 @@ export const healthApi = {
   async get(): Promise<HealthSnapshot> {
     const started = performance.now()
     try {
-      const [health, stats] = await Promise.all([
-        aiApi.get<{ status?: string }>('/health'),
-        aiApi.get<StatsResponse>('/api/v1/search/stats'),
-      ])
+      const { data } = await api.get<AiHealthResponse>('/api/ai/health')
       return {
-        ai: health.data.status === 'healthy' ? 'healthy' : 'down',
-        qdrantVectors: stats.data.total_points,
-        model: stats.data.embedding_model,
+        ai: data.status === 'healthy' ? 'healthy' : 'down',
+        qdrantVectors: data.total_points,
+        model: data.embedding_model,
         latencyMs: Math.round(performance.now() - started),
       }
     } catch {

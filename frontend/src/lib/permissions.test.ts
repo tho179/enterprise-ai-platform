@@ -32,8 +32,9 @@ describe('permissions', () => {
 
   it('selects the landing route by role', () => {
     expect(getDefaultRoute('ADMIN')).toBe('/documents')
-    expect(getDefaultRoute('MANAGER')).toBe('/approvals')
-    expect(getDefaultRoute('IT_SUPPORT')).toBe('/tickets/queue')
+    // Tests run with mocks off, where approvals and the IT queue are unavailable.
+    expect(getDefaultRoute('MANAGER')).toBe('/chat')
+    expect(getDefaultRoute('IT_SUPPORT')).toBe('/chat')
     expect(getDefaultRoute('EMPLOYEE')).toBe('/chat')
     expect(getDefaultRoute(undefined)).toBe('/chat')
   })

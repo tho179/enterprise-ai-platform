@@ -33,6 +33,7 @@ public class DocumentService {
     private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
     private static final long MAX_FILE_BYTES = 25L * 1024 * 1024;
     private static final Pattern DOCUMENT_CODE = Pattern.compile("^[A-Za-z0-9-]{1,32}$");
+    private static final List<String> KNOWN_ROLES = List.of("EMPLOYEE", "MANAGER", "IT_SUPPORT", "ADMIN");
 
     private final DocumentRepository documentRepository;
     private final DocumentVersionRepository versionRepository;
@@ -70,9 +71,11 @@ public class DocumentService {
             String documentCode,
             String title,
             String category,
+            String allowedRoles,
             MultipartFile file
     ) {
         String code = normalizeCode(documentCode);
+        String access = normalizeRoles(allowedRoles);
         String cleanTitle = normalizeText(title, "Tiêu đề tài liệu", 200);
         String cleanCategory = normalizeText(category, "Danh mục", 64);
 
@@ -87,6 +90,7 @@ public class DocumentService {
                     .documentCode(code)
                     .title(cleanTitle)
                     .category(cleanCategory)
+                    .allowedRoles(access)
                     .createdBy(currentUser.fullName())
                     .createdAt(now)
                     .updatedAt(now)
@@ -107,7 +111,7 @@ public class DocumentService {
                     .build());
 
             IngestionTaskEntity task = createTask(document.getId(), version.getId());
-            ingestionService.process(task.getId());
+            ingestionService.process(task.getId(), false);
             return new UploadTicketDto(task.getId(), version.getId(), document.getId());
         } catch (RuntimeException exception) {
             deleteQuietly(stored.path());
@@ -148,7 +152,7 @@ public class DocumentService {
             documentRepository.save(document);
 
             IngestionTaskEntity task = createTask(document.getId(), version.getId());
-            ingestionService.process(task.getId());
+            ingestionService.process(task.getId(), false);
             return new UploadTicketDto(task.getId(), version.getId(), document.getId());
         } catch (RuntimeException exception) {
             deleteQuietly(stored.path());
@@ -177,7 +181,30 @@ public class DocumentService {
         versionRepository.save(version);
 
         IngestionTaskEntity task = createTask(version.getDocumentId(), version.getId());
-        ingestionService.process(task.getId());
+        ingestionService.process(task.getId(), false);
+        return new UploadTicketDto(task.getId(), version.getId(), version.getDocumentId());
+    }
+
+    /** Re-chunk and re-embed the current version from its stored PDF. */
+    public UploadTicketDto reindex(UUID versionId) {
+        DocumentVersionEntity version = versionRepository.findById(versionId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Không tìm thấy phiên bản."));
+        if (!"INGESTED".equals(version.getStatus()) || !version.isCurrent()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Chỉ nạp lại được phiên bản hiện hành đã nạp xong.");
+        }
+        if (!Files.exists(Path.of(version.getStoragePath()))) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Tệp gốc không còn trên máy chủ, vui lòng tải phiên bản mới.");
+        }
+
+        version.setStatus("PROCESSING");
+        version.setErrorMessage(null);
+        versionRepository.save(version);
+
+        IngestionTaskEntity task = createTask(version.getDocumentId(), version.getId());
+        ingestionService.process(task.getId(), true);
         return new UploadTicketDto(task.getId(), version.getId(), version.getDocumentId());
     }
 
@@ -188,6 +215,7 @@ public class DocumentService {
 
         List<DocumentSummaryDto> items = documentRepository.findByFilters(keyword, cat, stat)
                 .stream()
+                .filter(this::canRead)
                 .map(document -> {
                     DocumentVersionEntity current = currentVersion(document.getId());
                     return current != null ? summary(document, current) : null;
@@ -329,6 +357,7 @@ public class DocumentService {
      * Tệp PDF gốc của phiên bản hiện hành để viewer hiển thị.
      */
     public DocumentVersionEntity currentDocumentVersion(UUID documentId) {
+        findDocument(documentId);
         DocumentVersionEntity version = versionRepository
                 .findByDocumentIdAndCurrentTrue(documentId)
                 .orElseGet(() -> versionRepository
@@ -439,9 +468,32 @@ public class DocumentService {
     }
 
     private DocumentEntity findDocument(UUID id) {
+        // A document the user may not read looks the same as a missing one.
         return documentRepository.findById(id)
+                .filter(this::canRead)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Không tìm thấy tài liệu."));
+    }
+
+    private boolean canRead(DocumentEntity document) {
+        String role = currentUser.role();
+        List<String> allowed = document.allowedRoleList();
+        return "ADMIN".equals(role) || allowed.contains("*") || allowed.contains(role);
+    }
+
+    private String normalizeRoles(String value) {
+        if (value == null || value.isBlank() || value.trim().equals("*")) {
+            return "*";
+        }
+        List<String> roles = java.util.Arrays.stream(value.split(","))
+                .map(role -> role.trim().toUpperCase(Locale.ROOT))
+                .filter(role -> !role.isEmpty())
+                .distinct()
+                .toList();
+        if (roles.isEmpty() || !KNOWN_ROLES.containsAll(roles)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vai trò được phép xem không hợp lệ.");
+        }
+        return String.join(",", roles);
     }
 
     private DocumentVersionEntity currentVersion(UUID documentId) {

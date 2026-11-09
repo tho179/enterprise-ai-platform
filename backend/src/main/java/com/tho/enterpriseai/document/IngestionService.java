@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -43,8 +45,12 @@ public class IngestionService {
         this.aiIngestClient = aiIngestClient;
     }
 
+    /**
+     * @param replaceExisting re-chunk a version that is already ingested. The old
+     *                        chunks stay searchable until the new ones are ready.
+     */
     @Async("ingestionExecutor")
-    public void process(String taskId) {
+    public void process(String taskId, boolean replaceExisting) {
         IngestionTaskEntity task = taskRepository.findById(taskId).orElse(null);
         if (task == null) {
             logger.warn("Ingestion task {} no longer exists", taskId);
@@ -61,55 +67,52 @@ public class IngestionService {
             updateTask(task, "PROCESSING", 1, 0, "Đang đọc và OCR tệp PDF.");
             Path file = Path.of(version.getStoragePath());
             int ocrPages = 0;
-            PdfProcessor.PdfContent content;
+            int pageCount;
+            PdfProcessor.PdfContent fallbackContent = null;
+            AiParseClient.ParseResponse parsed = null;
             try {
-                AiParseClient.ParseResponse parsed = aiParseClient.parse(file);
+                parsed = aiParseClient.parse(file);
                 ocrPages = parsed.ocrPages();
-                content = pdfProcessor.fromPages(
-                        parsed.pageCount(),
-                        parsed.pages().stream()
-                                .map(page -> new PdfProcessor.PageText(
-                                        page.page(),
-                                        page.text(),
-                                        toWords(page.words())))
-                                .toList()
-                );
+                pageCount = parsed.pageCount();
             } catch (RuntimeException aiException) {
                 logger.warn("AI PDF extraction failed for {}, trying PDFBox: {}",
                         file, aiException.getMessage());
                 try {
-                    content = pdfProcessor.extract(file);
+                    fallbackContent = pdfProcessor.extract(file);
+                    pageCount = fallbackContent.pageCount();
                 } catch (RuntimeException pdfException) {
                     aiException.addSuppressed(pdfException);
                     throw aiException;
                 }
             }
 
-            version.setPageCount(content.pageCount());
+            version.setPageCount(pageCount);
             version.setChunkCount(0);
             version.setErrorMessage(null);
             versionRepository.save(version);
             String ocrNote = ocrPages > 0 ? " (OCR " + ocrPages + " trang)" : "";
             updateTask(task, "PROCESSING", 2, 0,
-                    "Đã trích xuất " + content.pageCount() + " trang" + ocrNote + ", đang chia đoạn.");
+                    "Đã trích xuất " + pageCount + " trang" + ocrNote + ", đang chia đoạn.");
 
-            List<DocumentChunkEntity> chunks = new ArrayList<>(content.chunks().size());
-            for (PdfProcessor.ExtractedChunk extracted : content.chunks()) {
-                String chunkId = "doc-" + document.getId() + "-v" + version.getVersionNumber()
-                        + "-c" + extracted.index();
-                chunks.add(DocumentChunkEntity.builder()
-                        .documentId(document.getId())
-                        .versionId(version.getId())
-                        .chunkId(chunkId)
-                        .chunkIndex(extracted.index())
-                        .vectorId(chunkId)
-                        .pageStart(extracted.page())
-                        .pageEnd(extracted.page())
-                        .headingLevel(0)
-                        .sectionPath("Trang " + extracted.page())
-                        .content(extracted.content())
-                        .highlightJson(toHighlightJson(extracted.highlight()))
-                        .build());
+            List<DocumentChunkEntity> chunks;
+            if (parsed != null && parsed.chunks() != null && !parsed.chunks().isEmpty()) {
+                chunks = buildAiChunks(document, version, parsed);
+            } else {
+                chunks = List.of();
+            }
+            if (chunks.isEmpty()) {
+                if (fallbackContent == null) {
+                    fallbackContent = pdfProcessor.fromPages(
+                            parsed.pageCount(),
+                            toPageTexts(parsed)
+                    );
+                }
+                logger.warn("Version {} has no structured chunks; using page-based fallback", version.getId());
+                chunks = buildPageChunks(document, version, fallbackContent);
+            }
+            if (replaceExisting) {
+                chunkRepository.deleteByVersionId(version.getId());
+                aiIngestClient.deleteVersionVectors(document.getId(), version.getId());
             }
             chunkRepository.saveAll(chunks);
             version.setChunkCount(chunks.size());
@@ -134,6 +137,85 @@ public class IngestionService {
             logger.error("PDF ingestion failed for task {}", taskId, exception);
             fail(task, version, friendlyMessage(exception));
         }
+    }
+
+    private List<DocumentChunkEntity> buildAiChunks(
+            DocumentEntity document,
+            DocumentVersionEntity version,
+            AiParseClient.ParseResponse parsed
+    ) {
+        Map<Integer, List<PdfProcessor.Rect>> wordsByPage = new HashMap<>();
+        if (parsed.pages() != null) {
+            for (AiParseClient.ParseResponse.Page page : parsed.pages()) {
+                wordsByPage.put(page.page(), toWords(page.words()));
+            }
+        }
+
+        List<DocumentChunkEntity> chunks = new ArrayList<>(parsed.chunks().size());
+        for (AiParseClient.ParseResponse.Chunk chunk : parsed.chunks()) {
+            String content = chunk.content();
+            if (content == null || content.isBlank()) {
+                continue;
+            }
+            int pageStart = chunk.pageStart() > 0 ? chunk.pageStart() : 1;
+            int pageEnd = chunk.pageEnd() >= pageStart ? chunk.pageEnd() : pageStart;
+            String sectionPath = (chunk.sectionPath() == null ? List.<String>of() : chunk.sectionPath())
+                    .stream()
+                    .filter(item -> item != null && !item.isBlank())
+                    .collect(Collectors.joining(" > "));
+            if (sectionPath.isBlank()) {
+                sectionPath = "Trang " + pageStart;
+            }
+            String chunkId = "doc-" + document.getId() + "-v" + version.getVersionNumber()
+                    + "-c" + chunk.index();
+            List<PdfProcessor.Rect> highlight = pdfProcessor.locateInPage(
+                    new PdfProcessor.PageText(
+                            pageStart,
+                            "",
+                            wordsByPage.getOrDefault(pageStart, List.of())),
+                    content
+            );
+            chunks.add(DocumentChunkEntity.builder()
+                    .documentId(document.getId())
+                    .versionId(version.getId())
+                    .chunkId(chunkId)
+                    .chunkIndex(chunk.index())
+                    .vectorId(chunkId)
+                    .pageStart(pageStart)
+                    .pageEnd(pageEnd)
+                    .headingLevel(chunk.headingLevel())
+                    .sectionPath(sectionPath)
+                    .content(content)
+                    .highlightJson(toHighlightJson(highlight))
+                    .build());
+        }
+        return chunks;
+    }
+
+    private List<DocumentChunkEntity> buildPageChunks(
+            DocumentEntity document,
+            DocumentVersionEntity version,
+            PdfProcessor.PdfContent content
+    ) {
+        List<DocumentChunkEntity> chunks = new ArrayList<>(content.chunks().size());
+        for (PdfProcessor.ExtractedChunk extracted : content.chunks()) {
+            String chunkId = "doc-" + document.getId() + "-v" + version.getVersionNumber()
+                    + "-c" + extracted.index();
+            chunks.add(DocumentChunkEntity.builder()
+                    .documentId(document.getId())
+                    .versionId(version.getId())
+                    .chunkId(chunkId)
+                    .chunkIndex(extracted.index())
+                    .vectorId(chunkId)
+                    .pageStart(extracted.page())
+                    .pageEnd(extracted.page())
+                    .headingLevel(0)
+                    .sectionPath("Trang " + extracted.page())
+                    .content(extracted.content())
+                    .highlightJson(toHighlightJson(extracted.highlight()))
+                    .build());
+        }
+        return chunks;
     }
 
     private void markCurrent(DocumentEntity document, DocumentVersionEntity target) {
@@ -171,6 +253,18 @@ public class IngestionService {
         } catch (RuntimeException exception) {
             logger.warn("Cannot enumerate superseded versions for document {}", documentId, exception);
         }
+    }
+
+    private List<PdfProcessor.PageText> toPageTexts(AiParseClient.ParseResponse parsed) {
+        if (parsed.pages() == null) {
+            return List.of();
+        }
+        return parsed.pages().stream()
+                .map(page -> new PdfProcessor.PageText(
+                        page.page(),
+                        page.text(),
+                        toWords(page.words())))
+                .toList();
     }
 
     private List<PdfProcessor.Rect> toWords(List<AiParseClient.ParseResponse.Word> words) {

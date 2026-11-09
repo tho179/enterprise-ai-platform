@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { CloseOutlined } from '@ant-design/icons'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthContext'
@@ -5,11 +6,23 @@ import { DOCUMENT_CATEGORIES, ROLE_LABELS } from '@/lib/constants'
 import { CHAT_SUGGESTIONS, SEARCH_SUGGESTIONS, getShellMeta } from '@/components/layout/navConfig'
 import type { WorkspaceCounts } from '@/components/layout/useWorkspaceCounts'
 
+export const LOADED_DOCUMENTS = [
+  'Điều lệ Công ty 2021',
+  'Thỏa ước Lao động Tập thể',
+  'Chính sách An ninh Thông tin',
+  'Quy chế hoạt động HĐQT',
+  'Quy trình Đánh giá NCC',
+  'Chính sách Nhân quyền',
+]
+
 interface ContextLink {
+  key?: string
   label: string
   to: string
   count?: number
   active?: boolean
+  onClick?: (e: React.MouseEvent) => void
+  badge?: string
 }
 
 interface ContextGroup {
@@ -35,7 +48,57 @@ export function ContextSidebar({
   const shellMeta = getShellMeta(pathname)
   const groups: ContextGroup[] = []
 
-  const link = (label: string, to: string, active = false, count?: number): ContextLink => ({
+  const [chatActiveKey, setChatActiveKey] = useState<string>('new-chat')
+
+  useEffect(() => {
+    const handleNewChat = () => {
+      setChatActiveKey('new-chat')
+    }
+    const handlePrompt = (event: Event) => {
+      const customEvent = event as CustomEvent<string>
+      const prompt = customEvent.detail
+      if (!prompt) return
+      const matchedSuggestion = CHAT_SUGGESTIONS.find(
+        (suggestion) => suggestion.question === prompt,
+      )
+      if (matchedSuggestion) {
+        setChatActiveKey(matchedSuggestion.label)
+        return
+      }
+      const matchedDoc = LOADED_DOCUMENTS.find((doc) => prompt.includes(doc))
+      if (matchedDoc) {
+        setChatActiveKey(matchedDoc)
+        return
+      }
+      setChatActiveKey('')
+    }
+    const handleActiveChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ key?: string; label?: string }>
+      if (customEvent.detail?.key !== undefined) {
+        setChatActiveKey(customEvent.detail.key)
+      } else if (customEvent.detail?.label !== undefined) {
+        setChatActiveKey(customEvent.detail.label)
+      }
+    }
+
+    window.addEventListener('app:new-chat', handleNewChat)
+    window.addEventListener('app:chat-prompt', handlePrompt)
+    window.addEventListener('app:chat-active', handleActiveChange)
+    return () => {
+      window.removeEventListener('app:new-chat', handleNewChat)
+      window.removeEventListener('app:chat-prompt', handlePrompt)
+      window.removeEventListener('app:chat-active', handleActiveChange)
+    }
+  }, [])
+
+  const link = (
+    label: string,
+    to: string,
+    active = false,
+    count?: number,
+    key?: string,
+  ): ContextLink => ({
+    key: key ?? `${to}-${label}`,
     label,
     to,
     active,
@@ -43,30 +106,59 @@ export function ContextSidebar({
   })
 
   if (pathname === '/chat') {
-    const q = params.get('q') ?? ''
     groups.push({
-      title: 'Trợ lý AI',
+      title: 'Tác vụ',
       links: [
-        link('Cuộc trò chuyện mới', '/chat', q === ''),
-        link('Tìm kiếm tri thức', '/search'),
+        {
+          key: 'new-chat',
+          label: '+ Cuộc trò chuyện mới',
+          to: '/chat',
+          active: chatActiveKey === 'new-chat',
+          onClick: (e) => {
+            e.preventDefault()
+            setChatActiveKey('new-chat')
+            window.dispatchEvent(new CustomEvent('app:new-chat'))
+            onNavigate()
+          },
+        },
       ],
     })
     groups.push({
       title: 'Câu hỏi gợi ý',
-      links: CHAT_SUGGESTIONS.map((suggestion) =>
-        link(
-          suggestion.label,
-          `/chat?q=${encodeURIComponent(suggestion.question)}`,
-          q === suggestion.question,
-        ),
-      ),
+      links: CHAT_SUGGESTIONS.map((suggestion) => ({
+        key: `suggestion-${suggestion.label}`,
+        label: suggestion.label,
+        to: '/chat',
+        active: chatActiveKey === suggestion.label,
+        onClick: (e: React.MouseEvent) => {
+          e.preventDefault()
+          setChatActiveKey(suggestion.label)
+          window.dispatchEvent(
+            new CustomEvent('app:chat-prompt', { detail: suggestion.question }),
+          )
+          onNavigate()
+        },
+      })),
     })
     groups.push({
-      title: 'Tài liệu tham khảo',
-      links: [
-        link('Nội quy Lao động 2026', '/documents/doc-nqld'),
-        link('Chính sách An toàn thông tin', '/documents/doc-csit'),
-      ],
+      title: 'Tài liệu đã nạp',
+      links: LOADED_DOCUMENTS.map((docName) => ({
+        key: `doc-${docName}`,
+        label: docName,
+        to: '/chat',
+        badge: 'PDF',
+        active: chatActiveKey === docName,
+        onClick: (e: React.MouseEvent) => {
+          e.preventDefault()
+          setChatActiveKey(docName)
+          window.dispatchEvent(
+            new CustomEvent('app:chat-prompt', {
+              detail: `Tóm tắt các quy định chính trong ${docName}`,
+            }),
+          )
+          onNavigate()
+        },
+      })),
     })
   } else if (pathname === '/search') {
     const q = params.get('q') ?? ''
@@ -304,12 +396,22 @@ export function ContextSidebar({
           ) : null}
           {group.links.map((item) => (
             <Link
-              key={`${group.title}-${item.to}-${item.label}`}
+              key={item.key ?? `${group.title}-${item.to}-${item.label}`}
               to={item.to}
               className={`context-item${item.active ? ' context-item--active' : ''}`}
-              onClick={onNavigate}
+              title={item.label}
+              onClick={(e) => {
+                if (item.onClick) {
+                  item.onClick(e)
+                } else {
+                  onNavigate()
+                }
+              }}
             >
-              <span>{item.label}</span>
+              <span className="context-item__label">{item.label}</span>
+              {item.badge ? (
+                <span className="context-item__badge">{item.badge}</span>
+              ) : null}
               {item.count !== undefined ? (
                 <span className="context-item__count">{item.count}</span>
               ) : null}

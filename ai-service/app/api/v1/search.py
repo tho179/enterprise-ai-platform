@@ -40,7 +40,8 @@ def search_documents(
             query=cleaned_query,
             top_k=payload.top_k,
             document_id=payload.document_id,
-            min_score=payload.min_score
+            min_score=payload.min_score,
+            allowed_roles=payload.user_roles,
         )
     except Exception as exc:
         logger.error(f"Error executing vector retrieval: {exc}", exc_info=True)

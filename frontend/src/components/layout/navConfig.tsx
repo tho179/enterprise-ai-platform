@@ -18,6 +18,8 @@ export interface RailItem {
   to: string
   icon: ReactNode
   roles?: Role[]
+  /** Runs on browser mock data only; the backend has no such module yet. */
+  demoOnly?: boolean
 }
 
 export const RAIL_ITEMS: RailItem[] = [
@@ -31,6 +33,7 @@ export const RAIL_ITEMS: RailItem[] = [
     to: '/leave',
     icon: <CalendarOutlined />,
     roles: ['EMPLOYEE', 'MANAGER'],
+    demoOnly: true,
   },
   {
     key: 'approvals',
@@ -38,14 +41,22 @@ export const RAIL_ITEMS: RailItem[] = [
     to: '/approvals',
     icon: <CheckSquareOutlined />,
     roles: ['MANAGER'],
+    demoOnly: true,
   },
-  { key: 'tickets', label: 'Yêu cầu IT', to: '/tickets', icon: <CustomerServiceOutlined /> },
+  {
+    key: 'tickets',
+    label: 'Yêu cầu IT',
+    to: '/tickets',
+    icon: <CustomerServiceOutlined />,
+    demoOnly: true,
+  },
   {
     key: 'queue',
     label: 'Hàng đợi IT',
     to: '/tickets/queue',
     icon: <ToolOutlined />,
     roles: ['IT_SUPPORT'],
+    demoOnly: true,
   },
   {
     key: 'users',
@@ -67,16 +78,24 @@ export const CHAT_SUGGESTIONS = [
     question: 'Nhân viên được nghỉ phép bao nhiêu ngày mỗi năm?',
   },
   {
-    label: 'Thời gian thử việc',
-    question: 'Thời gian thử việc tối đa là bao lâu?',
+    label: 'Thời giờ làm việc & ca kíp',
+    question: 'Thỏa ước lao động tập thể quy định thời giờ làm việc như thế nào?',
   },
   {
-    label: 'Quy định làm việc từ xa',
-    question: 'Quy định làm việc từ xa và kết nối VPN như thế nào?',
+    label: 'Tiêu chí đánh giá nhà cung cấp',
+    question: 'Quy trình đánh giá nhà cung cấp gồm những tiêu chí nào?',
   },
   {
-    label: 'Mật khẩu và bảo mật',
-    question: 'Quy định về mật khẩu và bảo mật tài khoản là gì?',
+    label: 'Quy định bảo mật mật khẩu',
+    question: 'Chính sách an ninh thông tin quy định mật khẩu như thế nào?',
+  },
+  {
+    label: 'Số lượng thành viên HĐQT',
+    question: 'Công ty có bao nhiêu thành viên Hội đồng Quản trị?',
+  },
+  {
+    label: 'Số cuộc họp HĐQT mỗi năm',
+    question: 'Hội đồng Quản trị có bao nhiêu cuộc họp mỗi năm?',
   },
 ]
 

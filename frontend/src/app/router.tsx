@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
+import { DemoOnly } from '@/components/ui/DemoOnly'
 import { AppShell } from '@/components/layout/AppShell'
 import { RequireAuth, RequireRole } from '@/auth/guards'
 import { useAuth } from '@/auth/AuthContext'
@@ -64,21 +65,21 @@ export function AppRoutes() {
             }
           />
           <Route path="documents/:id" element={<DocumentDetailPage />} />
-          <Route path="leave" element={<LeavePage />} />
+          <Route path="leave" element={<DemoOnly><LeavePage /></DemoOnly>} />
           <Route
             path="approvals"
             element={
               <RequireRole roles={['MANAGER']}>
-                <ApprovalsPage />
+                <DemoOnly><ApprovalsPage /></DemoOnly>
               </RequireRole>
             }
           />
-          <Route path="tickets" element={<TicketsPage />} />
+          <Route path="tickets" element={<DemoOnly><TicketsPage /></DemoOnly>} />
           <Route
             path="tickets/queue"
             element={
               <RequireRole roles={['IT_SUPPORT']}>
-                <TicketQueuePage />
+                <DemoOnly><TicketQueuePage /></DemoOnly>
               </RequireRole>
             }
           />

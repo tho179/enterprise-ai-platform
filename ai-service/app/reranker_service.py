@@ -37,3 +37,11 @@ class RerankerService:
         for hit, score in zip(hits, scores):
             hit["rerank_score"] = round(float(score), 4)
         return sorted(hits, key=lambda hit: hit["rerank_score"], reverse=True)
+
+    def score_pairs(self, query: str, texts: List[str]) -> List[float]:
+        """Chấm từng đoạn ngắn (câu/cụm câu) thay vì cả chunk dài nhiễu OCR."""
+        if not self.enabled or not texts:
+            return []
+        pairs = [(query, text) for text in texts]
+        scores = self.model.predict(pairs, show_progress_bar=False)
+        return [round(float(score), 4) for score in scores]

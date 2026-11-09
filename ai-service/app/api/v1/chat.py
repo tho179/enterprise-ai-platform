@@ -40,7 +40,8 @@ def ask_document_question(
             top_k=payload.top_k,
             document_id=payload.document_id,
             min_score=payload.min_score,
-            history=payload.history
+            history=payload.history,
+            allowed_roles=payload.user_roles,
         )
         return response
     except Exception as exc:

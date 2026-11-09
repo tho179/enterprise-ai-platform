@@ -17,21 +17,52 @@ Toàn bộ hệ thống đã được đóng gói container hóa hoàn chỉnh. 
 git clone https://github.com/tho179/enterprise-ai-platform.git
 cd enterprise-ai-platform
 
-# Khởi động toàn bộ 5 dịch vụ chỉ với 1 câu lệnh
+# Tạo cấu hình và điền các secret bắt buộc (mỗi giá trị: openssl rand -hex 48)
+cp .env.example .env
+
+# Khởi động 7 dịch vụ: frontend, backend, ai-service, postgres, redis, qdrant, neo4j
 docker compose up -d
 ```
+
+Compose dừng ngay kèm thông báo nếu thiếu `POSTGRES_PASSWORD`, `NEO4J_PASSWORD`,
+`QDRANT_API_KEY`, `INTERNAL_API_TOKEN` hoặc `JWT_SECRET`.
 
 ### 3. Danh sách các dịch vụ & Cổng truy cập (Service Endpoints)
 
 | Dịch vụ | Công nghệ | Cổng / URL | Mô tả |
 | :--- | :--- | :--- | :--- |
-| **Backend API** | Spring Boot 4 / Java 17 | [http://localhost:8080](http://localhost:8080) | Hệ thống quản lý người dùng, phân quyền JWT, Core Business API |
-| **AI Service** | FastAPI / Python 3.11 | [http://localhost:8001](http://localhost:8001) | RAG Pipeline, PDF Parser, Tesseract OCR, Chunking, Embeddings |
-| **AI Swagger Docs** | OpenAPI | [http://localhost:8001/docs](http://localhost:8001/docs) | Giao diện tương tác và thử nghiệm trực tiếp các API của AI Service |
-| **Qdrant Vector DB** | Qdrant Engine | [http://localhost:6333](http://localhost:6333) | Vector Database lưu trữ Embedding 384 chiều đa ngữ |
-| **Qdrant Dashboard** | Web UI | [http://localhost:6333/dashboard](http://localhost:6333/dashboard) | Giao diện trực quan xem các Collections và Vectors |
-| **PostgreSQL** | Postgres 15 | `localhost:5432` | Cơ sở dữ liệu quan hệ (Database: `enterprise_ai_db`) |
-| **Redis** | Redis 7 Alpine | `localhost:6379` | Cache tốc độ cao và hàng đợi xử lý nền |
+| **Frontend** | React + nginx | [http://localhost:3000](http://localhost:3000) | Giao diện người dùng, cổng vào duy nhất cho trình duyệt |
+| **Backend API** | Spring Boot 4 / Java 17 | [http://localhost:8080](http://localhost:8080) | JWT, RBAC, quản lý tài liệu, AI Gateway (`/api/ai/*`), audit, rate limit |
+| **AI Service** | FastAPI / Python 3.11 | `127.0.0.1:8001` | OCR, chunking, embedding, GraphRAG. Chỉ nhận lời gọi có `X-Internal-Token` từ backend |
+| **Qdrant** | Qdrant | `127.0.0.1:6333` | Vector 384 chiều, yêu cầu API key |
+| **Neo4j** | Neo4j 5 Community | `127.0.0.1:7474`, `7687` | Knowledge graph, cùng `chunk_id` với Qdrant |
+| **PostgreSQL** | Postgres 15 | `127.0.0.1:5432` (`POSTGRES_PORT`) | Dữ liệu nghiệp vụ, schema do Flyway quản lý |
+| **Redis** | Redis 7 Alpine | `127.0.0.1:6379` | Bộ đếm rate limit của AI Gateway |
+| **Ollama** (tùy chọn) | profile `local-llm` | `127.0.0.1:11434` | LLM cục bộ, API tương thích OpenAI |
+
+Tài khoản demo do backend tạo trên DB trống: `admin@congty.vn`, `manager@congty.vn`,
+`nva@congty.vn`, `it@congty.vn` (mật khẩu trong `DemoDataInitializer.java`).
+
+### Bật LLM thật
+Không cấu hình LLM thì câu trả lời là trích đoạn nguyên văn (`extractive-fallback`).
+
+```bash
+# Cục bộ (cần NVIDIA container runtime; bỏ dòng `gpus` trong compose để chạy CPU)
+docker compose --profile local-llm up -d ollama
+docker compose exec ollama ollama pull qwen2.5:3b
+# Trong .env: LLM_BASE_URL=http://ollama:11434/v1 và LLM_MODEL=qwen2.5:3b
+
+# Hoặc đám mây: đặt GEMINI_API_KEY hoặc OPENAI_API_KEY trong .env
+```
+
+### Phạm vi đã triển khai
+| Mô-đun | Trạng thái |
+| :--- | :--- |
+| Xác thực, người dùng, RBAC | Chạy thật |
+| Quản lý tài liệu, phiên bản, phân quyền xem theo vai trò | Chạy thật |
+| Nạp PDF: OCR, chunk theo Chương/Mục/Điều, Qdrant + Neo4j | Chạy thật |
+| Hỏi đáp có trích dẫn, tìm kiếm ngữ nghĩa, AI Gateway | Chạy thật |
+| Nghỉ phép, phê duyệt, yêu cầu IT, thông báo | **Chỉ là giao diện mẫu** (`VITE_USE_MOCKS=true`), chưa có API |
 
 ### 4. Dừng hệ thống
 ```bash
@@ -44,7 +75,8 @@ docker compose down
 
 ```
 enterprise-ai-platform/
-├── backend/               # Mã nguồn Spring Boot (Java 17, JPA, JWT, Postgres, Redis)
+├── frontend/              # React + Vite, phục vụ bằng nginx
+├── backend/               # Mã nguồn Spring Boot (Java 17, JPA, JWT, Flyway, Postgres, Redis)
 │   ├── Dockerfile         # Multi-stage build (Maven 3.9 -> Eclipse Temurin JRE 17)
 │   └── src/               # Java Controllers, Services, Repositories
 ├── ai-service/            # Mã nguồn AI Service (Python 3.11, FastAPI, PyTorch, PyMuPDF, OCR)
@@ -77,6 +109,45 @@ docker compose exec ai-service python scripts/07_run_qdrant_ingest.py
 ```bash
 docker compose exec ai-service python scripts/08_test_retrieval.py
 ```
+
+### Đổi embedding model / re-embed Qdrant:
+Mặc định dùng `intfloat/multilingual-e5-small` (384 chiều). Query/passage prefix
+được áp dụng trong code, không đặt trong Compose. Sau khi đổi model, chạy:
+```bash
+docker compose exec ai-service python scripts/12_reembed_qdrant.py
+```
+
+### Nạp lại tài liệu (sau khi đổi chunker hoặc model):
+```bash
+python ai-service/scripts/14_reindex_uploads.py --email admin@congty.vn --password <mật khẩu>
+```
+
+### Đồng bộ lại GraphRAG:
+```bash
+# Backfill chunk từ Qdrant vào Neo4j
+docker compose exec ai-service python scripts/11_sync_qdrant_to_graph.py
+
+# Tính lại entity và quan hệ từ các chunk đã có (sau khi sửa quy tắc trích xuất)
+docker compose exec ai-service python scripts/13_reindex_graph_entities.py
+```
+
+### Đánh giá:
+```bash
+# So sánh flat_rag / graph_rag / hybrid_rag trên bộ câu hỏi đã gán nhãn
+docker compose exec ai-service python scripts/15_run_eval.py --with-llm
+
+# So sánh embedding có dấu và bỏ dấu
+docker compose exec ai-service python scripts/17_benchmark_folding.py
+
+# Kiểm thử đầu-cuối trên stack đang chạy
+python ai-service/scripts/16_e2e_smoke.py --password <mật khẩu>
+```
+Kết quả và cách đọc số liệu: [docs/evaluation_graphrag.md](docs/evaluation_graphrag.md).
+
+### Theo dõi vận hành:
+- `GET /health/dependencies` (AI service): trạng thái Qdrant, Neo4j, LLM.
+- `GET /api/v1/metrics/latency`: p50/p95 từng bước (embed, vector, graph, rerank, policy, LLM).
+- `GET /api/ai/audit` (ADMIN): nhật ký câu hỏi qua gateway.
 
 ---
 

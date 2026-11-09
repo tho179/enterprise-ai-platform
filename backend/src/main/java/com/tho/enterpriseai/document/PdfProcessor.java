@@ -67,6 +67,11 @@ public class PdfProcessor {
         );
     }
 
+    /** Locate an AI-service chunk inside the word boxes of its first page. */
+    public List<Rect> locateInPage(PageText page, String content) {
+        return locate(page.words(), content);
+    }
+
     private PdfContent chunkPages(int pageCount, List<PageText> pages, String emptyMessage) {
         List<ExtractedChunk> chunks = new ArrayList<>();
         int chunkIndex = 0;

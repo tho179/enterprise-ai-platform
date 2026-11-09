@@ -89,10 +89,11 @@ public class DocumentController {
             @RequestParam String documentCode,
             @RequestParam String title,
             @RequestParam String category,
+            @RequestParam(required = false) String allowedRoles,
             @RequestParam("file") MultipartFile file
     ) {
         return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .body(documentService.upload(documentCode, title, category, file));
+                .body(documentService.upload(documentCode, title, category, allowedRoles, file));
     }
 
     @PostMapping("/{id}/versions")
@@ -108,6 +109,12 @@ public class DocumentController {
     public ResponseEntity<UploadTicketDto> retry(@PathVariable UUID versionId) {
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(documentService.retry(versionId));
+    }
+
+    @PostMapping("/versions/{versionId}/reindex")
+    public ResponseEntity<UploadTicketDto> reindex(@PathVariable UUID versionId) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(documentService.reindex(versionId));
     }
 
     @PatchMapping("/versions/{versionId}/current")

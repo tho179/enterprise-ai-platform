@@ -36,10 +36,16 @@ class QdrantService:
         else:
             try:
                 logger.info(f"Connecting to Qdrant Server at: {self.url}")
-                client = QdrantClient(url=self.url, timeout=2.0)
+                client = QdrantClient(
+                    url=self.url,
+                    api_key=settings.QDRANT_API_KEY or None,
+                    timeout=10.0,
+                )
                 client.get_collections()
                 self.client = client
             except Exception as exc:
+                if not settings.QDRANT_ALLOW_LOCAL_FALLBACK:
+                    raise
                 fallback_path = settings.QDRANT_STORAGE_PATH or "data/qdrant_storage"
                 logger.warning(
                     f"Could not connect to Qdrant server at {self.url} ({exc}). "

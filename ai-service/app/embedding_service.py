@@ -2,7 +2,6 @@ from typing import List, Dict, Any, Union
 import logging
 import re
 import unicodedata
-from sentence_transformers import SentenceTransformer
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -28,7 +27,11 @@ class EmbeddingService:
     Sử dụng mô hình SentenceTransformer đa ngôn ngữ để mã hóa văn bản thành vector.
     """
     def __init__(self, model_name: str = settings.EMBEDDING_MODEL):
+        from sentence_transformers import SentenceTransformer
+
         self.model_name = model_name
+        self.query_prefix = settings.EMBEDDING_QUERY_PREFIX
+        self.passage_prefix = settings.EMBEDDING_PASSAGE_PREFIX
         logger.info(f"Đang tải Embedding Model: {self.model_name}")
         self.model = SentenceTransformer(self.model_name)
         if hasattr(self.model, "get_embedding_dimension"):
@@ -37,6 +40,12 @@ class EmbeddingService:
             self.vector_dim = self.model.get_sentence_embedding_dimension()
         logger.info(f"Đã khởi tạo Embedding Model thành công (Kích thước: {self.vector_dim} chiều)")
 
+    def _prepare(self, text: str, prefix: str) -> str:
+        # Giữ dấu: đo trên bộ nhãn (docs/evaluation_graphrag.md) cho thấy bỏ dấu
+        # làm E5 mất phần lớn tín hiệu tiếng Việt. fold_text chỉ dùng khớp từ khóa.
+        prepared = fold_text(text) if settings.EMBEDDING_FOLD_TEXT else " ".join(text.split())
+        return f"{prefix}{prepared}" if prefix else prepared
+
     def embed_query(self, query: str) -> List[float]:
         """
         Nhúng 1 câu hỏi từ người dùng thành vector phục vụ tìm kiếm.
@@ -44,7 +53,10 @@ class EmbeddingService:
         if not query or not query.strip():
             return [0.0] * self.vector_dim
 
-        vector = self.model.encode(fold_text(query), convert_to_numpy=True)
+        vector = self.model.encode(
+            self._prepare(query, self.query_prefix),
+            convert_to_numpy=True,
+        )
         return vector.tolist()
 
     def embed_documents(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
@@ -54,7 +66,7 @@ class EmbeddingService:
         if not texts:
             return []
 
-        cleaned_texts = [fold_text(t) for t in texts]
+        cleaned_texts = [self._prepare(t, self.passage_prefix) for t in texts]
         vectors = self.model.encode(
             cleaned_texts,
             batch_size=batch_size,

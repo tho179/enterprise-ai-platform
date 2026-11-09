@@ -6,8 +6,10 @@ from pathlib import Path
 import pymupdf
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
 
+from app.adaptive_chunker import AdaptiveChunker
 from app.document_parser import extract_text_from_pdf
-from app.schemas import ExtractedPage, ExtractResponse
+from app.knowledge_graph.extract import pages_to_nodes
+from app.schemas import ExtractedChunk, ExtractedPage, ExtractResponse
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +17,21 @@ router = APIRouter(prefix="/extract", tags=["Extract"])
 
 MAX_PDF_BYTES = 25 * 1024 * 1024
 READ_BLOCK = 1024 * 1024
+
+
+def build_extract_chunks(pages: list[dict]) -> list[ExtractedChunk]:
+    chunks = AdaptiveChunker().chunk_nodes(pages_to_nodes(pages))
+    return [
+        ExtractedChunk(
+            index=index,
+            pageStart=int(chunk.metadata.get("page_start", 1)),
+            pageEnd=int(chunk.metadata.get("page_end", 1)),
+            headingLevel=len(chunk.metadata.get("section_path") or []),
+            sectionPath=list(chunk.metadata.get("section_path") or []),
+            content=chunk.content,
+        )
+        for index, chunk in enumerate(chunks)
+    ]
 
 
 @router.post("", response_model=ExtractResponse)
@@ -76,6 +93,7 @@ def extract_pdf(file: UploadFile = File(...)) -> ExtractResponse:
                 ExtractedPage(page=page["page"], text=page["text"], source=page["source"], words=page.get("words", []))
                 for page in pages
             ],
+            chunks=build_extract_chunks(pages),
         )
     finally:
         try:

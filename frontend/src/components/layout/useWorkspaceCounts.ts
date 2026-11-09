@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { documentsApi } from '@/api/documents'
 import { leaveApi } from '@/api/leave'
+import { DEMO_MODE } from '@/lib/constants'
 import { ticketsApi } from '@/api/tickets'
 import { useAuth } from '@/auth/AuthContext'
 
@@ -24,13 +25,13 @@ export function useWorkspaceCounts(): WorkspaceCounts {
   const pendingQuery = useQuery({
     queryKey: ['leave', 'pending'],
     queryFn: () => leaveApi.list({ status: 'PENDING' }),
-    enabled: session?.role === 'MANAGER',
+    enabled: DEMO_MODE && session?.role === 'MANAGER',
   })
 
   const queueQuery = useQuery({
     queryKey: ['tickets', 'queue'],
     queryFn: () => ticketsApi.list(),
-    enabled: session?.role === 'IT_SUPPORT',
+    enabled: DEMO_MODE && session?.role === 'IT_SUPPORT',
   })
 
   const documents = documentsQuery.data?.items ?? []

@@ -4,6 +4,7 @@ import { useAuth } from '@/auth/AuthContext'
 import { ROLE_LABELS } from '@/lib/constants'
 import { initials } from '@/lib/format'
 import { isRailItemActive, RAIL_ITEMS } from '@/components/layout/navConfig'
+import { DEMO_MODE } from '@/lib/constants'
 import type { WorkspaceCounts } from '@/components/layout/useWorkspaceCounts'
 
 export function Rail({ counts }: { counts: WorkspaceCounts }) {
@@ -12,7 +13,7 @@ export function Rail({ counts }: { counts: WorkspaceCounts }) {
 
   if (!session) return null
 
-  const items = RAIL_ITEMS.filter(
+  const items = RAIL_ITEMS.filter((item) => DEMO_MODE || !item.demoOnly).filter(
     (item) => !item.roles || item.roles.includes(session.role),
   )
   const activeItem = [...items]

@@ -1,0 +1,350 @@
+[
+  {
+    "id": "q001",
+    "question": "Hội đồng Quản trị gồm bao nhiêu thành viên?",
+    "ground_truth": "Hội đồng Quản trị gồm từ 03 đến 11 thành viên.",
+    "category": "count",
+    "difficulty": "easy",
+    "document": "Dieu_le_cong_ty",
+    "gold_chunk_ids": [
+      "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c11",
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c44"
+    ],
+    "answer_facts": [
+      "03",
+      "11"
+    ]
+  },
+  {
+    "id": "q002",
+    "question": "Hội đồng Quản trị phải họp ít nhất bao nhiêu lần?",
+    "ground_truth": "Hội đồng Quản trị phải họp ít nhất mỗi quý một lần.",
+    "category": "count",
+    "difficulty": "easy",
+    "document": "Dieu_le_cong_ty",
+    "gold_chunk_ids": [
+      "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c32",
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c57"
+    ],
+    "answer_facts": [
+      "moi quy"
+    ]
+  },
+  {
+    "id": "q003",
+    "question": "Số lượng thành viên Ban Kiểm soát của công ty là bao nhiêu?",
+    "ground_truth": "",
+    "category": "out_of_scope",
+    "difficulty": "medium",
+    "document": "Dieu_le_cong_ty",
+    "note": "Tài liệu không có Ban Kiểm soát: công ty dùng mô hình Ủy ban Kiểm toán.",
+    "gold_chunk_ids": [],
+    "answer_facts": []
+  },
+  {
+    "id": "q004",
+    "question": "Nghị quyết Đại hội đồng cổ đông được thông qua khi đạt tỷ lệ bao nhiêu?",
+    "ground_truth": "",
+    "category": "out_of_scope",
+    "difficulty": "medium",
+    "document": "Dieu_le_cong_ty",
+    "note": "Không tìm thấy điều khoản tỷ lệ biểu quyết của Đại hội đồng cổ đông trong văn bản đã trích xuất.",
+    "gold_chunk_ids": [],
+    "answer_facts": []
+  },
+  {
+    "id": "q005",
+    "question": "Một số tiêu chí cơ bản được dùng để đánh giá, lựa chọn nhà cung cấp dịch vụ gồm những gì?",
+    "ground_truth": "Các tiêu chí gồm chất lượng dịch vụ, độ tin cậy và uy tín, giá cả và hiệu quả chi phí, tuân thủ tiêu chuẩn ngành và pháp luật, khả năng đáp ứng nhanh, dịch vụ hỗ trợ sau bán hàng, công nghệ và đổi mới.",
+    "category": "count",
+    "difficulty": "hard",
+    "document": "Quy_trinh_danh_gia_nha_cung_cap",
+    "gold_chunk_ids": [
+      "doc-3cd566e6-35fe-40c0-9020-eda364e05af8-v1-c8",
+      "doc-3cd566e6-35fe-40c0-9020-eda364e05af8-v1-c9"
+    ],
+    "answer_facts": [
+      "chat luong dich vu",
+      "do tin cay"
+    ]
+  },
+  {
+    "id": "q006",
+    "question": "Nhiệm kỳ của thành viên Hội đồng Quản trị là bao lâu?",
+    "ground_truth": "Nhiệm kỳ của thành viên Hội đồng Quản trị không quá 05 năm và có thể được bầu lại với số nhiệm kỳ không hạn chế.",
+    "category": "time",
+    "difficulty": "easy",
+    "document": "Dieu_le_cong_ty",
+    "gold_chunk_ids": [
+      "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c11",
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c44"
+    ],
+    "answer_facts": [
+      "05"
+    ]
+  },
+  {
+    "id": "q007",
+    "question": "Thời hạn hoạt động của Công ty là bao lâu?",
+    "ground_truth": "Thời hạn hoạt động của Công ty là vô thời hạn kể từ Ngày Thành lập, trừ khi chấm dứt hoạt động theo Điều 51 của Điều lệ.",
+    "category": "time",
+    "difficulty": "easy",
+    "document": "Dieu_le_cong_ty",
+    "gold_chunk_ids": [
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c11"
+    ],
+    "answer_facts": [
+      "vo thoi han"
+    ]
+  },
+  {
+    "id": "q008",
+    "question": "Thời giờ làm việc bình thường của người lao động được quy định như thế nào?",
+    "ground_truth": "Thời giờ làm việc, thời giờ nghỉ ngơi thực hiện theo Nội quy lao động hiện hành và các quy định về ngày công do Công ty ban hành.",
+    "category": "time",
+    "difficulty": "medium",
+    "document": "Thoa_uoc_lao_dong_tap_the",
+    "gold_chunk_ids": [
+      "doc-e5b75091-0c6c-48d5-bc95-e1a3cfa6681a-v1-c14"
+    ],
+    "answer_facts": [
+      "noi quy lao dong"
+    ]
+  },
+  {
+    "id": "q009",
+    "question": "Cổ tức phải được thanh toán đầy đủ trong thời hạn bao lâu kể từ ngày kết thúc họp ĐHĐCĐ?",
+    "ground_truth": "",
+    "category": "out_of_scope",
+    "difficulty": "medium",
+    "document": "Dieu_le_cong_ty",
+    "note": "Tài liệu không nêu thời hạn thanh toán cổ tức bằng số tháng.",
+    "gold_chunk_ids": [],
+    "answer_facts": []
+  },
+  {
+    "id": "q010",
+    "question": "Thông báo mời họp Đại hội đồng cổ đông phải gửi chậm nhất bao nhiêu ngày trước ngày khai mạc?",
+    "ground_truth": "Thông báo mời họp phải được gửi chậm nhất hai mươi mốt ngày trước ngày khai mạc cuộc họp.",
+    "category": "time",
+    "difficulty": "hard",
+    "document": "Dieu_le_cong_ty",
+    "gold_chunk_ids": [
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c41"
+    ],
+    "answer_facts": [
+      "hai muoi mot"
+    ]
+  },
+  {
+    "id": "q011",
+    "question": "Công ty có bắt buộc phải lập Ủy ban Kiểm toán trực thuộc Hội đồng Quản trị không?",
+    "ground_truth": "Cơ cấu tổ chức quản lý của Công ty gồm Đại hội đồng cổ đông, Hội đồng Quản trị và Ủy ban Kiểm toán trực thuộc Hội đồng Quản trị, Tổng Giám đốc.",
+    "category": "yesno",
+    "difficulty": "medium",
+    "document": "Dieu_le_cong_ty",
+    "gold_chunk_ids": [
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c26",
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c70"
+    ],
+    "answer_facts": [
+      "uy ban kiem toan"
+    ]
+  },
+  {
+    "id": "q012",
+    "question": "Công ty có được phép sử dụng lao động trẻ em không?",
+    "ground_truth": "Công ty ủng hộ xóa bỏ các hình thức lao động cưỡng bức và các hình thức lao động trẻ em tồi tệ nhất, đồng thời yêu cầu đối tác thực hiện điều đó.",
+    "category": "yesno",
+    "difficulty": "easy",
+    "document": "Chinh_sach_nhan_quyen",
+    "gold_chunk_ids": [
+      "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c9"
+    ],
+    "answer_facts": [
+      "lao dong tre em"
+    ]
+  },
+  {
+    "id": "q013",
+    "question": "Công ty có thể mua lại cổ phần của chính mình không?",
+    "ground_truth": "Có. Hội đồng Quản trị quyết định việc mua lại không quá 10% tổng số cổ phần của từng loại đã bán trong mỗi mười hai tháng; trên 10% do Đại hội đồng cổ đông quyết định.",
+    "category": "yesno",
+    "difficulty": "medium",
+    "document": "Dieu_le_cong_ty",
+    "gold_chunk_ids": [
+      "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c24",
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c36",
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c52"
+    ],
+    "answer_facts": [
+      "10%"
+    ]
+  },
+  {
+    "id": "q014",
+    "question": "Nhân viên có được phép chia sẻ mật khẩu tài khoản nội bộ cho đồng nghiệp không?",
+    "ground_truth": "Không. Người dùng có trách nhiệm bảo vệ mật khẩu và không được chia sẻ bí mật chứng thực cho bất kỳ ai.",
+    "category": "yesno",
+    "difficulty": "easy",
+    "document": "Quy_dinh_an_ninh_thong_tin",
+    "gold_chunk_ids": [
+      "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c62"
+    ],
+    "answer_facts": [
+      "khong duoc chia se"
+    ]
+  },
+  {
+    "id": "q015",
+    "question": "Chủ tịch Hội đồng Quản trị có được kiêm nhiệm chức danh Tổng Giám đốc không?",
+    "ground_truth": "Chủ tịch Hội đồng Quản trị không được kiêm nhiệm chức danh Tổng Giám đốc của Công ty.",
+    "category": "yesno",
+    "difficulty": "hard",
+    "document": "Dieu_le_cong_ty",
+    "gold_chunk_ids": [
+      "doc-1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7-v1-c13",
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c54"
+    ],
+    "answer_facts": [
+      "khong duoc kiem nhiem"
+    ]
+  },
+  {
+    "id": "q016",
+    "question": "Quyền và nghĩa vụ của Đại hội đồng cổ đông gồm những gì?",
+    "ground_truth": "Đại hội đồng cổ đông có quyền thông qua định hướng phát triển, báo cáo tài chính năm được kiểm toán, quyết định mức cổ tức hằng năm và các quyền khác theo Điều 14.",
+    "category": "open",
+    "difficulty": "medium",
+    "document": "Dieu_le_cong_ty",
+    "gold_chunk_ids": [
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c35",
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c36"
+    ],
+    "answer_facts": [
+      "dinh huong phat trien"
+    ]
+  },
+  {
+    "id": "q017",
+    "question": "Quy trình xử lý vụ việc gây rối hoặc vi phạm kỷ luật lao động được thực hiện qua những bước nào?",
+    "ground_truth": "Quy trình gồm phát hiện sự việc, thông báo cho đơn vị liên quan, ghi lời khai hoặc lập biên bản làm việc, kiểm tra đánh giá thông tin, rồi báo cáo kết quả.",
+    "category": "open",
+    "difficulty": "hard",
+    "document": "Quy_trinh_xu_ly_vu_viec",
+    "gold_chunk_ids": [
+      "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c3",
+      "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c4",
+      "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c5",
+      "doc-37baddf7-cc32-4495-8ac9-3dff060114a1-v1-c6"
+    ],
+    "answer_facts": [
+      "phat hien"
+    ]
+  },
+  {
+    "id": "q018",
+    "question": "Chính sách nhân quyền của công ty cam kết những nội dung cơ bản nào?",
+    "ground_truth": "Công ty cam kết tôn trọng và bảo vệ nhân quyền trong hoạt động kinh doanh và chuỗi cung ứng, đối xử công bằng, không phân biệt đối xử, xóa bỏ lao động cưỡng bức và các hình thức lao động trẻ em tồi tệ nhất.",
+    "category": "open",
+    "difficulty": "medium",
+    "document": "Chinh_sach_nhan_quyen",
+    "gold_chunk_ids": [
+      "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c5",
+      "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c6",
+      "doc-034c17e7-03dc-491d-bd0b-e8d5d7a52ab5-v1-c9"
+    ],
+    "answer_facts": [
+      "nhan quyen"
+    ]
+  },
+  {
+    "id": "q019",
+    "question": "Ai là người đại diện theo pháp luật của công ty và có thẩm quyền gì?",
+    "ground_truth": "Chủ tịch Hội đồng Quản trị và Tổng Giám đốc là người đại diện theo pháp luật, đại diện Công ty thực hiện các quyền và nghĩa vụ phát sinh từ giao dịch.",
+    "category": "open",
+    "difficulty": "medium",
+    "document": "Dieu_le_cong_ty",
+    "gold_chunk_ids": [
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c9",
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c10"
+    ],
+    "answer_facts": [
+      "chu tich hoi dong quan tri va tong giam doc"
+    ]
+  },
+  {
+    "id": "q020",
+    "question": "Quy định về bảo mật và quản lý mật khẩu của nhân viên bao gồm những yêu cầu gì?",
+    "ground_truth": "Người dùng phải bảo vệ mật khẩu, không chia sẻ bí mật chứng thực cho bất kỳ ai và phải đổi mật khẩu ngay khi bị lộ quyền truy cập.",
+    "category": "open",
+    "difficulty": "easy",
+    "document": "Quy_dinh_an_ninh_thong_tin",
+    "gold_chunk_ids": [
+      "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c62",
+      "doc-e191de47-fa28-40c8-9a7f-e6ebf37a87cf-v1-c35"
+    ],
+    "answer_facts": [
+      "mat khau"
+    ]
+  },
+  {
+    "id": "q021",
+    "question": "Cổ đông hoặc nhóm cổ đông theo khoản 3 Điều 11 có quyền gì đối với chương trình họp Đại hội đồng cổ đông?",
+    "ground_truth": "Họ có quyền kiến nghị các vấn đề đưa vào chương trình họp Đại hội đồng cổ đông.",
+    "category": "multi_hop",
+    "difficulty": "medium",
+    "gold_chunk_ids": [
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c41",
+      "doc-84202bc4-4a22-46fa-8e7c-2ba11e857b68-v6-c42"
+    ],
+    "answer_facts": [
+      "kien nghi"
+    ]
+  },
+  {
+    "id": "q101",
+    "question": "Cách làm bánh pizza hải sản phô mai?",
+    "ground_truth": "",
+    "category": "out_of_scope",
+    "difficulty": "medium",
+    "gold_chunk_ids": [],
+    "answer_facts": []
+  },
+  {
+    "id": "q102",
+    "question": "Dự báo thời tiết Hà Nội ngày mai thế nào?",
+    "ground_truth": "",
+    "category": "out_of_scope",
+    "difficulty": "medium",
+    "gold_chunk_ids": [],
+    "answer_facts": []
+  },
+  {
+    "id": "q103",
+    "question": "Công ty có bao nhiêu nhân viên?",
+    "ground_truth": "",
+    "category": "out_of_scope",
+    "difficulty": "medium",
+    "gold_chunk_ids": [],
+    "answer_facts": []
+  },
+  {
+    "id": "q104",
+    "question": "Mức lương của Tổng Giám đốc năm 2025 là bao nhiêu?",
+    "ground_truth": "",
+    "category": "out_of_scope",
+    "difficulty": "medium",
+    "gold_chunk_ids": [],
+    "answer_facts": []
+  },
+  {
+    "id": "q105",
+    "question": "Chính sách bảo hành xe máy điện như thế nào?",
+    "ground_truth": "",
+    "category": "out_of_scope",
+    "difficulty": "medium",
+    "gold_chunk_ids": [],
+    "answer_facts": []
+  }
+]

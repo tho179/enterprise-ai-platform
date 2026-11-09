@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.schemas import IngestBatchRequest, IngestResponse, DeleteVectorsResponse
 from app.embedding_service import EmbeddingService
+from app.knowledge_graph.service import delete_graph_document, enrich_new_entities, sync_ingest_chunks
 from app.qdrant_service import QdrantService
 
 logger = logging.getLogger(__name__)
@@ -33,13 +34,17 @@ def ingest_chunks(
     try:
         embedded_chunks = embedder.embed_chunks(raw_chunks)
         upserted_count = qdrant.upsert_chunks(embedded_chunks)
+        graph_synced_count = sync_ingest_chunks(raw_chunks)
+        if graph_synced_count:
+            enrich_new_entities(embedder)
         total_in_db = qdrant.count()
 
         return IngestResponse(
             success=True,
             upserted_count=upserted_count,
             collection_name=qdrant.collection_name,
-            total_points_in_db=total_in_db
+            total_points_in_db=total_in_db,
+            graph_synced_count=graph_synced_count
         )
     except Exception as exc:
         logger.error(f"Error during chunk ingestion: {exc}", exc_info=True)
@@ -57,10 +62,12 @@ def delete_document_vectors(
     """Remove every vector belonging to a document, or just one version. Safe to call repeatedly."""
     try:
         deleted_count = qdrant.delete_by_document_id(document_id, version_id=version_id)
+        graph_deleted_count = delete_graph_document(document_id, version_id=version_id)
         return DeleteVectorsResponse(
             success=True,
             deleted_count=deleted_count,
-            total_points_in_db=qdrant.count()
+            total_points_in_db=qdrant.count(),
+            graph_deleted_count=graph_deleted_count
         )
     except Exception as exc:
         logger.error(f"Error deleting vectors for document {document_id}: {exc}", exc_info=True)
@@ -94,12 +101,14 @@ def bootstrap_debug_data(
                 detail="No preprocessed debug files found (05_enriched_chunks.json or 06_embedded_chunks.json)"
             )
 
+        graph_synced_count = sync_ingest_chunks(chunks)
         total_in_db = qdrant.count()
         return IngestResponse(
             success=True,
             upserted_count=upserted,
             collection_name=qdrant.collection_name,
-            total_points_in_db=total_in_db
+            total_points_in_db=total_in_db,
+            graph_synced_count=graph_synced_count
         )
     except HTTPException:
         raise

@@ -1,4 +1,4 @@
-import { aiApi } from '@/api/client'
+import { AI_TIMEOUT_MS, api } from '@/api/client'
 import { normalizeError } from '@/api/errors'
 import type { SearchResponse } from '@/api/types'
 import { DEMO_MODE } from '@/lib/constants'
@@ -13,12 +13,16 @@ interface SearchInput {
 export const searchApi = {
   async search(input: SearchInput): Promise<SearchResponse> {
     try {
-      const { data } = await aiApi.post<SearchResponse>('/api/v1/search', {
-        query: input.query,
-        top_k: input.topK ?? 10,
-        min_score: input.minScore ?? 0.3,
-        document_id: input.documentId || undefined,
-      })
+      const { data } = await api.post<SearchResponse>(
+        '/api/ai/search',
+        {
+          query: input.query,
+          top_k: input.topK ?? 10,
+          min_score: input.minScore ?? 0.3,
+          document_id: input.documentId || undefined,
+        },
+        { timeout: AI_TIMEOUT_MS },
+      )
       return data
     } catch (error) {
       const normalized = normalizeError(error)

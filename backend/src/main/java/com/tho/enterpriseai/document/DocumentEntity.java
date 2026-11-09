@@ -30,6 +30,18 @@ public class DocumentEntity {
     @Column(nullable = false, length = 64)
     private String category;
 
+    /** Comma-separated roles allowed to read this document; "*" means everyone. */
+    @Builder.Default
+    @Column(name = "allowed_roles", nullable = false)
+    private String allowedRoles = "*";
+
+    public java.util.List<String> allowedRoleList() {
+        return java.util.Arrays.stream(allowedRoles.split(","))
+                .map(String::trim)
+                .filter(role -> !role.isEmpty())
+                .toList();
+    }
+
     @Column(name = "created_by", nullable = false)
     private String createdBy;
 

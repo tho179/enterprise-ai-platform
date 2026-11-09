@@ -15,6 +15,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { documentsApi } from '@/api/documents'
 import { healthApi } from '@/api/health'
 import { leaveApi } from '@/api/leave'
+import { DEMO_MODE } from '@/lib/constants'
 import { notificationsApi } from '@/api/notifications'
 import { ticketsApi } from '@/api/tickets'
 import { usersApi } from '@/api/users'
@@ -55,27 +56,27 @@ export function DashboardPage() {
   const leaveQuery = useQuery({
     queryKey: ['leave', 'mine'],
     queryFn: () => leaveApi.list({ mine: true }),
-    enabled: isEmployeeLike,
+    enabled: DEMO_MODE && isEmployeeLike,
   })
   const balanceQuery = useQuery({
     queryKey: ['leave', 'balance'],
     queryFn: leaveApi.balance,
-    enabled: isEmployeeLike,
+    enabled: DEMO_MODE && isEmployeeLike,
   })
   const pendingApprovalsQuery = useQuery({
     queryKey: ['leave', 'pending'],
     queryFn: () => leaveApi.list({ status: 'PENDING' }),
-    enabled: role === 'MANAGER',
+    enabled: DEMO_MODE && role === 'MANAGER',
   })
   const myTicketsQuery = useQuery({
     queryKey: ['tickets', 'mine'],
     queryFn: () => ticketsApi.list({ mine: true }),
-    enabled: role !== 'ADMIN',
+    enabled: DEMO_MODE && role !== 'ADMIN',
   })
   const queueQuery = useQuery({
     queryKey: ['tickets', 'queue'],
     queryFn: () => ticketsApi.list(),
-    enabled: role === 'IT_SUPPORT',
+    enabled: DEMO_MODE && role === 'IT_SUPPORT',
   })
   const usersQuery = useQuery({
     queryKey: ['users'],
@@ -85,6 +86,7 @@ export function DashboardPage() {
   const notificationsQuery = useQuery({
     queryKey: ['notifications'],
     queryFn: notificationsApi.list,
+    enabled: DEMO_MODE,
   })
   const healthQuery = useQuery({
     queryKey: ['health'],

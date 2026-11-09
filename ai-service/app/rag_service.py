@@ -1,47 +1,48 @@
+import json
 import re
 import time
 import logging
 from typing import List, Dict, Any, Optional, Tuple
-from openai import OpenAI
 
+from app.answer_policy import _answer_shape, _content_terms, select_evidence  # noqa: F401
 from app.config import settings
 from app.embedding_service import fold_text
+from app.knowledge_graph.pipeline import rrf_fuse
+from app.knowledge_graph.service import graph_search
+from app.llm_client import LLM, chat_completion, parse_json_object, resolve_llm
+from app.observability import StepTimer, record_timings
 from app.retriever import VectorRetriever
 from app.schemas import CitationItem, ChatMessage, AskResponse
 
 logger = logging.getLogger(__name__)
 
-# Từ chức năng khi chọn câu trả lời trích xuất; giữ nguyên từ chuyên môn.
-_STOPWORDS = {
-    "la", "cua", "co", "va", "duoc", "bao", "nhieu", "gi", "nao", "the", "nhu",
-    "khi", "cho", "trong", "mot", "cac", "nhung", "nay", "do", "de", "voi",
-    "hay", "hoac", "thi", "ma", "o", "ra", "vao", "len", "xuong", "roi", "da",
-    "dang", "se", "toi", "ban", "minh", "tren", "duoi", "tu", "den", "ve",
-    "tai", "boi", "vi", "nen", "cung", "chi", "con", "ai", "lam", "sao", "phai",
-    "khong", "bi", "moi", "vay", "nhi", "rat", "qua", "hon", "nua", "day", "kia",
-    "ay", "no", "ho", "chung",
-}
+# Candidates reported to the benchmark, deep enough for Recall@10.
+RETRIEVAL_REPORT_DEPTH = 10
 
+REFUSAL_TEXT = "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này."
 
-def _content_terms(text: str) -> set[str]:
-    return {
-        token
-        for token in re.findall(r"[0-9a-z]+", fold_text(text))
-        if len(token) > 1 and token not in _STOPWORDS
-    }
+SYSTEM_PROMPT = """Bạn là Trợ lý AI Quản lý Tri thức Doanh nghiệp, trả lời câu hỏi của nhân viên bằng tiếng Việt.
 
-# Ngưỡng tin cậy cho trích dẫn (cosine thuần sau khi fold). Đo thực tế trên kho
-# Điều lệ: câu hỏi ngoài phạm vi rơi vào 0.28-0.42, câu hỏi khớp thật thấp nhất
-# ~0.53. Ngưỡng 0.5 tách được hai vùng và không chặn oan câu hợp lệ.
-CONFIDENCE_GATE = 0.5
+Các đoạn trong NGỮ CẢNH TÀI LIỆU đã được hệ thống kiểm tra là liên quan đến câu hỏi. Hãy đọc kỹ và trả lời trực tiếp bằng thông tin trong đó, kể cả khi chỉ trả lời được một phần.
 
-SYSTEM_PROMPT = """Bạn là Trợ lý AI Quản lý Tri thức Doanh nghiệp. Nhiệm vụ của bạn là giải đáp thắc mắc của nhân viên dựa HOÀN TOÀN vào các đoạn ngữ cảnh trích xuất từ tài liệu nội bộ được cung cấp dưới đây.
+Quy tắc:
+1. Chỉ dùng thông tin có trong ngữ cảnh, giữ nguyên số liệu và tên riêng, không suy diễn thêm.
+2. Mỗi nhận định kết thúc bằng số thứ tự đoạn nguồn, ví dụ [1] hoặc [2].
+3. Trả lời ngắn gọn, lịch sự.
+4. Chỉ khi ngữ cảnh hoàn toàn không nói về chủ đề được hỏi, mới trả lời: "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin để trả lời câu hỏi này."
 
-QUY TẮC BẮT BUỘC (Chống ảo giác & Trích dẫn chính xác):
-1. Chỉ trả lời dựa trên thông tin có trong ngữ cảnh. Tuyệt đối KHÔNG tự bịa đặt, suy diễn hoặc đưa ra thông tin không có trong tài liệu.
-2. Nếu ngữ cảnh không có thông tin hoặc không đủ dữ liệu để trả lời, hãy trả lời trung thực: "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin để trả lời câu hỏi này."
-3. Mọi nhận định, quy định hoặc số liệu nêu ra PHẢI được gắn nhãn trích dẫn tham chiếu ở cuối câu theo định dạng [1], [2] tương ứng với mã số của đoạn tài liệu.
-4. Trình bày ngắn gọn, mạch lạc, dùng ngôn ngữ tiếng Việt lịch sự, chuẩn mực doanh nghiệp."""
+Ví dụ:
+NGỮ CẢNH TÀI LIỆU:
+[1] Vị trí: Trang 3 | Phả hệ: Điều 7
+Nội dung: Thời gian thử việc không quá 60 ngày đối với công việc có trình độ cao đẳng trở lên.
+CÂU HỎI:
+Thời gian thử việc tối đa là bao lâu?
+TRẢ LỜI:
+Thời gian thử việc không quá 60 ngày đối với công việc có trình độ cao đẳng trở lên [1]."""
+
+VERIFY_PROMPT = """Bạn là bộ kiểm định câu trả lời. Chỉ dựa vào NGỮ CẢNH, xác định mọi thông tin trong CÂU TRẢ LỜI có được ngữ cảnh hỗ trợ và có trả lời đúng CÂU HỎI hay không.
+Chỉ trả về JSON: {"supported": true} hoặc {"supported": false}."""
+
 
 class RAGService:
     """
@@ -52,6 +53,91 @@ class RAGService:
 
     def __init__(self, retriever: Optional[VectorRetriever] = None):
         self.retriever = retriever or VectorRetriever()
+
+    @staticmethod
+    def _fuse_hits(
+        vector_hits: List[Dict[str, Any]],
+        graph_hits: List[Dict[str, Any]],
+        graph_weight: Optional[float] = None,
+    ) -> List[Dict[str, Any]]:
+        """RRF when both sources exist; each source still works alone."""
+        if vector_hits and graph_hits:
+            return rrf_fuse(
+                vector_hits,
+                graph_hits,
+                graph_weight=settings.GRAPH_RRF_WEIGHT if graph_weight is None else graph_weight,
+            )
+        if graph_hits:
+            return sorted(graph_hits, key=lambda hit: hit.get("score", 0.0), reverse=True)
+        return vector_hits
+
+    def retrieve_hits(
+        self,
+        query: str,
+        top_k: int = 3,
+        document_id: Optional[str] = None,
+        retrieval_mode: str = "hybrid_rag",
+        use_reranker: bool = True,
+        graph_weight: Optional[float] = None,
+        allowed_roles: Optional[List[str]] = None,
+        timer: Optional[StepTimer] = None,
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """Retrieve candidates: vector and graph -> RRF -> cross-encoder."""
+        if retrieval_mode not in ("flat_rag", "graph_rag", "hybrid_rag"):
+            raise ValueError(f"Unknown retrieval mode: {retrieval_mode}")
+
+        timer = timer or StepTimer()
+        cleaned_query = (query or "").strip()
+        candidate_k = min(100, max(top_k * 20, 60))
+        vector_hits: List[Dict[str, Any]] = []
+        graph_hits: List[Dict[str, Any]] = []
+
+        with timer.step("embed"):
+            query_vector = self.retriever.embedding.embed_query(cleaned_query)
+
+        if retrieval_mode in ("flat_rag", "hybrid_rag"):
+            with timer.step("vector_search"):
+                vector_hits = self.retriever.search(
+                    query=cleaned_query,
+                    top_k=candidate_k,
+                    document_id=document_id,
+                    # Không lọc cosine trước: một đoạn đúng có thể chỉ đạt 0.24
+                    # nhưng khớp chính xác "cổ tức", trong khi nhiễu đạt 0.8.
+                    min_score=0.0,
+                    use_reranker=False,
+                    query_vector=query_vector,
+                    allowed_roles=allowed_roles,
+                )
+        if retrieval_mode in ("graph_rag", "hybrid_rag"):
+            with timer.step("graph"):
+                graph_hits = graph_search(
+                    cleaned_query,
+                    limit=max(settings.GRAPH_SEARCH_LIMIT, top_k * 4),
+                    document_id=document_id,
+                    source_type="upload",
+                    query_vector=query_vector,
+                    seed_chunk_ids=[
+                        hit["chunk_id"]
+                        for hit in vector_hits[: settings.GRAPH_EXPAND_SEEDS]
+                        if hit.get("chunk_id")
+                    ],
+                    allowed_roles=allowed_roles,
+                )
+
+        hits = self._fuse_hits(vector_hits, graph_hits, graph_weight=graph_weight)
+        reranker = self.retriever.reranker
+        if use_reranker and reranker.enabled and hits:
+            with timer.step("rerank"):
+                head = reranker.rerank(cleaned_query, hits[: settings.RERANK_CANDIDATES])
+                hits = head + hits[settings.RERANK_CANDIDATES:]
+        logger.info(
+            "Retrieval[%s]: %d vector hits, %d graph hits, %d fused",
+            retrieval_mode,
+            len(vector_hits),
+            len(graph_hits),
+            len(hits),
+        )
+        return hits, vector_hits, graph_hits
 
     def _build_context_and_citations(
         self,
@@ -67,7 +153,7 @@ class RAGService:
         for idx, hit in enumerate(hits, 1):
             chunk_id = hit.get("chunk_id", f"CHUNK-{idx}")
             score = hit.get("score", 0.0)
-            content = hit.get("content", "").strip()
+            content = (hit.get("answer_window") or hit.get("content", "")).strip()
             meta = hit.get("metadata", {})
 
             p_start = meta.get("page_start")
@@ -86,7 +172,7 @@ class RAGService:
             context_blocks.append(block)
 
             # Build structured citation object
-            snippet = self._focused_excerpt(query, content)
+            snippet = content
             if len(snippet) > 500:
                 cut = snippet.rfind(" ", 0, 500)
                 snippet = snippet[: cut if cut > 0 else 500].rstrip() + "…"
@@ -160,25 +246,29 @@ class RAGService:
             excerpt = "… " + excerpt
         return excerpt
 
-    def _get_llm_client(self) -> Tuple[Optional[OpenAI], str]:
-        """
-        Resolves available LLM client:
-        Prefers Gemini (via OpenAI-compatible endpoint) or OpenAI, otherwise returns None for fallback.
-        """
-        gemini_key = settings.GEMINI_API_KEY.strip()
-        if gemini_key and not gemini_key.startswith("your_"):
-            client = OpenAI(
-                api_key=gemini_key,
-                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+    def _verify_answer(self, llm: LLM, query: str, context: str, answer: str) -> Optional[bool]:
+        """Ask the LLM whether the context supports the answer; None if unknown."""
+        try:
+            raw = chat_completion(
+                llm,
+                [
+                    {"role": "system", "content": VERIFY_PROMPT},
+                    {
+                        "role": "user",
+                        "content": f"NGỮ CẢNH:\n{context}\n\nCÂU HỎI:\n{query}\n\nCÂU TRẢ LỜI:\n{answer}",
+                    },
+                ],
+                temperature=0.0,
+                max_tokens=40,
             )
-            return client, settings.GEMINI_MODEL
-
-        openai_key = settings.OPENAI_API_KEY.strip()
-        if openai_key and not openai_key.startswith("your_"):
-            client = OpenAI(api_key=openai_key)
-            return client, settings.OPENAI_MODEL
-
-        return None, "extractive-fallback"
+        except Exception as exc:
+            logger.warning("Answer verification failed: %s", exc)
+            return None
+        verdict = parse_json_object(raw)
+        if verdict is None or "supported" not in verdict:
+            logger.warning("Verifier returned no verdict: %r", raw[:120])
+            return None
+        return bool(verdict["supported"])
 
     def _generate_extractive_fallback(
         self,
@@ -193,16 +283,21 @@ class RAGService:
         # citations rỗng nghĩa là bước kiểm tra tin cậy (reranker/cosine) đã
         # kết luận không đủ căn cứ -> phải từ chối, không được trích đoạn nhiễu.
         if not hits or not citations:
-            return "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này."
+            return REFUSAL_TEXT
 
-        # Có thông tin tin cậy -> extractive fallback
-        best = hits[0]
-        meta = best.get("metadata", {})
-        path_str = " > ".join(meta.get("section_path", []))
-        summary_intro = f"Theo quy định tại **{path_str or 'tài liệu nội bộ'}** [1]:\n\n"
-        content = self._focused_excerpt(query, best.get("content", "").strip())
-
-        return f"{summary_intro}> {content}\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*"
+        blocks = []
+        for idx, (hit, citation) in enumerate(zip(hits, citations), 1):
+            section_path = hit.get("metadata", {}).get("section_path", [])
+            section = section_path[-1] if section_path else ""
+            # A "Trang N" path only repeats the page number.
+            location = f"{section} ({citation.pages})" if section and not section.startswith("Trang") else citation.pages
+            blocks.append(
+                f"Theo quy định tại **{location}** [{idx}]:\n\n"
+                f"> {citation.snippet}"
+            )
+        return "\n\n".join(blocks) + (
+            "\n\n*(Thông tin được trích xuất trực tiếp từ tài liệu đã lập chỉ mục)*"
+        )
 
     def ask(
         self,
@@ -210,73 +305,88 @@ class RAGService:
         top_k: int = 3,
         document_id: Optional[str] = None,
         min_score: float = 0.25,
-        history: Optional[List[ChatMessage]] = None
+        history: Optional[List[ChatMessage]] = None,
+        retrieval_mode: str = "hybrid_rag",
+        use_reranker: bool = True,
+        include_retrieval: bool = False,
+        allowed_roles: Optional[List[str]] = None,
+        graph_weight: Optional[float] = None,
+        use_llm: bool = True,
     ) -> AskResponse:
-        """
-        End-to-end RAG QA workflow:
-        1. Semantic retrieval from Qdrant
-        2. Context indexing & citation packaging
-        3. LLM generation with anti-hallucination prompt
-        """
+        """Retrieve -> select evidence -> generate -> verify, with citations."""
         start_time = time.time()
+        timer = StepTimer()
         cleaned_query = query.strip()
 
-        # Step 1: Retrieve relevant chunks
-        hits = self.retriever.search(
-            query=cleaned_query,
+        # Lấy nhiều ứng viên hơn top_k: câu đúng có thể nằm ngoài top 3 do OCR
+        # làm lệch cosine. Bước chọn bằng chứng bên dưới mới quyết định giữ lại.
+        hits, vector_hits, graph_hits = self.retrieve_hits(
+            cleaned_query,
             top_k=top_k,
             document_id=document_id,
-            min_score=min_score
+            retrieval_mode=retrieval_mode,
+            use_reranker=use_reranker,
+            graph_weight=graph_weight,
+            allowed_roles=allowed_roles,
+            timer=timer,
         )
 
-        # Đoạn tốt nhất quá kém (ngoài ngưỡng tin cậy) -> trả lời trung thực là
-        # không tìm thấy, không kèm trích dẫn gây hiểu nhầm, không nạp nhiễu cho LLM.
-        top = hits[0] if hits else None
-        article_match = bool(top and top.get("article_match"))
-        rerank_score = top.get("rerank_score") if top else None
-        if rerank_score is not None:
-            trusted = bool(hits) and (article_match or rerank_score >= settings.RERANK_GATE)
-        else:
-            # Không có reranker: lùi về ngưỡng cosine đã hiệu chỉnh.
-            top_vector = top.get("vector_score", 0.0) if top else 0.0
-            trusted = bool(hits) and (top_vector >= CONFIDENCE_GATE or article_match)
+        with timer.step("answer_policy"):
+            selected_hits = select_evidence(
+                cleaned_query,
+                hits,
+                top_k=top_k,
+                reranker=self.retriever.reranker,
+                use_reranker=use_reranker,
+            )
+        trusted = bool(selected_hits)
 
-        # Step 2: Format context and citations
-        context_text, citations = self._build_context_and_citations(hits, cleaned_query) if trusted else ("", [])
+        context_text, citations = (
+            self._build_context_and_citations(selected_hits, cleaned_query)
+            if trusted
+            else ("", [])
+        )
 
-        # Step 3: Determine generation strategy
-        client, model_name = self._get_llm_client()
+        llm = resolve_llm() if use_llm else None
+        model_name = llm.model if llm else "extractive-fallback"
+        verified: Optional[bool] = None
 
-        answer = ""
         if not trusted:
-            answer = self._generate_extractive_fallback(cleaned_query, citations, hits)
-        elif client is not None:
+            answer = REFUSAL_TEXT
+            model_name = "guardrail-refusal"
+        elif llm is None:
+            answer = self._generate_extractive_fallback(cleaned_query, citations, selected_hits)
+        else:
             try:
                 messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                for msg in (history or [])[-4:]:
+                    messages.append({"role": msg.role, "content": msg.content})
+                messages.append({
+                    "role": "user",
+                    "content": f"NGỮ CẢNH TÀI LIỆU:\n{context_text}\n\nCÂU HỎI:\n{cleaned_query}",
+                })
+                with timer.step("llm_generate"):
+                    answer = chat_completion(llm, messages)
 
-                # Include conversation history if provided
-                if history:
-                    for msg in history[-4:]:  # last 4 turns
-                        messages.append({"role": msg.role, "content": msg.content})
-
-                user_prompt = f"NGỮ CẢNH TÀI LIỆU:\n{context_text}\n\nCÂU HỎI:\n{cleaned_query}"
-                messages.append({"role": "user", "content": user_prompt})
-
-                completion = client.chat.completions.create(
-                    model=model_name,
-                    messages=messages,
-                    temperature=0.2
-                )
-                answer = completion.choices[0].message.content.strip()
+                if "chưa tìm thấy" in answer.casefold():
+                    citations = []
+                elif settings.LLM_VERIFY_ANSWERS:
+                    with timer.step("llm_verify"):
+                        verified = self._verify_answer(llm, cleaned_query, context_text, answer)
+                    if verified is False:
+                        # The evidence passed the gate but the generated wording
+                        # did not: show the verbatim excerpt instead.
+                        logger.warning("Verifier rejected generated answer; using excerpt")
+                        answer = self._generate_extractive_fallback(cleaned_query, citations, selected_hits)
+                        model_name = f"{llm.model}-rejected-extractive"
             except Exception as exc:
-                logger.warning(f"Cloud LLM call failed ({exc}), reverting to extractive fallback")
-                answer = self._generate_extractive_fallback(cleaned_query, citations, hits)
-                model_name = f"{model_name}-fallback"
-        else:
-            # Không có LLM hoặc không có hits -> fallback
-            answer = self._generate_extractive_fallback(cleaned_query, citations, hits)
+                logger.warning("LLM call failed (%s), reverting to extractive answer", exc)
+                answer = self._generate_extractive_fallback(cleaned_query, citations, selected_hits)
+                model_name = f"{llm.model}-fallback"
 
+        record_timings(timer.steps)
         elapsed_ms = round((time.time() - start_time) * 1000, 2)
+        logger.info("Ask finished in %.0f ms: %s", elapsed_ms, timer.steps)
 
         return AskResponse(
             success=True,
@@ -284,5 +394,14 @@ class RAGService:
             answer=answer,
             citations=citations,
             execution_time_ms=elapsed_ms,
-            model_used=model_name
+            model_used=model_name,
+            graph_candidates=len(graph_hits),
+            verified=verified,
+            timings_ms=timer.steps,
+            retrieved_chunk_ids=[
+                hit.get("chunk_id", "") for hit in hits[:RETRIEVAL_REPORT_DEPTH]
+            ] if include_retrieval else [],
+            retrieved_contents=[
+                hit.get("content", "") for hit in hits[:RETRIEVAL_REPORT_DEPTH]
+            ] if include_retrieval else [],
         )

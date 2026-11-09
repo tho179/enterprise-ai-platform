@@ -29,6 +29,7 @@ public class AiParseClient {
 
     public AiParseClient(
             @Value("${app.ai-service-url}") String baseUrl,
+            @Value("${app.ai-internal-token:}") String internalToken,
             @Value("${app.ai-parse-timeout-ms:1800000}") int readTimeoutMs
     ) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -37,6 +38,7 @@ public class AiParseClient {
         this.client = RestClient.builder()
                 .baseUrl(baseUrl)
                 .requestFactory(factory)
+                .defaultHeader("X-Internal-Token", internalToken)
                 .build();
     }
 
@@ -89,12 +91,23 @@ public class AiParseClient {
             int pageCount,
             int nativePages,
             int ocrPages,
-            List<Page> pages
+            List<Page> pages,
+            List<Chunk> chunks
     ) {
         public record Page(int page, String text, String source, List<Word> words) {
         }
 
         public record Word(String text, double x, double y, double w, double h) {
+        }
+
+        public record Chunk(
+                int index,
+                int pageStart,
+                int pageEnd,
+                int headingLevel,
+                List<String> sectionPath,
+                String content
+        ) {
         }
     }
 

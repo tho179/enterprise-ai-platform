@@ -1,17 +1,15 @@
 import axios from 'axios'
 import { normalizeError } from '@/api/errors'
 import { clearAuthSession, readAuthSession } from '@/lib/storage'
-import { AI_BASE, DEMO_MODE } from '@/lib/constants'
+import { DEMO_MODE } from '@/lib/constants'
 
 export const api = axios.create({
   baseURL: (import.meta.env.VITE_API_BASE_URL as string | undefined) || '',
   timeout: 20_000,
 })
 
-export const aiApi = axios.create({
-  baseURL: AI_BASE,
-  timeout: 60_000,
-})
+// Questions can take as long as the slowest configured LLM.
+export const AI_TIMEOUT_MS = 190_000
 
 api.interceptors.request.use((config) => {
   const session = readAuthSession()

@@ -807,19 +807,33 @@ select {
 }
 
 .chat-session__body {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  width: 100%;
+  overflow: hidden;
   flex: 1;
 }
 
 .chat-session__title {
+  display: block;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
   font-size: 12.5px;
   font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.4;
 }
 
 .chat-session__meta {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin-top: 2px;
   color: var(--muted);
   font-size: 11px;
@@ -2107,9 +2121,11 @@ select {
 
 .chat-session-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  position: relative;
   border-radius: var(--radius-sm);
   transition: background 120ms ease;
+  overflow: hidden;
 }
 
 .chat-session-row:hover {
@@ -2124,7 +2140,9 @@ select {
 .chat-session-row .chat-session {
   flex: 1;
   min-width: 0;
+  width: auto;
   padding: 9px 10px;
+  overflow: hidden;
 }
 
 .chat-session-row .chat-session:hover {
@@ -2132,12 +2150,15 @@ select {
 }
 
 .chat-session__delete {
-  margin: 7px 3px 0 0;
+  flex-shrink: 0;
+  margin: 0 4px 0 0;
   opacity: 0;
+  transition: opacity 120ms ease;
 }
 
 .chat-session-row:hover .chat-session__delete,
-.chat-session-row--active .chat-session__delete {
+.chat-session-row--active .chat-session__delete,
+.chat-session-row:focus-within .chat-session__delete {
   opacity: 1;
 }
 

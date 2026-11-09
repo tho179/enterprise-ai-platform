@@ -34,6 +34,18 @@ public class CurrentUser {
         return authentication.getName();
     }
 
+    /** Returns the role without Spring's ROLE_ prefix, e.g. "ADMIN". */
+    public String role() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Vui lòng đăng nhập.");
+        }
+        return authentication.getAuthorities().stream()
+                .map(authority -> authority.getAuthority().replaceFirst("^ROLE_", ""))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản chưa có vai trò."));
+    }
+
     /**
      * Returns the full name of the currently authenticated user,
      * falling back to email if the user record is not found.

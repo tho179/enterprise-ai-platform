@@ -1,7 +1,6 @@
 import type { Role, TicketCategory, TicketPriority, TicketStatus } from '@/api/types'
 
 export const DEMO_MODE = import.meta.env.VITE_USE_MOCKS === 'true'
-export const AI_BASE = (import.meta.env.VITE_AI_BASE_URL as string | undefined) || '/ai-api'
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -74,11 +73,11 @@ export const TICKET_PRIORITIES: TicketPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'UR
 export function defaultRouteForRole(role: Role | undefined): string {
   switch (role) {
     case 'MANAGER':
-      return '/approvals'
+      return DEMO_MODE ? '/approvals' : '/chat'
     case 'ADMIN':
       return '/documents'
     case 'IT_SUPPORT':
-      return '/tickets/queue'
+      return DEMO_MODE ? '/tickets/queue' : '/chat'
     default:
       return '/chat'
   }

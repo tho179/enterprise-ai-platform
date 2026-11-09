@@ -1,0 +1,55 @@
+{
+  "note": "Nguồn công khai đã thu thập cho KB2; nội dung được nạp bằng scripts/10_build_neo4j_kb.py --links.",
+  "links": [
+    {
+      "url": "https://masanconsumer.com/ve-masan-consumer/gioi-thieu-chung/",
+      "title": "Giới thiệu chung về Masan Consumer",
+      "group": "Doanh nghiệp"
+    },
+    {
+      "url": "https://masanconsumer.com/quan-he-co-dong/gioi-thieu/",
+      "title": "Quan hệ cổ đông - giới thiệu",
+      "group": "Quản trị"
+    },
+    {
+      "url": "https://masanconsumer.com/quan-he-co-dong/cong-bo-thong-tin/thong-tin-cong-bo/",
+      "title": "Công bố thông tin",
+      "group": "Quản trị"
+    },
+    {
+      "url": "https://masanconsumer.com/quan-he-co-dong/bao-cao-thuong-nien/",
+      "title": "Báo cáo thường niên",
+      "group": "Quản trị"
+    },
+    {
+      "url": "https://masanconsumer.com/quan-he-co-dong/dai-hoi-dong-co-dong/",
+      "title": "Đại hội đồng cổ đông",
+      "group": "Quản trị"
+    },
+    {
+      "url": "https://masanconsumer.com/quan-he-co-dong/thong-tin-tai-chinh/",
+      "title": "Thông tin tài chính",
+      "group": "Tài chính"
+    },
+    {
+      "url": "https://masanconsumer.com/tai-lieu-doanh-nghiep/",
+      "title": "Tài liệu doanh nghiệp",
+      "group": "Tài liệu"
+    },
+    {
+      "url": "https://masanconsumer.com/phat-trien-ben-vung/quan-tri/",
+      "title": "Phát triển bền vững - quản trị",
+      "group": "Bền vững"
+    },
+    {
+      "url": "https://masanconsumer.com/tin-tuc/thong-cao-bao-chi/",
+      "title": "Thông cáo báo chí",
+      "group": "Tin tức"
+    },
+    {
+      "url": "https://masanconsumer.com/tai-lieu/",
+      "title": "Tài liệu",
+      "group": "Tài liệu"
+    }
+  ]
+}

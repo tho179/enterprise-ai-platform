@@ -4,10 +4,10 @@ services:
     image: postgres:15
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-enterprise_ai_db}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,11 +17,11 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Redis for caching and message queue
+  # Redis backs the AI gateway rate limit
   redis:
     image: redis:7-alpine
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -34,11 +34,57 @@ services:
   # Qdrant for Vector Database
   qdrant:
     image: qdrant/qdrant:latest
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?Set QDRANT_API_KEY in .env}
     ports:
-      - "${QDRANT_PORT:-6333}:6333"
-      - "${QDRANT_GRPC_PORT:-6334}:6334"
+      - "127.0.0.1:${QDRANT_PORT:-6333}:6333"
+      - "127.0.0.1:${QDRANT_GRPC_PORT:-6334}:6334"
     volumes:
       - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "bash", "-c", ":> /dev/tcp/127.0.0.1/6333"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # Neo4j for the optional knowledge graph (KB1/KB2 -> KB)
+  neo4j:
+    image: neo4j:5.26-community
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?Set NEO4J_PASSWORD in .env}
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 1G
+    ports:
+      - "127.0.0.1:${NEO4J_HTTP_PORT:-7474}:7474"
+      - "127.0.0.1:${NEO4J_BOLT_PORT:-7687}:7687"
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p \"$${NEO4J_AUTH#*/}\" 'RETURN 1' >/dev/null 2>&1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # Optional local LLM (OpenAI-compatible). Start with:
+  #   docker compose --profile local-llm up -d ollama
+  #   docker compose exec ollama ollama pull qwen2.5:3b
+  # then set LLM_BASE_URL=http://ollama:11434/v1 and LLM_MODEL=qwen2.5:3b in .env.
+  # Needs the NVIDIA container runtime; delete `gpus` to run on CPU (much slower).
+  ollama:
+    image: ollama/ollama:0.12.6
+    profiles: ["local-llm"]
+    gpus: all
+    environment:
+      OLLAMA_KEEP_ALIVE: 30m
+      OLLAMA_NUM_PARALLEL: 1
+    ports:
+      - "127.0.0.1:${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
     restart: unless-stopped
 
   # AI Service (FastAPI + OCR + RAG + Embeddings)
@@ -47,17 +93,36 @@ services:
       context: ./ai-service
       dockerfile: Dockerfile
     ports:
-      - "${AI_SERVICE_PORT:-8001}:8001"
+      - "127.0.0.1:${AI_SERVICE_PORT:-8001}:8001"
     environment:
       - APP_NAME=Enterprise AI Service
       - APP_HOST=0.0.0.0
       - APP_PORT=8001
       - QDRANT_URL=http://qdrant:6333
       - QDRANT_COLLECTION=enterprise_documents
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+      - QDRANT_API_KEY=${QDRANT_API_KEY:?Set QDRANT_API_KEY in .env}
+      - QDRANT_ALLOW_LOCAL_FALLBACK=false
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-intfloat/multilingual-e5-small}
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:?Set NEO4J_PASSWORD in .env}
+      - NEO4J_DATABASE=neo4j
+      - GRAPH_ENABLED=${GRAPH_ENABLED:-true}
+      - GRAPH_SEARCH_LIMIT=${GRAPH_SEARCH_LIMIT:-8}
+      - GRAPH_RRF_WEIGHT=${GRAPH_RRF_WEIGHT:-0.2}
       - PYTHONPATH=/app
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.5-flash}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - LLM_TIMEOUT_S=${LLM_TIMEOUT_S:-90}
+      - LLM_MIN_INTERVAL_S=${LLM_MIN_INTERVAL_S:-0}
+      - LLM_VERIFY_ANSWERS=${LLM_VERIFY_ANSWERS:-true}
+      - ANSWER_DOMAIN_RULES=${ANSWER_DOMAIN_RULES:-false}
     volumes:
       - ./ai-service/data:/app/data
       - ./ai-service/debug:/app/debug
@@ -66,7 +131,16 @@ services:
       - ./ai-service/tests:/app/tests
       - huggingface_cache:/root/.cache/huggingface
     depends_on:
-      - qdrant
+      qdrant:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8001/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
     restart: unless-stopped
 
   # Backend (Spring Boot / Java 17 + PostgreSQL + Redis)
@@ -79,10 +153,13 @@ services:
     environment:
       - DB_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-enterprise_ai_db}
       - DB_USERNAME=${POSTGRES_USER:-admin}
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-password}
-      - JWT_SECRET=${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET in .env}
       - JWT_EXPIRATION=${JWT_EXPIRATION:-3600000}
       - AI_SERVICE_URL=http://ai-service:8001
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?Set INTERNAL_API_TOKEN in .env}
+      - REDIS_HOST=redis
+      - AI_RATE_LIMIT_PER_MINUTE=${AI_RATE_LIMIT_PER_MINUTE:-30}
       - UPLOAD_DIR=/app/data/uploads
     volumes:
       - backend_uploads:/app/data/uploads
@@ -92,7 +169,13 @@ services:
       redis:
         condition: service_healthy
       ai-service:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
     restart: unless-stopped
 
   # Frontend (React + Vite, served by nginx)
@@ -101,19 +184,20 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_USE_MOCKS: ${VITE_USE_MOCKS:-true}
+        VITE_USE_MOCKS: ${VITE_USE_MOCKS:-false}
         VITE_API_BASE_URL: ""
-        VITE_AI_BASE_URL: /ai-api
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
-      - backend
-      - ai-service
+      backend:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
   qdrant_data:
+  neo4j_data:
   huggingface_cache:
   backend_uploads:
+  ollama_data:

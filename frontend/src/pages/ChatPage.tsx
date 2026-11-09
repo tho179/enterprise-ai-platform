@@ -268,25 +268,55 @@ export function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qParam])
 
+  const resetChatState = () => {
+    setActiveId(null)
+    setInput('')
+    setSendError(null)
+    setRetryState(null)
+  }
+
+  const startNewChat = () => {
+    resetChatState()
+    window.dispatchEvent(new CustomEvent('app:new-chat'))
+  }
+
+  useEffect(() => {
+    const handleNewChat = () => {
+      resetChatState()
+    }
+    const handlePrompt = (event: Event) => {
+      const customEvent = event as CustomEvent<string>
+      if (customEvent.detail) {
+        void sendQuestion(customEvent.detail, { createNew: true })
+      }
+    }
+    window.addEventListener('app:new-chat', handleNewChat)
+    window.addEventListener('app:chat-prompt', handlePrompt)
+    return () => {
+      window.removeEventListener('app:new-chat', handleNewChat)
+      window.removeEventListener('app:chat-prompt', handlePrompt)
+    }
+  }, [sessions, activeId, sending])
+
   if (!session) return null
 
   const handleSend = () => {
     const question = input.trim()
     if (!question || sending) return
     setInput('')
+    window.dispatchEvent(new CustomEvent('app:chat-active', { detail: { key: '' } }))
     void sendQuestion(question)
   }
 
   const handleSuggestion = (question: string) => {
     if (sending) return
+    const matched = CHAT_SUGGESTIONS.find((item) => item.question === question)
+    if (matched) {
+      window.dispatchEvent(
+        new CustomEvent('app:chat-active', { detail: { label: matched.label } }),
+      )
+    }
     void sendQuestion(question, { createNew: true })
-  }
-
-  const startNewChat = () => {
-    setActiveId(null)
-    setInput('')
-    setSendError(null)
-    setRetryState(null)
   }
 
   const deleteSession = (id: string) => {
@@ -350,6 +380,7 @@ export function ChatPage() {
     setSendError(null)
     setRetryState(null)
     setSessionsOpen(false)
+    window.dispatchEvent(new CustomEvent('app:chat-active', { detail: { key: '' } }))
   }
 
   const renderSessions = () =>

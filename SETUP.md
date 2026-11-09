@@ -15,13 +15,15 @@ Toàn bộ môi trường bao gồm Java 17, Spring Boot, Python 3.11, FastAPI, 
 
 ### 2. Khởi động toàn bộ dịch vụ
 ```bash
-# Tại thư mục gốc của dự án:
+# Tại thư mục gốc của dự án: tạo .env rồi điền các secret bắt buộc
+cp .env.example .env
 docker compose up -d
 ```
 
 ### 3. Kiểm tra các dịch vụ
+- **Giao diện**: [http://localhost:3000](http://localhost:3000)
 - **Backend API**: [http://localhost:8080](http://localhost:8080)
-- **AI Service Swagger API**: [http://localhost:8001/docs](http://localhost:8001/docs)
+- **AI Service Swagger API**: [http://127.0.0.1:8001/docs](http://127.0.0.1:8001/docs)
 - **Qdrant Vector Database**: [http://localhost:6333/dashboard](http://localhost:6333/dashboard)
 
 ### 4. Chạy Unit Tests và Scripts trong Docker

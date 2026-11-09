@@ -26,14 +26,18 @@ import { documentsApi } from '@/api/documents'
 import type { UploadTicket } from '@/api/types'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Panel } from '@/components/ui/Panel'
-import { DOCUMENT_CATEGORIES, MAX_UPLOAD_BYTES } from '@/lib/constants'
+import type { Role } from '@/api/types'
+import { DOCUMENT_CATEGORIES, MAX_UPLOAD_BYTES, ROLE_LABELS } from '@/lib/constants'
 import { formatNumber } from '@/lib/format'
 import { usePageTitle } from '@/lib/usePageTitle'
+
+const READER_ROLES: Role[] = ['EMPLOYEE', 'MANAGER', 'IT_SUPPORT']
 
 interface UploadFormValues {
   documentCode: string
   title: string
   category: string
+  allowedRoles?: Role[]
 }
 
 const PIPELINE_STEPS = [
@@ -112,6 +116,9 @@ export function UploadPage() {
     formData.append('documentCode', values.documentCode.trim().toUpperCase())
     formData.append('title', values.title.trim())
     formData.append('category', values.category)
+    if (values.allowedRoles?.length) {
+      formData.append('allowedRoles', values.allowedRoles.join(','))
+    }
     formData.append('file', file)
     uploadMutation.mutate(formData)
   }
@@ -268,6 +275,21 @@ export function UploadPage() {
                     />
                   </Form.Item>
                 </div>
+                <Form.Item
+                  label="Vai trò được xem"
+                  name="allowedRoles"
+                  extra="Để trống: mọi người dùng đã đăng nhập. Quản trị viên luôn xem được."
+                >
+                  <Select
+                    mode="multiple"
+                    allowClear
+                    placeholder="Mọi người dùng"
+                    options={READER_ROLES.map((role) => ({
+                      value: role,
+                      label: ROLE_LABELS[role],
+                    }))}
+                  />
+                </Form.Item>
                 <Form.Item
                   label="Tiêu đề tài liệu"
                   name="title"

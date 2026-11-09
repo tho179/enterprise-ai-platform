@@ -11,3 +11,5 @@ openai
 google-genai
 python-multipart
 pytest
+httpx
+neo4j>=5.20

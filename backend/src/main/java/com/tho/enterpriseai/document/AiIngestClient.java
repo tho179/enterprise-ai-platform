@@ -24,6 +24,7 @@ public class AiIngestClient {
 
     public AiIngestClient(
             @Value("${app.ai-service-url}") String baseUrl,
+            @Value("${app.ai-internal-token:}") String internalToken,
             @Value("${app.ai-read-timeout-ms:600000}") int readTimeoutMs
     ) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -32,6 +33,7 @@ public class AiIngestClient {
         this.client = RestClient.builder()
                 .baseUrl(baseUrl)
                 .requestFactory(factory)
+                .defaultHeader("X-Internal-Token", internalToken)
                 .build();
     }
 
@@ -64,9 +66,18 @@ public class AiIngestClient {
                 metadata.put("title", document.getTitle());
                 metadata.put("document_type", document.getCategory());
                 metadata.put("version_id", version.getId().toString());
+                metadata.put("version_number", version.getVersionNumber());
+                metadata.put("allowed_roles", document.allowedRoleList());
                 metadata.put("page_start", chunk.getPageStart());
                 metadata.put("page_end", chunk.getPageEnd());
-                metadata.put("section_path", List.of(chunk.getSectionPath()));
+                metadata.put("chunk_index", chunk.getChunkIndex());
+                String section = chunk.getSectionPath();
+                metadata.put("section_path", section == null || section.isBlank()
+                        ? List.of()
+                        : List.of(section.split(" > ")).stream()
+                                .map(String::trim)
+                                .filter(item -> !item.isBlank())
+                                .toList());
 
                 Map<String, Object> item = new LinkedHashMap<>();
                 item.put("chunk_id", chunk.getChunkId());

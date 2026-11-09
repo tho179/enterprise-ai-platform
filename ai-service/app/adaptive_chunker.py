@@ -1,4 +1,3 @@
-
 import re
 from dataclasses import dataclass, asdict
 from typing import List, Dict, Any
@@ -26,6 +25,7 @@ class AdaptiveChunker:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.min_chunk_size = min_chunk_size
+        self.max_heading_chars = 200
 
     def chunk_nodes(self, nodes: List[Dict[str, Any]]) -> List[TextChunk]:
         all_chunks = []
@@ -112,9 +112,13 @@ class AdaptiveChunker:
             if len(candidate) <= self.chunk_size:
                 current_chunk = candidate
             else:
+                # Tiêu đề ngắn phải đi cùng nội dung, không thành chunk rỗng nghĩa.
+                if len(para) > self.chunk_size and 0 < len(current_chunk) < self.max_heading_chars:
+                    para = current_chunk + " " + para
+                    current_chunk = ""
                 if current_chunk:
                     chunks.append(current_chunk)
-                    
+
                 if len(para) > self.chunk_size:
                     # Đoạn văn quá dài, kích hoạt Fallback cấp 3: Sentence-aware
                     sentence_chunks = self._sentence_split(para)

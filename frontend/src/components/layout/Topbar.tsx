@@ -29,7 +29,7 @@ export function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   const notificationsQuery = useQuery({
     queryKey: ['notifications'],
     queryFn: notificationsApi.list,
-    enabled: session !== null,
+    enabled: DEMO_MODE && session !== null,
   })
 
   if (!session) return null

@@ -3,7 +3,7 @@ import logging
 import re
 from pathlib import Path
 import json
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from qdrant_client.models import Filter, FieldCondition, MatchAny, MatchValue
 
 from app.config import settings
 from app.embedding_service import EmbeddingService, fold_text
@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 
 # Rerank hybrid: giữ độ nhớ nhúng (vector) nhưng tăng hạng cho đoạn khớp từ khóa.
 # OCR tiếng Việt hay làm hỏng dấu nên việc khớp từ sau khi fold rất hiệu quả.
-LEXICAL_WEIGHT = 0.3
+# Trọng số cao hơn cosine vì câu hỏi nghiệp vụ thường có từ khóa chốt ("mật khẩu",
+# "cổ tức") mà embedding nhỏ làm chìm xuống ngoài top 60.
+LEXICAL_WEIGHT = 0.9
 # Câu hỏi dạng "Điều 43 quy định gì?" gần như không có tín hiệu ngữ nghĩa
 # (số điều không được embedding tốt) -> ưu tiên mạnh đoạn chứa đúng số điều.
 ARTICLE_BOOST = 0.45
@@ -82,7 +84,10 @@ class VectorRetriever:
         query: str,
         top_k: int = 5,
         document_id: Optional[str] = None,
-        min_score: float = 0.35
+        min_score: float = 0.35,
+        use_reranker: bool = True,
+        query_vector: Optional[List[float]] = None,
+        allowed_roles: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """
         Search for document chunks with highest semantic similarity score.
@@ -91,28 +96,34 @@ class VectorRetriever:
             return []
 
         # 1. Embed query into vector
-        query_vector = self.embedding.embed_query(query)
+        if query_vector is None:
+            query_vector = self.embedding.embed_query(query)
         seen_keys: set = set()
         article_numbers = _article_numbers(query)
 
         # 2. Build metadata filter if specified
-        query_filter = None
+        conditions = []
         if document_id:
-            query_filter = Filter(
-                must=[
-                    FieldCondition(
-                        key="document_id",
-                        match=MatchValue(value=document_id)
-                    )
-                ]
+            conditions.append(
+                FieldCondition(key="document_id", match=MatchValue(value=document_id))
             )
+        if allowed_roles is not None:
+            conditions.append(
+                FieldCondition(
+                    key="allowed_roles",
+                    match=MatchAny(any=[*allowed_roles, "*"]),
+                )
+            )
+        query_filter = Filter(must=conditions) if conditions else None
 
         # 3. Query Qdrant for nearest points
         # Tìm sâu (oversample): cosine của model nhỏ cụm sát nhau nên đoạn đích
         # có thể nằm ngoài top tìm kiếm thường — phải nạp đủ sâu rồi rerank lexical.
         results = []
         try:
-            fetch_limit = min(200, max(top_k * 10, 100))
+            # Tìm đủ sâu cho kho nhỏ; khi kho lớn hơn 1.000 đoạn vẫn giới hạn
+            # để tránh kéo toàn bộ collection mỗi câu hỏi.
+            fetch_limit = min(1000, max(top_k * 20, 300))
             if hasattr(self.qdrant.client, "search"):
                 hits = self.qdrant.client.search(
                     collection_name=self.qdrant.collection_name,
@@ -183,7 +194,7 @@ class VectorRetriever:
         # Cross-encoder chấm lại nhóm đầu: sửa thứ hạng sai và cung cấp điểm
         # tin cậy cho bước quyết định trả lời/từ chối.
         head = results[: settings.RERANK_CANDIDATES]
-        if self.reranker.enabled and head:
+        if use_reranker and self.reranker.enabled and head:
             head = self.reranker.rerank(query, head)
             results = head + results[settings.RERANK_CANDIDATES:]
         return results[:top_k]
