@@ -269,7 +269,7 @@ erDiagram
 
 ---
 
-### M3 — EMBEDDING & VECTOR RAG 🔜 TIẾP THEO
+### M3 — EMBEDDING & VECTOR RAG ✅ HOÀN THÀNH
 
 > **Owner: Đạt** · Reviewer: Thọ · Tester: Đức
 
@@ -355,7 +355,7 @@ sequenceDiagram
 
 ---
 
-### M4 — KNOWLEDGE GRAPH & GRAPHRAG
+### M4 — KNOWLEDGE GRAPH & GRAPHRAG ✅ HOÀN THÀNH (trích xuất bằng luật)
 
 > **Owner: Đạt** · Reviewer: Thọ · Tester: Đức
 
@@ -411,11 +411,11 @@ flowchart LR
 | User entity + CRUD | ✅ Done |
 | JWT Authentication | ✅ Done |
 | Security Config | ✅ Done |
-| RBAC / Role management | 🔜 TODO |
-| Document Management | 🔜 TODO |
-| Leave Request | 🔜 TODO |
-| IT Request | 🔜 TODO |
-| AI Gateway | 🔜 TODO |
+| RBAC / Role management | ✅ Done |
+| Document Management | ✅ Done (phân quyền xem theo vai trò) |
+| Leave Request | 🟡 Chỉ giao diện mẫu, chưa có API |
+| IT Request | 🟡 Chỉ giao diện mẫu, chưa có API |
+| AI Gateway | ✅ Done (`/api/ai/chat`, `/api/ai/search`, audit, rate limit) |
 
 #### M5.6 — AI Gateway API Contract
 

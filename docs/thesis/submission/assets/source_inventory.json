@@ -1,0 +1,310 @@
+{
+  "pdf_count": 35,
+  "pdf_pages": 395,
+  "categories": [
+    "dieu_le_cong_ty",
+    "dieu_le_sua_doi",
+    "nhan_su_va_lao_dong",
+    "quy_che_va_quy_trinh"
+  ],
+  "link_count": 10,
+  "pdfs": [
+    {
+      "file": "Dieu_le_cong_ty_2021.pdf",
+      "relative_path": "dieu_le_cong_ty/Dieu_le_cong_ty_2021.pdf",
+      "category": "dieu_le_cong_ty",
+      "pages": 38,
+      "size_kb": 3654.1
+    },
+    {
+      "file": "Dieu_le_cong_ty_2025.pdf",
+      "relative_path": "dieu_le_cong_ty/Dieu_le_cong_ty_2025.pdf",
+      "category": "dieu_le_cong_ty",
+      "pages": 41,
+      "size_kb": 11249.4
+    },
+    {
+      "file": "Dieu_le_cong_ty_2026.pdf",
+      "relative_path": "dieu_le_cong_ty/Dieu_le_cong_ty_2026.pdf",
+      "category": "dieu_le_cong_ty",
+      "pages": 42,
+      "size_kb": 14840.1
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_1.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_1.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 2,
+      "size_kb": 234.3
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_10.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_10.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 2,
+      "size_kb": 162.6
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_1_1.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_1_1.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 278.8
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_1_2.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_1_2.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 279.2
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_2.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_2.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 92.0
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_2_1.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_2_1.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 658.3
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_2_2.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_2_2.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 317.2
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_3.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_3.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 80.7
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_3_1.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_3_1.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 3,
+      "size_kb": 968.5
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_3_2.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_3_2.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 714.3
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_4.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_4.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 347.6
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_4_1.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_4_1.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 5,
+      "size_kb": 1627.6
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_5.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_5.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 416.6
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_5_1.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_5_1.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 89.3
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_6.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_6.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 403.5
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_7.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_7.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 3,
+      "size_kb": 1181.7
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_7_1.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_7_1.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 109.9
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_8.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_8.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 465.6
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_8_1.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_8_1.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 1,
+      "size_kb": 113.8
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_9.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_9.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 2,
+      "size_kb": 190.6
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_khac.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_khac.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 38,
+      "size_kb": 727.0
+    },
+    {
+      "file": "Phu_luc_sua_doi_dieu_le_lan_khac_1.pdf",
+      "relative_path": "dieu_le_sua_doi/Phu_luc_sua_doi_dieu_le_lan_khac_1.pdf",
+      "category": "dieu_le_sua_doi",
+      "pages": 3,
+      "size_kb": 173.0
+    },
+    {
+      "file": "Chinh_sach_nhan_quyen.pdf",
+      "relative_path": "nhan_su_va_lao_dong/Chinh_sach_nhan_quyen.pdf",
+      "category": "nhan_su_va_lao_dong",
+      "pages": 4,
+      "size_kb": 1348.1
+    },
+    {
+      "file": "Noi_quy_lao_dong.pdf",
+      "relative_path": "nhan_su_va_lao_dong/Noi_quy_lao_dong.pdf",
+      "category": "nhan_su_va_lao_dong",
+      "pages": 34,
+      "size_kb": 13795.7
+    },
+    {
+      "file": "Thoa_uoc_lao_dong_tap_the.pdf",
+      "relative_path": "nhan_su_va_lao_dong/Thoa_uoc_lao_dong_tap_the.pdf",
+      "category": "nhan_su_va_lao_dong",
+      "pages": 15,
+      "size_kb": 4642.5
+    },
+    {
+      "file": "Chinh_sach_an_ninh_thong_tin.pdf",
+      "relative_path": "quy_che_va_quy_trinh/Chinh_sach_an_ninh_thong_tin.pdf",
+      "category": "quy_che_va_quy_trinh",
+      "pages": 22,
+      "size_kb": 9301.7
+    },
+    {
+      "file": "Quy_che_hoat_dong_HDQT.pdf",
+      "relative_path": "quy_che_va_quy_trinh/Quy_che_hoat_dong_HDQT.pdf",
+      "category": "quy_che_va_quy_trinh",
+      "pages": 15,
+      "size_kb": 1419.6
+    },
+    {
+      "file": "Quy_che_quan_tri_cong_ty.pdf",
+      "relative_path": "quy_che_va_quy_trinh/Quy_che_quan_tri_cong_ty.pdf",
+      "category": "quy_che_va_quy_trinh",
+      "pages": 28,
+      "size_kb": 7271.5
+    },
+    {
+      "file": "Quy_che_quan_tri_rui_ro.pdf",
+      "relative_path": "quy_che_va_quy_trinh/Quy_che_quan_tri_rui_ro.pdf",
+      "category": "quy_che_va_quy_trinh",
+      "pages": 22,
+      "size_kb": 8446.5
+    },
+    {
+      "file": "Quy_trinh_danh_gia_nha_cung_cap.pdf",
+      "relative_path": "quy_che_va_quy_trinh/Quy_trinh_danh_gia_nha_cung_cap.pdf",
+      "category": "quy_che_va_quy_trinh",
+      "pages": 13,
+      "size_kb": 7080.4
+    },
+    {
+      "file": "Quy_trinh_giai_quyet_khieu_nai.pdf",
+      "relative_path": "quy_che_va_quy_trinh/Quy_trinh_giai_quyet_khieu_nai.pdf",
+      "category": "quy_che_va_quy_trinh",
+      "pages": 40,
+      "size_kb": 13861.5
+    },
+    {
+      "file": "Quy_trinh_xu_ly_vu_viec.pdf",
+      "relative_path": "quy_che_va_quy_trinh/Quy_trinh_xu_ly_vu_viec.pdf",
+      "category": "quy_che_va_quy_trinh",
+      "pages": 9,
+      "size_kb": 3014.1
+    }
+  ],
+  "links": [
+    {
+      "url": "https://masanconsumer.com/ve-masan-consumer/gioi-thieu-chung/",
+      "title": "Giới thiệu chung về Masan Consumer",
+      "group": "Doanh nghiệp"
+    },
+    {
+      "url": "https://masanconsumer.com/quan-he-co-dong/gioi-thieu/",
+      "title": "Quan hệ cổ đông - giới thiệu",
+      "group": "Quản trị"
+    },
+    {
+      "url": "https://masanconsumer.com/quan-he-co-dong/cong-bo-thong-tin/thong-tin-cong-bo/",
+      "title": "Công bố thông tin",
+      "group": "Quản trị"
+    },
+    {
+      "url": "https://masanconsumer.com/quan-he-co-dong/bao-cao-thuong-nien/",
+      "title": "Báo cáo thường niên",
+      "group": "Quản trị"
+    },
+    {
+      "url": "https://masanconsumer.com/quan-he-co-dong/dai-hoi-dong-co-dong/",
+      "title": "Đại hội đồng cổ đông",
+      "group": "Quản trị"
+    },
+    {
+      "url": "https://masanconsumer.com/quan-he-co-dong/thong-tin-tai-chinh/",
+      "title": "Thông tin tài chính",
+      "group": "Tài chính"
+    },
+    {
+      "url": "https://masanconsumer.com/tai-lieu-doanh-nghiep/",
+      "title": "Tài liệu doanh nghiệp",
+      "group": "Tài liệu"
+    },
+    {
+      "url": "https://masanconsumer.com/phat-trien-ben-vung/quan-tri/",
+      "title": "Phát triển bền vững - quản trị",
+      "group": "Bền vững"
+    },
+    {
+      "url": "https://masanconsumer.com/tin-tuc/thong-cao-bao-chi/",
+      "title": "Thông cáo báo chí",
+      "group": "Tin tức"
+    },
+    {
+      "url": "https://masanconsumer.com/tai-lieu/",
+      "title": "Tài liệu",
+      "group": "Tài liệu"
+    }
+  ]
+}
