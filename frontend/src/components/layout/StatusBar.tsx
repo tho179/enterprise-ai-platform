@@ -1,11 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { healthApi } from '@/api/health'
-import { useAuth } from '@/auth/AuthContext'
-import { DEMO_MODE, ROLE_LABELS } from '@/lib/constants'
+import { DEMO_MODE } from '@/lib/constants'
 import { formatNumber } from '@/lib/format'
 
 export function StatusBar() {
-  const { session } = useAuth()
   const healthQuery = useQuery({
     queryKey: ['health'],
     queryFn: healthApi.get,
@@ -35,21 +33,18 @@ export function StatusBar() {
         <span className="status-bar__item">{health.latencyMs} ms</span>
       ) : null}
       {health?.qdrantVectors !== undefined ? (
-        <span className="status-bar__item">
+        <span className="status-bar__item hide-mobile">
           Qdrant {formatNumber(health.qdrantVectors)} vector
         </span>
       ) : null}
       {health?.model ? (
-        <span className="status-bar__item hide-tablet" title={health.model}>
+        <span className="status-bar__item status-bar__item--soft hide-tablet" title={health.model}>
           {health.model}
         </span>
       ) : null}
-      <span className="status-bar__item hide-mobile">
-        {session ? `${session.fullName} · ${ROLE_LABELS[session.role]}` : ''}
-      </span>
       <span className="status-bar__spacer" />
       <span className="status-bar__item">{DEMO_MODE ? 'Mock mode' : 'Live API'}</span>
-      <span className="status-bar__item">EAKWP Console v1.0</span>
+      <span className="status-bar__item hide-tablet">v1.0</span>
     </footer>
   )
 }

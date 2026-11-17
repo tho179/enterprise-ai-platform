@@ -76,6 +76,22 @@ export interface ChatTurn {
   content: string
 }
 
+/** One decision of the question-answering agent (ai-service app/agent). */
+export interface AgentTraceStep {
+  step: number
+  perception?: {
+    shape?: string
+    article?: string | null
+    attribute?: string | null
+    entities?: string[]
+  }
+  rule?: string
+  action?: string
+  result?: string
+  citations?: number
+  ms?: number
+}
+
 export interface AskResponse {
   success: boolean
   query: string
@@ -83,6 +99,7 @@ export interface AskResponse {
   citations: Citation[]
   execution_time_ms: number
   model_used: string
+  agent_trace?: AgentTraceStep[]
 }
 
 export interface SearchHit {

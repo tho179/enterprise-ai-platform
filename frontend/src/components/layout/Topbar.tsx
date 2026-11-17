@@ -126,13 +126,13 @@ export function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
       >
         <MenuOutlined />
       </button>
-      <div className="topbar__left">
+      <nav className="topbar__left" aria-label="Vị trí hiện tại">
         <span className="topbar__brand">EAKWP</span>
-        <span className="topbar__sep">/</span>
-        <h1 className="topbar__title">{meta.title}</h1>
-        <span className="topbar__sep hide-tablet">/</span>
-        <span className="topbar__sub hide-tablet">{meta.subtitle}</span>
-      </div>
+        <span className="topbar__sep" aria-hidden="true">/</span>
+        <h1 className="topbar__title" title={meta.title}>
+          {meta.title}
+        </h1>
+      </nav>
       <div className="topbar__actions">
         <Input
           className="topbar__search hide-tablet"

@@ -20,7 +20,8 @@ import rehypeSanitize from 'rehype-sanitize'
 import dayjs from 'dayjs'
 import { chatApi } from '@/api/chat'
 import { normalizeError } from '@/api/errors'
-import type { Citation, ChatTurn } from '@/api/types'
+import type { AgentTraceStep, Citation, ChatTurn } from '@/api/types'
+import { AgentTrace } from '@/components/chat/AgentTrace'
 import { useAuth } from '@/auth/AuthContext'
 import { CitationCard, CitationModal } from '@/components/citations/CitationList'
 import { CHAT_SUGGESTIONS } from '@/components/layout/navConfig'
@@ -38,6 +39,7 @@ interface ChatMessage {
   citations?: Citation[]
   model?: string
   executionTimeMs?: number
+  agentTrace?: AgentTraceStep[]
 }
 
 interface ChatSession {
@@ -101,6 +103,7 @@ export function ChatPage() {
   const { session } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const qParam = searchParams.get('q') ?? ''
+  const draftParam = searchParams.get('draft') ?? ''
   const screens = Grid.useBreakpoint()
   const isWide = screens.xl ?? false
 
@@ -125,6 +128,7 @@ export function ChatPage() {
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null)
   const [activeCitationKey, setActiveCitationKey] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const composerRef = useRef<HTMLTextAreaElement>(null)
   const handledQRef = useRef<string | null>(null)
 
   const sortedSessions = useMemo(
@@ -202,12 +206,12 @@ export function ChatPage() {
         previous.map((item) =>
           item.id === targetId
             ? {
-                ...item,
-                title:
-                  item.messages.length === 0 ? truncate(trimmed, 56) : item.title,
-                messages: [...item.messages, userMessage],
-                updatedAt: now,
-              }
+              ...item,
+              title:
+                item.messages.length === 0 ? truncate(trimmed, 56) : item.title,
+              messages: [...item.messages, userMessage],
+              updatedAt: now,
+            }
             : item,
         ),
       )
@@ -234,15 +238,16 @@ export function ChatPage() {
         citations: response.citations,
         model: response.model_used,
         executionTimeMs: response.execution_time_ms,
+        agentTrace: response.agent_trace,
       }
       setSessions((previous) =>
         previous.map((item) =>
           item.id === targetId
             ? {
-                ...item,
-                messages: [...item.messages, answer],
-                updatedAt: new Date().toISOString(),
-              }
+              ...item,
+              messages: [...item.messages, answer],
+              updatedAt: new Date().toISOString(),
+            }
             : item,
         ),
       )
@@ -267,6 +272,22 @@ export function ChatPage() {
     // qParam is the only trigger; sendQuestion intentionally uses current state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qParam])
+
+  // ?draft= pre-fills the composer (e.g. "Trong tài liệu X, …") without sending,
+  // so the user finishes the question themselves.
+  useEffect(() => {
+    if (!draftParam) return
+    setActiveId(null)
+    setInput(draftParam)
+    setSearchParams({}, { replace: true })
+    requestAnimationFrame(() => {
+      const element = composerRef.current
+      if (!element) return
+      element.focus()
+      element.setSelectionRange(draftParam.length, draftParam.length)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftParam])
 
   const resetChatState = () => {
     setActiveId(null)
@@ -298,24 +319,23 @@ export function ChatPage() {
     }
   }, [sessions, activeId, sending])
 
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('app:chat-active', { detail: { key: activeId ? '' : 'new-chat' } }),
+    )
+  }, [activeId])
+
   if (!session) return null
 
   const handleSend = () => {
     const question = input.trim()
     if (!question || sending) return
     setInput('')
-    window.dispatchEvent(new CustomEvent('app:chat-active', { detail: { key: '' } }))
     void sendQuestion(question)
   }
 
   const handleSuggestion = (question: string) => {
     if (sending) return
-    const matched = CHAT_SUGGESTIONS.find((item) => item.question === question)
-    if (matched) {
-      window.dispatchEvent(
-        new CustomEvent('app:chat-active', { detail: { label: matched.label } }),
-      )
-    }
     void sendQuestion(question, { createNew: true })
   }
 
@@ -380,7 +400,6 @@ export function ChatPage() {
     setSendError(null)
     setRetryState(null)
     setSessionsOpen(false)
-    window.dispatchEvent(new CustomEvent('app:chat-active', { detail: { key: '' } }))
   }
 
   const renderSessions = () =>
@@ -575,6 +594,9 @@ export function ChatPage() {
                           {message.model ? <span className="mono">{message.model}</span> : null}
                         </div>
                       ) : null}
+                      {message.role === 'assistant' ? (
+                        <AgentTrace trace={message.agentTrace} />
+                      ) : null}
                     </div>
                   </article>
                 ))}
@@ -622,6 +644,9 @@ export function ChatPage() {
             ) : null}
             <div className="chat-composer__inner">
               <Input.TextArea
+                ref={(instance) => {
+                  composerRef.current = instance?.resizableTextArea?.textArea ?? null
+                }}
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 onPressEnter={(event) => {

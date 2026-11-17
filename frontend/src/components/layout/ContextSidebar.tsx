@@ -1,34 +1,43 @@
 import { useEffect, useState } from 'react'
-import { CloseOutlined } from '@ant-design/icons'
-import { Link, useLocation } from 'react-router-dom'
+import { CloseOutlined, FilePdfOutlined, PlusOutlined } from '@ant-design/icons'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthContext'
 import { DOCUMENT_CATEGORIES, ROLE_LABELS } from '@/lib/constants'
 import { CHAT_SUGGESTIONS, SEARCH_SUGGESTIONS, getShellMeta } from '@/components/layout/navConfig'
 import type { WorkspaceCounts } from '@/components/layout/useWorkspaceCounts'
+import { DocumentPdfModal, type PdfTarget } from '@/components/documents/DocumentPdfModal'
 
-export const LOADED_DOCUMENTS = [
-  'Điều lệ Công ty 2021',
-  'Thỏa ước Lao động Tập thể',
-  'Chính sách An ninh Thông tin',
-  'Quy chế hoạt động HĐQT',
-  'Quy trình Đánh giá NCC',
-  'Chính sách Nhân quyền',
-]
+/** Verified: answered by Chính sách an ninh thông tin, page 18 (VPN + MFA). */
+const VPN_QUESTION = 'Kết nối từ Internet vào mạng nội bộ Công ty phải dùng gì?'
 
 interface ContextLink {
   key?: string
   label: string
+  /** Second line under the label, e.g. the document that answers a question. */
+  sub?: string
   to: string
   count?: number
   active?: boolean
   onClick?: (e: React.MouseEvent) => void
-  badge?: string
+  icon?: React.ReactNode
 }
 
 interface ContextGroup {
   title: string
   links: ContextLink[]
+  /** Shown instead of links while the group has nothing to list. */
+  empty?: string
 }
+
+const isLink = (item: ContextLink | null): item is ContextLink => item !== null
+
+const fold = (text: string) =>
+  text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
 
 export function ContextSidebar({
   open,
@@ -42,53 +51,25 @@ export function ContextSidebar({
   onClose: () => void
 }) {
   const { session } = useAuth()
+  const navigate = useNavigate()
   const { pathname, search } = useLocation()
   const params = new URLSearchParams(search)
   const role = session?.role
   const shellMeta = getShellMeta(pathname)
   const groups: ContextGroup[] = []
+  const [pdfTarget, setPdfTarget] = useState<PdfTarget | null>(null)
 
-  const [chatActiveKey, setChatActiveKey] = useState<string>('new-chat')
+  // ChatPage owns which conversation is open; it broadcasts whether the
+  // "new chat" view is showing so this list never guesses or lags behind.
+  const [chatIsNew, setChatIsNew] = useState(true)
 
   useEffect(() => {
-    const handleNewChat = () => {
-      setChatActiveKey('new-chat')
-    }
-    const handlePrompt = (event: Event) => {
-      const customEvent = event as CustomEvent<string>
-      const prompt = customEvent.detail
-      if (!prompt) return
-      const matchedSuggestion = CHAT_SUGGESTIONS.find(
-        (suggestion) => suggestion.question === prompt,
-      )
-      if (matchedSuggestion) {
-        setChatActiveKey(matchedSuggestion.label)
-        return
-      }
-      const matchedDoc = LOADED_DOCUMENTS.find((doc) => prompt.includes(doc))
-      if (matchedDoc) {
-        setChatActiveKey(matchedDoc)
-        return
-      }
-      setChatActiveKey('')
-    }
     const handleActiveChange = (event: Event) => {
-      const customEvent = event as CustomEvent<{ key?: string; label?: string }>
-      if (customEvent.detail?.key !== undefined) {
-        setChatActiveKey(customEvent.detail.key)
-      } else if (customEvent.detail?.label !== undefined) {
-        setChatActiveKey(customEvent.detail.label)
-      }
+      const detail = (event as CustomEvent<{ key?: string }>).detail
+      setChatIsNew(detail?.key === 'new-chat')
     }
-
-    window.addEventListener('app:new-chat', handleNewChat)
-    window.addEventListener('app:chat-prompt', handlePrompt)
     window.addEventListener('app:chat-active', handleActiveChange)
-    return () => {
-      window.removeEventListener('app:new-chat', handleNewChat)
-      window.removeEventListener('app:chat-prompt', handlePrompt)
-      window.removeEventListener('app:chat-active', handleActiveChange)
-    }
+    return () => window.removeEventListener('app:chat-active', handleActiveChange)
   }, [])
 
   const link = (
@@ -105,18 +86,26 @@ export function ContextSidebar({
     count,
   })
 
+  /** Link to a real document found by title; null while it is not in the store. */
+  const docLink = (label: string, titleIncludes: string): ContextLink | null => {
+    const match = counts.ingestedDocuments.find((item) =>
+      fold(item.title).includes(fold(titleIncludes)),
+    )
+    return match ? link(label, `/documents/${match.id}`) : null
+  }
+
   if (pathname === '/chat') {
     groups.push({
       title: 'Tác vụ',
       links: [
         {
           key: 'new-chat',
-          label: '+ Cuộc trò chuyện mới',
+          label: 'Cuộc trò chuyện mới',
           to: '/chat',
-          active: chatActiveKey === 'new-chat',
+          icon: <PlusOutlined />,
+          active: chatIsNew,
           onClick: (e) => {
             e.preventDefault()
-            setChatActiveKey('new-chat')
             window.dispatchEvent(new CustomEvent('app:new-chat'))
             onNavigate()
           },
@@ -128,11 +117,10 @@ export function ContextSidebar({
       links: CHAT_SUGGESTIONS.map((suggestion) => ({
         key: `suggestion-${suggestion.label}`,
         label: suggestion.label,
-        to: '/chat',
-        active: chatActiveKey === suggestion.label,
+        sub: suggestion.source,
+        to: `/chat?q=${encodeURIComponent(suggestion.question)}`,
         onClick: (e: React.MouseEvent) => {
           e.preventDefault()
-          setChatActiveKey(suggestion.label)
           window.dispatchEvent(
             new CustomEvent('app:chat-prompt', { detail: suggestion.question }),
           )
@@ -142,20 +130,15 @@ export function ContextSidebar({
     })
     groups.push({
       title: 'Tài liệu đã nạp',
-      links: LOADED_DOCUMENTS.map((docName) => ({
-        key: `doc-${docName}`,
-        label: docName,
-        to: '/chat',
-        badge: 'PDF',
-        active: chatActiveKey === docName,
+      empty: 'Chưa có tài liệu nào sẵn sàng.',
+      links: counts.ingestedDocuments.map((document) => ({
+        key: `doc-${document.id}`,
+        label: document.title,
+        to: `/documents/${document.id}`,
+        icon: <FilePdfOutlined />,
         onClick: (e: React.MouseEvent) => {
           e.preventDefault()
-          setChatActiveKey(docName)
-          window.dispatchEvent(
-            new CustomEvent('app:chat-prompt', {
-              detail: `Tóm tắt các quy định chính trong ${docName}`,
-            }),
-          )
+          setPdfTarget(document)
           onNavigate()
         },
       })),
@@ -178,9 +161,9 @@ export function ContextSidebar({
     groups.push({
       title: 'Tài liệu tham khảo',
       links: [
-        link('Nội quy Lao động 2026', '/documents/doc-nqld'),
-        link('Điều lệ Công ty 2021', '/documents/doc-dlct'),
-      ],
+        docLink('Điều lệ công ty', 'điều lệ công ty'),
+        docLink('Thỏa ước lao động tập thể', 'thỏa ước lao động'),
+      ].filter(isLink),
     })
   } else if (pathname.startsWith('/documents')) {
     const category = params.get('category')
@@ -226,7 +209,7 @@ export function ContextSidebar({
     })
   } else if (pathname === '/dashboard') {
     groups.push({
-      title: 'Tổng quan',
+      title: 'Không gian làm việc',
       links: [
         link('Bảng điều khiển', '/dashboard', true),
         link('Trợ lý AI', '/chat'),
@@ -262,13 +245,7 @@ export function ContextSidebar({
     })
     groups.push({
       title: 'Quy định liên quan',
-      links: [
-        link(
-          'Chính sách nghỉ phép năm',
-          '/chat?q=Nh%C3%A2n%20vi%C3%AAn%20%C4%91%C6%B0%E1%BB%A3c%20ngh%E1%BB%89%20ph%C3%A9p%20bao%20nhi%C3%AAu%20ng%C3%A0y%20m%E1%BB%97i%20n%C4%83m%3F',
-        ),
-        link('Nội quy Lao động 2026', '/documents/doc-nqld'),
-      ],
+      links: [docLink('Thỏa ước lao động tập thể', 'thỏa ước lao động')].filter(isLink),
     })
     if (role === 'MANAGER') {
       groups.push({
@@ -287,13 +264,7 @@ export function ContextSidebar({
     })
     groups.push({
       title: 'Quy định liên quan',
-      links: [
-        link(
-          'Chính sách nghỉ phép năm',
-          '/chat?q=Nh%C3%A2n%20vi%C3%AAn%20%C4%91%C6%B0%E1%BB%A3c%20ngh%E1%BB%89%20ph%C3%A9p%20bao%20nhi%C3%AAu%20ng%C3%A0y%20m%E1%BB%97i%20n%C4%83m%3F',
-        ),
-        link('Nội quy Lao động 2026', '/documents/doc-nqld'),
-      ],
+      links: [docLink('Thỏa ước lao động tập thể', 'thỏa ước lao động')].filter(isLink),
     })
   } else if (pathname === '/tickets' || pathname === '/tickets/queue') {
     const tab = params.get('tab') ?? 'mine'
@@ -315,12 +286,9 @@ export function ContextSidebar({
       groups.push({
         title: 'Hướng dẫn',
         links: [
-          link(
-            'Kết nối VPN nội bộ',
-            '/chat?q=Quy%20%C4%91%E1%BB%8Bnh%20l%C3%A0m%20vi%E1%BB%87c%20t%E1%BB%AB%20xa%20v%C3%A0%20k%E1%BA%BFt%20n%E1%BB%91i%20VPN%20nh%C6%B0%20th%E1%BA%BF%20n%C3%A0o%3F',
-          ),
-          link('Chính sách An toàn thông tin', '/documents/doc-csit'),
-        ],
+          link('Kết nối VPN từ bên ngoài', `/chat?q=${encodeURIComponent(VPN_QUESTION)}`),
+          docLink('Chính sách an ninh thông tin', 'an ninh thông tin'),
+        ].filter(isLink),
       })
     } else {
       groups.push({
@@ -363,7 +331,7 @@ export function ContextSidebar({
     })
     groups.push({
       title: 'Bảo mật',
-      links: [link('Chính sách An toàn thông tin', '/documents/doc-csit')],
+      links: [docLink('Chính sách an ninh thông tin', 'an ninh thông tin')].filter(isLink),
     })
   } else {
     groups.push({
@@ -377,9 +345,15 @@ export function ContextSidebar({
   }
 
   return (
-    <aside className={`context-sidebar${open ? '' : ' context-sidebar--closed'}`}>
+    <aside
+      className={`context-sidebar${open ? '' : ' context-sidebar--closed'}`}
+      aria-label={`Điều hướng: ${shellMeta.title}`}
+    >
       <div className="context-sidebar__head">
-        <h2 className="context-sidebar__title">{shellMeta.title}</h2>
+        <div className="context-sidebar__heading">
+          <h2 className="context-sidebar__title">{shellMeta.title}</h2>
+          <p className="context-sidebar__sub">{shellMeta.subtitle}</p>
+        </div>
         <button
           type="button"
           className="context-close"
@@ -389,36 +363,67 @@ export function ContextSidebar({
           <CloseOutlined />
         </button>
       </div>
-      {groups.map((group) => (
-        <div key={group.title} className="context-group">
-          {group.title.trim().toLowerCase() !== shellMeta.title.trim().toLowerCase() ? (
-            <div className="context-group__label">{group.title}</div>
-          ) : null}
-          {group.links.map((item) => (
-            <Link
-              key={item.key ?? `${group.title}-${item.to}-${item.label}`}
-              to={item.to}
-              className={`context-item${item.active ? ' context-item--active' : ''}`}
-              title={item.label}
-              onClick={(e) => {
-                if (item.onClick) {
-                  item.onClick(e)
-                } else {
-                  onNavigate()
-                }
-              }}
-            >
-              <span className="context-item__label">{item.label}</span>
-              {item.badge ? (
-                <span className="context-item__badge">{item.badge}</span>
-              ) : null}
-              {item.count !== undefined ? (
-                <span className="context-item__count">{item.count}</span>
-              ) : null}
-            </Link>
-          ))}
-        </div>
-      ))}
+      <div className="context-sidebar__body">
+        {groups.map((group) => (
+          <section key={group.title} className="context-group">
+            <h3 className="context-group__label">{group.title}</h3>
+            {group.links.length === 0 && group.empty ? (
+              <p className="context-group__empty">{group.empty}</p>
+            ) : null}
+            {group.links.map((item) => {
+              const className = [
+                'context-item',
+                item.active ? 'context-item--active' : '',
+                item.sub ? 'context-item--two-line' : '',
+                item.key === 'new-chat' ? 'context-item--action' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')
+              return (
+                <Link
+                  key={item.key ?? `${group.title}-${item.to}-${item.label}`}
+                  to={item.to}
+                  className={className}
+                  aria-current={item.active ? 'page' : undefined}
+                  title={item.sub ? `${item.label} — ${item.sub}` : item.label}
+                  onClick={(e) => {
+                    if (item.onClick) {
+                      item.onClick(e)
+                    } else {
+                      onNavigate()
+                    }
+                  }}
+                >
+                  {item.icon ? (
+                    <span className="context-item__icon" aria-hidden="true">
+                      {item.icon}
+                    </span>
+                  ) : null}
+                  {item.sub ? (
+                    <span className="context-item__text">
+                      <span className="context-item__label">{item.label}</span>
+                      <span className="context-item__sub">{item.sub}</span>
+                    </span>
+                  ) : (
+                    <span className="context-item__label">{item.label}</span>
+                  )}
+                  {item.count !== undefined ? (
+                    <span className="context-item__count">{item.count}</span>
+                  ) : null}
+                </Link>
+              )
+            })}
+          </section>
+        ))}
+      </div>
+      <DocumentPdfModal
+        target={pdfTarget}
+        onClose={() => setPdfTarget(null)}
+        onAsk={(target) => {
+          setPdfTarget(null)
+          navigate(`/chat?draft=${encodeURIComponent(`Trong tài liệu “${target.title}”, `)}`)
+        }}
+      />
     </aside>
   )
 }

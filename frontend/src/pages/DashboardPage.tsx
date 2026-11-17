@@ -406,7 +406,7 @@ export function DashboardPage() {
                   Câu trả lời sẽ kèm trích dẫn tới tài liệu nội bộ.
                 </p>
                 <Input.TextArea
-                  placeholder="Ví dụ: Nhân viên được nghỉ phép bao nhiêu ngày?"
+                  placeholder="Ví dụ: Thỏa ước lao động tập thể có hiệu lực bao lâu?"
                   autoSize={{ minRows: 2, maxRows: 4 }}
                   value={quickQuestion}
                   onChange={(event) => setQuickQuestion(event.target.value)}

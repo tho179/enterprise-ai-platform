@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import { documentsApi } from '@/api/documents'
 import { normalizeError } from '@/api/errors'
 import type { Citation } from '@/api/types'
-import { formatPercent } from '@/lib/format'
+import { formatRelevance } from '@/lib/format'
 
 export function CitationCard({
   citation,
@@ -28,8 +28,8 @@ export function CitationCard({
         <span className="citation-card__path">
           {citation.section_path?.join(' ') || 'Đoạn trích'}
         </span>
-        <span className="score-pill" style={{ marginLeft: 'auto' }}>
-          {formatPercent(citation.score)}
+        <span className="score-pill" style={{ marginLeft: 'auto' }} title="Điểm liên quan của đoạn trích">
+          {formatRelevance(citation.score)}
         </span>
       </div>
       <div className="citation-card__meta">

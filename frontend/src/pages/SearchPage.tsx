@@ -159,7 +159,7 @@ export function SearchPage() {
             size="large"
             allowClear
             prefix={<SearchOutlined />}
-            placeholder="Ví dụ: nhân viên được nghỉ phép bao nhiêu ngày?"
+            placeholder="Ví dụ: thời hạn của thỏa ước lao động tập thể"
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onPressEnter={runSearch}

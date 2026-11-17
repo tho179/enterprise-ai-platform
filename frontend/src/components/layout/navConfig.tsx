@@ -72,39 +72,58 @@ export function isRailItemActive(pathname: string, to: string): boolean {
   return pathname === to || pathname.startsWith(`${to}/`)
 }
 
-export const CHAT_SUGGESTIONS = [
+export interface ChatSuggestion {
+  label: string
+  question: string
+  /** Document that holds the answer, shown under the label. */
+  source: string
+}
+
+/**
+ * Each question was checked against the live knowledge base (Nov 2026): the
+ * answer is stated in the cited document and every citation opens its PDF.
+ * Re-check when the document set changes.
+ */
+export const CHAT_SUGGESTIONS: ChatSuggestion[] = [
   {
-    label: 'Chính sách nghỉ phép năm',
-    question: 'Nhân viên được nghỉ phép bao nhiêu ngày mỗi năm?',
+    label: 'Thời hạn của thỏa ước lao động',
+    question: 'Thỏa ước lao động tập thể có hiệu lực trong bao lâu?',
+    source: 'Thỏa ước lao động tập thể',
   },
   {
-    label: 'Thời giờ làm việc & ca kíp',
-    question: 'Thỏa ước lao động tập thể quy định thời giờ làm việc như thế nào?',
+    label: 'Xử lý khi bị lộ mật khẩu',
+    question: 'Nhân viên phải làm gì khi bị lộ mật khẩu hoặc quyền truy cập?',
+    source: 'Chính sách an ninh thông tin',
   },
   {
-    label: 'Tiêu chí đánh giá nhà cung cấp',
-    question: 'Quy trình đánh giá nhà cung cấp gồm những tiêu chí nào?',
+    label: 'Cách chọn nhà cung cấp mới',
+    question: 'Nhà cung cấp mới được lựa chọn như thế nào sau khi đánh giá?',
+    source: 'Quy trình đánh giá nhà cung cấp',
   },
   {
-    label: 'Quy định bảo mật mật khẩu',
-    question: 'Chính sách an ninh thông tin quy định mật khẩu như thế nào?',
+    label: 'Thành viên và nhiệm kỳ HĐQT',
+    question: 'Hội đồng Quản trị có bao nhiêu thành viên và nhiệm kỳ bao lâu?',
+    source: 'Điều lệ công ty - 2021',
   },
   {
-    label: 'Số lượng thành viên HĐQT',
-    question: 'Công ty có bao nhiêu thành viên Hội đồng Quản trị?',
-  },
-  {
-    label: 'Số cuộc họp HĐQT mỗi năm',
+    label: 'Tần suất họp HĐQT',
     question: 'Hội đồng Quản trị có bao nhiêu cuộc họp mỗi năm?',
+    source: 'Quy chế hoạt động HĐQT',
+  },
+  {
+    label: 'Cam kết về lao động cưỡng bức',
+    question: 'Chính sách nhân quyền cam kết gì về lao động cưỡng bức và lao động trẻ em?',
+    source: 'Chính sách nhân quyền',
   },
 ]
 
 export const SEARCH_SUGGESTIONS = [
-  'nghỉ phép năm',
+  'thời hạn thỏa ước lao động',
   'thời gian thử việc',
-  'làm việc từ xa VPN',
-  'mật khẩu an toàn thông tin',
   'kỷ luật lao động',
+  'mật khẩu',
+  'VPN',
+  'cổ tức',
 ]
 
 export function getShellMeta(pathname: string): { title: string; subtitle: string } {

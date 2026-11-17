@@ -5,8 +5,15 @@ import { DEMO_MODE } from '@/lib/constants'
 import { ticketsApi } from '@/api/tickets'
 import { useAuth } from '@/auth/AuthContext'
 
+export interface WorkspaceDocument {
+  id: string
+  title: string
+}
+
 export interface WorkspaceCounts {
   documents: number
+  /** Ingested documents, sorted by title — what the assistant can cite. */
+  ingestedDocuments: WorkspaceDocument[]
   failedDocuments: number
   pendingApprovals: number
   queueOpen: number
@@ -40,8 +47,14 @@ export function useWorkspaceCounts(): WorkspaceCounts {
     categories[document.category] = (categories[document.category] ?? 0) + 1
   }
 
+  const ingestedDocuments = documents
+    .filter((document) => document.currentVersion.status === 'INGESTED')
+    .map((document) => ({ id: document.id, title: document.title }))
+    .sort((a, b) => a.title.localeCompare(b.title, 'vi'))
+
   return {
     documents: documents.length,
+    ingestedDocuments,
     failedDocuments: documents.filter(
       (document) => document.currentVersion.status === 'FAILED',
     ).length,

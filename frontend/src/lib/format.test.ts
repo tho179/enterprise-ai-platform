@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatBytes, formatNumber, formatPercent, initials, truncate } from '@/lib/format'
+import { formatBytes, formatNumber, formatPercent, formatRelevance, initials, truncate } from '@/lib/format'
 
 describe('format helpers', () => {
   it('formats Vietnamese numbers', () => {
@@ -28,5 +28,13 @@ describe('format helpers', () => {
   it('truncates long text without cutting the suffix', () => {
     expect(truncate('abcdef', 3)).toBe('abc…')
     expect(truncate('abc', 3)).toBe('abc')
+  })
+})
+
+describe('formatRelevance', () => {
+  it('shows a cosine score as a percent and a fused score as a number', () => {
+    expect(formatRelevance(0.916)).toBe('92%')
+    expect(formatRelevance(1.4935)).toBe('1.49')
+    expect(formatRelevance(undefined)).toBe('—')
   })
 })
