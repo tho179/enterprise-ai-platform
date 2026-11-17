@@ -38,6 +38,13 @@ COLUMNS = [
 ]
 
 
+def run_agent(rag, questions, name="agent_generic"):
+    """The rule-based agent picks the retrieval mode per question."""
+    from app.agent import RuleBasedAgent
+
+    return run(RuleBasedAgent(rag=rag), questions, name, domain_rules=False, use_llm=False)
+
+
 def run(rag, questions, name, judge=None, domain_rules=True, **config):
     settings.ANSWER_DOMAIN_RULES = domain_rules
     summary = RAGEvaluator(rag_service=rag, judge=judge).evaluate_benchmark(
@@ -58,12 +65,22 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--with-llm", action="store_true", help="also run generation and the LLM judge")
     parser.add_argument("--llm-only", action="store_true", help="skip the retrieval matrix")
+    parser.add_argument("--only", nargs="+", help="run only these configurations, e.g. hybrid_rag_generic agent_generic")
     args = parser.parse_args()
 
     questions = json.loads(QUESTIONS.read_text(encoding="utf-8"))
     rag = RAGService()
     print("| Run | " + " | ".join(title for title, _ in COLUMNS) + " |")
     print("|---|" + "---|" * len(COLUMNS), flush=True)
+
+    if args.only:
+        for name in args.only:
+            if name == "agent_generic":
+                run_agent(rag, questions)
+                continue
+            architecture, suffix = name.rsplit("_", 1)
+            run(rag, questions, name, domain_rules=suffix == "rules", architecture=architecture, use_llm=False)
+        return 0
 
     for domain_rules, suffix in () if args.llm_only else ((True, "rules"), (False, "generic")):
         for architecture in ("flat_rag", "graph_rag", "hybrid_rag"):
@@ -77,6 +94,7 @@ def main() -> int:
             )
     if not args.llm_only:
         run(rag, questions, "hybrid_rag_no_reranker", architecture="hybrid_rag", use_reranker=False, use_llm=False)
+        run_agent(rag, questions)
 
     if args.with_llm or args.llm_only:
         judge = resolve_llm()

@@ -1,0 +1,297 @@
+{
+  "structure": {
+    "Q_SIZE": [
+      {
+        "category": "node",
+        "kind": "Chunk",
+        "total": 1665
+      },
+      {
+        "category": "node",
+        "kind": "Entity",
+        "total": 291
+      },
+      {
+        "category": "node",
+        "kind": "Document",
+        "total": 52
+      },
+      {
+        "category": "node",
+        "kind": "Claim",
+        "total": 32
+      },
+      {
+        "category": "node",
+        "kind": "KnowledgeBase",
+        "total": 3
+      },
+      {
+        "category": "relationship",
+        "kind": "MENTIONS",
+        "total": 4374
+      },
+      {
+        "category": "relationship",
+        "kind": "HAS_CHUNK",
+        "total": 1665
+      },
+      {
+        "category": "relationship",
+        "kind": "APPLIES_TO",
+        "total": 1394
+      },
+      {
+        "category": "relationship",
+        "kind": "RELATES_TO",
+        "total": 581
+      },
+      {
+        "category": "relationship",
+        "kind": "REFERENCES",
+        "total": 204
+      },
+      {
+        "category": "relationship",
+        "kind": "HAS_DOCUMENT",
+        "total": 97
+      },
+      {
+        "category": "relationship",
+        "kind": "ASSERTS",
+        "total": 32
+      },
+      {
+        "category": "relationship",
+        "kind": "POSSIBLY_SAME_AS",
+        "total": 13
+      },
+      {
+        "category": "relationship",
+        "kind": "CONFLICTS_WITH",
+        "total": 13
+      },
+      {
+        "category": "relationship",
+        "kind": "SIMILAR_TO",
+        "total": 10
+      },
+      {
+        "category": "relationship",
+        "kind": "SAME_AS",
+        "total": 8
+      },
+      {
+        "category": "relationship",
+        "kind": "DUPLICATE_OF",
+        "total": 7
+      },
+      {
+        "category": "relationship",
+        "kind": "MERGED_INTO",
+        "total": 2
+      },
+      {
+        "category": "relationship",
+        "kind": "NEW_VERSION_OF",
+        "total": 2
+      }
+    ],
+    "Q_COVERAGE": [
+      {
+        "source_type": "pdf",
+        "documents": 35,
+        "chunks": 1313,
+        "chunk_entity_coverage": 0.8165,
+        "chunk_semantic_coverage": 0.7791,
+        "avg_entities_per_chunk": 2.63
+      },
+      {
+        "source_type": "upload",
+        "documents": 7,
+        "chunks": 321,
+        "chunk_entity_coverage": 0.8442,
+        "chunk_semantic_coverage": 0.838,
+        "avg_entities_per_chunk": 2.78
+      },
+      {
+        "source_type": "web",
+        "documents": 10,
+        "chunks": 31,
+        "chunk_entity_coverage": 0.5484,
+        "chunk_semantic_coverage": 0.4194,
+        "avg_entities_per_chunk": 0.94
+      }
+    ],
+    "Q_INTEGRITY": [
+      {
+        "orphan_chunks": 0,
+        "empty_documents": 0,
+        "documents_without_kb": 0,
+        "orphan_entities": 0,
+        "cross_document_references": 0,
+        "stale_versions_still_current": 0,
+        "orphan_claims": 0
+      }
+    ],
+    "Q_CONSISTENCY": [
+      {
+        "duplicate_documents": 7,
+        "same_as_pairs": 8,
+        "pending_review_pairs": 13,
+        "claims": 32,
+        "accepted_claims": 19,
+        "superseded_claims": 13,
+        "suspect_claims": 0,
+        "unresolved_claims": 0,
+        "conflict_edges": 13
+      }
+    ],
+    "Q_CONFIDENCE": [
+      {
+        "method": "alias_full",
+        "mentions": 1994,
+        "avg_confidence": 0.9,
+        "entities": 25
+      },
+      {
+        "method": "heading",
+        "mentions": 768,
+        "avg_confidence": 0.6,
+        "entities": 145
+      },
+      {
+        "method": "regex_article",
+        "mentions": 654,
+        "avg_confidence": 0.95,
+        "entities": 70
+      },
+      {
+        "method": "alias_folded",
+        "mentions": 558,
+        "avg_confidence": 0.6,
+        "entities": 19
+      },
+      {
+        "method": "gazetteer_law",
+        "mentions": 208,
+        "avg_confidence": 0.9,
+        "entities": 7
+      },
+      {
+        "method": "regex_date",
+        "mentions": 78,
+        "avg_confidence": 0.95,
+        "entities": 37
+      },
+      {
+        "method": "alias_abbrev",
+        "mentions": 55,
+        "avg_confidence": 0.75,
+        "entities": 4
+      },
+      {
+        "method": "alias_en",
+        "mentions": 47,
+        "avg_confidence": 0.85,
+        "entities": 9
+      },
+      {
+        "method": "regex_decree",
+        "mentions": 7,
+        "avg_confidence": 0.95,
+        "entities": 3
+      },
+      {
+        "method": "regex_law",
+        "mentions": 5,
+        "avg_confidence": 0.7,
+        "entities": 3
+      }
+    ],
+    "Q_RELATION_CONFIDENCE": [
+      {
+        "band": "cao (>=0.5)",
+        "relationships": 6
+      },
+      {
+        "band": "thap (<0.2)",
+        "relationships": 553
+      },
+      {
+        "band": "trung binh (0.2-0.5)",
+        "relationships": 22
+      }
+    ],
+    "Q_FRESHNESS": [
+      {
+        "last_update": null,
+        "last_source": null,
+        "ingest_runs": 0,
+        "current_documents": 50,
+        "historical_documents": 2,
+        "documents_without_date": 19
+      }
+    ]
+  },
+  "extraction_precision": {
+    "per_method": {
+      "alias_abbrev": {
+        "labelled": 15,
+        "precision": 1.0,
+        "population": 47
+      },
+      "alias_en": {
+        "labelled": 15,
+        "precision": 1.0,
+        "population": 23
+      },
+      "alias_folded": {
+        "labelled": 15,
+        "precision": 0.867,
+        "population": 313
+      },
+      "alias_full": {
+        "labelled": 15,
+        "precision": 0.933,
+        "population": 1380
+      },
+      "heading": {
+        "labelled": 15,
+        "precision": 0.8,
+        "population": 510
+      },
+      "regex_article": {
+        "labelled": 15,
+        "precision": 1.0,
+        "population": 443
+      },
+      "regex_date": {
+        "labelled": 15,
+        "precision": 1.0,
+        "population": 65
+      },
+      "regex_decree": {
+        "labelled": 4,
+        "precision": 0.75,
+        "population": 4
+      },
+      "regex_law": {
+        "labelled": 15,
+        "precision": 0.8,
+        "population": 3
+      }
+    },
+    "weighted_precision": 0.915,
+    "sample_file": "data/eval/kb_entity_sample.json",
+    "unlabelled": 0,
+    "recheck_after_fix": {
+      "labelled": 124,
+      "still_extracted": 114,
+      "fixed_false_positives": 10,
+      "lost_true_positives": 0,
+      "sample_precision_before": 0.919,
+      "sample_precision_after": 1.0
+    }
+  }
+}

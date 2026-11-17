@@ -212,12 +212,18 @@ def graph_search(
         similar = getattr(store, "similar_entities", None)
         if similar is not None and query_vector is not None:
             names.update(similar(query_vector, settings.GRAPH_ENTITY_MIN_SCORE))
+        aliases = getattr(store, "aliases_of", None)
+        if aliases is not None and names:
+            # Entities merged by fuzzy resolution (SAME_AS) answer for each other.
+            names.update(aliases(sorted(names)))
+        min_confidence = settings.GRAPH_MIN_MENTION_CONFIDENCE
         if names:
             rows.extend(
                 store.graph_candidates(
                     names=sorted(names),
                     kb_ids=(KB,),
                     limit=limit,
+                    min_confidence=min_confidence,
                     **filters,
                 )
             )
@@ -228,6 +234,7 @@ def graph_search(
                     seed_chunk_ids,
                     limit=limit,
                     max_entity_df=settings.GRAPH_MAX_ENTITY_DF,
+                    min_confidence=min_confidence,
                     **filters,
                 )
             )

@@ -27,12 +27,15 @@ class AdaptiveChunker:
         self.min_chunk_size = min_chunk_size
         self.max_heading_chars = 200
 
+    PREAMBLE_TITLE = "Phần mở đầu"
+
     def chunk_nodes(self, nodes: List[Dict[str, Any]]) -> List[TextChunk]:
         all_chunks = []
         current_group_text = []
         current_pages = []
         current_section_path = None
-        
+        self._section_type = None
+
         for node in nodes:
             # LỌC RÁC & MỤC LỤC: Không đưa vào RAG
             if node.get("block_type") == "TOC" or node.get("is_garbage"):
@@ -42,17 +45,24 @@ class AdaptiveChunker:
             if not text:
                 continue
                 
-            section_path = node.get("section_path", [])
+            section_path = list(node.get("section_path") or [])
+            # Text before the first heading (cover, preamble) still gets a path,
+            # so every chunk can be cited with a location.
+            if not section_path:
+                section_path = [self.PREAMBLE_TITLE]
             page = node.get("page", 1)
-            
+
             # NGUYÊN TẮC 1: STRUCTURE-AWARE (Gom theo section_path)
             # Nếu node này thuộc về một mục khác (khác section_path) -> Đóng gói khối hiện tại
             if current_group_text and section_path != current_section_path:
                 self._flush_group(current_group_text, current_section_path, current_pages, all_chunks)
                 current_group_text = []
                 current_pages = []
-                
+
             current_section_path = section_path
+            self._section_type = node.get("section_type") or (
+                "PREAMBLE" if section_path == [self.PREAMBLE_TITLE] else "SECTION"
+            )
             current_group_text.append(text)
             current_pages.append(page)
             
@@ -80,6 +90,7 @@ class AdaptiveChunker:
         page_end = max(pages) if pages else page_start
         metadata = {
             "section_path": section_path if section_path else [],
+            "section_type": self._section_type or "SECTION",
             "page_start": page_start,
             "page_end": page_end
         }
@@ -134,9 +145,35 @@ class AdaptiveChunker:
             
         return [c.strip() for c in chunks if c.strip()]
 
+    _OUTLINE_NUMBER = re.compile(r"^(?:\d+(?:\.\d+)*|[IVXLCDM]+|[a-z])\.$")
+
+    def _split_sentences(self, text: str) -> List[str]:
+        """Split at sentence ends, but keep outline numbers ("1.", "1.1.", "II.")
+        attached to the clause they introduce."""
+        parts = [p for p in re.split(r"(?<=[.!?。！？])\s+", text or "") if p.strip()]
+        sentences: List[str] = []
+        carry = ""
+        for part in parts:
+            part = part.strip()
+            if self._OUTLINE_NUMBER.match(part):
+                carry = f"{carry} {part}".strip()
+                continue
+            # "...rõ ràng. 1.1. Phạm vi" splits as "1.1." + "Phạm vi"; the
+            # number ends the previous piece when it was split mid-token.
+            tail = re.search(r"\s((?:\d+(?:\.\d+)*|[IVXLCDM]+)\.)$", part)
+            if tail and not carry:
+                sentences.append(part[: tail.start()].strip())
+                carry = tail.group(1)
+                continue
+            sentences.append(f"{carry} {part}".strip() if carry else part)
+            carry = ""
+        if carry:
+            sentences.append(carry)
+        return [s for s in sentences if s]
+
     def _sentence_split(self, text: str) -> List[str]:
         """ NGUYÊN TẮC 3: SENTENCE-AWARE """
-        sentences = re.split(r"(?<=[.!?。！？])\s+", text)
+        sentences = self._split_sentences(text)
         chunks = []
         current_chunk = ""
         

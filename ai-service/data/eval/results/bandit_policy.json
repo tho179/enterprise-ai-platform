@@ -1,0 +1,416 @@
+{
+  "reward": "passed - 0.02 * latency_s",
+  "episodes": 200,
+  "summary": {
+    "always_flat_rag": {
+      "mean_reward": 0.5945
+    },
+    "always_graph_rag": {
+      "mean_reward": 0.458
+    },
+    "always_hybrid_rag": {
+      "mean_reward": 0.5986
+    },
+    "bandit_leave_one_out": {
+      "mean_reward": 0.4325
+    },
+    "oracle_best_arm": {
+      "mean_reward": 0.7488
+    },
+    "rule_based_agent": {
+      "mean_reward": 0.618
+    }
+  },
+  "learned_policy": {
+    "article|entity=1|article=1": {
+      "arm": "graph_rag",
+      "pulls": {
+        "flat_rag": 2,
+        "graph_rag": 2,
+        "hybrid_rag": 2
+      },
+      "mean_reward": {
+        "flat_rag": 0.89,
+        "graph_rag": 0.95,
+        "hybrid_rag": 0.921
+      },
+      "questions": 1
+    },
+    "count|entity=0|article=0": {
+      "arm": "graph_rag",
+      "pulls": {
+        "flat_rag": 2,
+        "graph_rag": 3,
+        "hybrid_rag": 2
+      },
+      "mean_reward": {
+        "flat_rag": 0.892,
+        "graph_rag": 0.977,
+        "hybrid_rag": 0.921
+      },
+      "questions": 2
+    },
+    "count|entity=1|article=0": {
+      "arm": "hybrid_rag",
+      "pulls": {
+        "flat_rag": 20,
+        "graph_rag": 13,
+        "hybrid_rag": 17
+      },
+      "mean_reward": {
+        "flat_rag": 0.492,
+        "graph_rag": 0.361,
+        "hybrid_rag": 0.528
+      },
+      "questions": 6
+    },
+    "list|entity=0|article=0": {
+      "arm": "hybrid_rag",
+      "pulls": {
+        "flat_rag": 5,
+        "graph_rag": 3,
+        "hybrid_rag": 8
+      },
+      "mean_reward": {
+        "flat_rag": 0.152,
+        "graph_rag": -0.044,
+        "hybrid_rag": 0.467
+      },
+      "questions": 2
+    },
+    "list|entity=1|article=0": {
+      "arm": "graph_rag",
+      "pulls": {
+        "flat_rag": 3,
+        "graph_rag": 5,
+        "hybrid_rag": 4
+      },
+      "mean_reward": {
+        "flat_rag": 0.448,
+        "graph_rag": 0.725,
+        "hybrid_rag": 0.327
+      },
+      "questions": 2
+    },
+    "open|entity=0|article=0": {
+      "arm": "hybrid_rag",
+      "pulls": {
+        "flat_rag": 11,
+        "graph_rag": 6,
+        "hybrid_rag": 12
+      },
+      "mean_reward": {
+        "flat_rag": 0.899,
+        "graph_rag": 0.625,
+        "hybrid_rag": 0.917
+      },
+      "questions": 3
+    },
+    "open|entity=1|article=0": {
+      "arm": "hybrid_rag",
+      "pulls": {
+        "flat_rag": 9,
+        "graph_rag": 5,
+        "hybrid_rag": 11
+      },
+      "mean_reward": {
+        "flat_rag": 0.82,
+        "graph_rag": 0.547,
+        "hybrid_rag": 0.899
+      },
+      "questions": 2
+    },
+    "time|entity=0|article=0": {
+      "arm": "hybrid_rag",
+      "pulls": {
+        "flat_rag": 1,
+        "graph_rag": 1,
+        "hybrid_rag": 2
+      },
+      "mean_reward": {
+        "flat_rag": 0.881,
+        "graph_rag": -0.073,
+        "hybrid_rag": 0.898
+      },
+      "questions": 1
+    },
+    "time|entity=1|article=0": {
+      "arm": "graph_rag",
+      "pulls": {
+        "flat_rag": 4,
+        "graph_rag": 4,
+        "hybrid_rag": 3
+      },
+      "mean_reward": {
+        "flat_rag": 0.63,
+        "graph_rag": 0.966,
+        "hybrid_rag": 0.581
+      },
+      "questions": 2
+    },
+    "yes_no|entity=0|article=0": {
+      "arm": "flat_rag",
+      "pulls": {
+        "flat_rag": 9,
+        "graph_rag": 4,
+        "hybrid_rag": 5
+      },
+      "mean_reward": {
+        "flat_rag": 0.527,
+        "graph_rag": -0.037,
+        "hybrid_rag": 0.122
+      },
+      "questions": 2
+    },
+    "yes_no|entity=1|article=0": {
+      "arm": "flat_rag",
+      "pulls": {
+        "flat_rag": 12,
+        "graph_rag": 5,
+        "hybrid_rag": 5
+      },
+      "mean_reward": {
+        "flat_rag": 0.64,
+        "graph_rag": 0.151,
+        "hybrid_rag": 0.301
+      },
+      "questions": 3
+    }
+  },
+  "per_question": {
+    "q001": {
+      "context": "count|entity=1|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.9380732,
+        "graph_rag": 0.97354,
+        "hybrid_rag": 0.9636118
+      }
+    },
+    "q002": {
+      "context": "count|entity=1|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.8740246,
+        "graph_rag": -0.0224676,
+        "hybrid_rag": 0.9385524
+      }
+    },
+    "q003": {
+      "context": "count|entity=1|article=0",
+      "chosen": "flat_rag",
+      "rewards": {
+        "flat_rag": -0.071904,
+        "graph_rag": 0.9766806,
+        "hybrid_rag": -0.0392036
+      }
+    },
+    "q004": {
+      "context": "count|entity=1|article=0",
+      "chosen": "flat_rag",
+      "rewards": {
+        "flat_rag": -0.11415540000000002,
+        "graph_rag": -0.024183000000000003,
+        "hybrid_rag": -0.1044748
+      }
+    },
+    "q005": {
+      "context": "list|entity=0|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.773976,
+        "graph_rag": -0.044372600000000005,
+        "hybrid_rag": 0.852514
+      }
+    },
+    "q006": {
+      "context": "time|entity=1|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.8802174,
+        "graph_rag": 0.9559076,
+        "hybrid_rag": 0.916829
+      }
+    },
+    "q007": {
+      "context": "time|entity=0|article=0",
+      "chosen": "hybrid_rag",
+      "rewards": {
+        "flat_rag": 0.881072,
+        "graph_rag": -0.07277560000000001,
+        "hybrid_rag": 0.8975294
+      }
+    },
+    "q008": {
+      "context": "open|entity=1|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.8609118,
+        "graph_rag": -0.0582422,
+        "hybrid_rag": 0.88229
+      }
+    },
+    "q009": {
+      "context": "time|entity=1|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": -0.1192872,
+        "graph_rag": 0.9768994,
+        "hybrid_rag": -0.09129799999999999
+      }
+    },
+    "q010": {
+      "context": "count|entity=1|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.8860821999999999,
+        "graph_rag": -0.0440076,
+        "hybrid_rag": 0.911952
+      }
+    },
+    "q011": {
+      "context": "yes_no|entity=1|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.8705376,
+        "graph_rag": -0.0424354,
+        "hybrid_rag": -0.11042040000000002
+      }
+    },
+    "q012": {
+      "context": "yes_no|entity=0|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.8560902,
+        "graph_rag": -0.051433400000000004,
+        "hybrid_rag": 0.908143
+      }
+    },
+    "q013": {
+      "context": "yes_no|entity=1|article=0",
+      "chosen": "flat_rag",
+      "rewards": {
+        "flat_rag": -0.1132372,
+        "graph_rag": -0.045160000000000006,
+        "hybrid_rag": -0.0773594
+      }
+    },
+    "q014": {
+      "context": "yes_no|entity=0|article=0",
+      "chosen": "hybrid_rag",
+      "rewards": {
+        "flat_rag": -0.13146719999999998,
+        "graph_rag": -0.032200400000000004,
+        "hybrid_rag": -0.0744078
+      }
+    },
+    "q015": {
+      "context": "yes_no|entity=1|article=0",
+      "chosen": "flat_rag",
+      "rewards": {
+        "flat_rag": 0.908167,
+        "graph_rag": 0.9311166,
+        "hybrid_rag": 0.884784
+      }
+    },
+    "q016": {
+      "context": "list|entity=1|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.7968794,
+        "graph_rag": 0.9237776,
+        "hybrid_rag": 0.8411886
+      }
+    },
+    "q017": {
+      "context": "list|entity=1|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": -0.24934520000000002,
+        "graph_rag": -0.0684192,
+        "hybrid_rag": -0.18664200000000003
+      }
+    },
+    "q018": {
+      "context": "open|entity=0|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.868853,
+        "graph_rag": -0.0454092,
+        "hybrid_rag": 0.8990608
+      }
+    },
+    "q019": {
+      "context": "open|entity=1|article=0",
+      "chosen": "hybrid_rag",
+      "rewards": {
+        "flat_rag": 0.8079832,
+        "graph_rag": 0.950037,
+        "hybrid_rag": 0.912359
+      }
+    },
+    "q020": {
+      "context": "list|entity=0|article=0",
+      "chosen": "hybrid_rag",
+      "rewards": {
+        "flat_rag": -0.26252640000000005,
+        "graph_rag": -0.039395000000000006,
+        "hybrid_rag": -0.1753896
+      }
+    },
+    "q021": {
+      "context": "article|entity=1|article=1",
+      "chosen": "hybrid_rag",
+      "rewards": {
+        "flat_rag": 0.8901664,
+        "graph_rag": 0.9502148,
+        "hybrid_rag": 0.92063
+      }
+    },
+    "q101": {
+      "context": "open|entity=0|article=0",
+      "chosen": "hybrid_rag",
+      "rewards": {
+        "flat_rag": 0.9536862,
+        "graph_rag": 0.954634,
+        "hybrid_rag": 0.9722462
+      }
+    },
+    "q102": {
+      "context": "open|entity=0|article=0",
+      "chosen": "hybrid_rag",
+      "rewards": {
+        "flat_rag": 0.8207306,
+        "graph_rag": 0.9757484,
+        "hybrid_rag": 0.9126968
+      }
+    },
+    "q103": {
+      "context": "count|entity=0|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.9371176,
+        "graph_rag": 0.983307,
+        "hybrid_rag": 0.9639186
+      }
+    },
+    "q104": {
+      "context": "count|entity=1|article=0",
+      "chosen": "flat_rag",
+      "rewards": {
+        "flat_rag": 0.8691842000000001,
+        "graph_rag": 0.9831712,
+        "hybrid_rag": 0.9668376
+      }
+    },
+    "q105": {
+      "context": "count|entity=0|article=0",
+      "chosen": "graph_rag",
+      "rewards": {
+        "flat_rag": 0.845985,
+        "graph_rag": 0.963737,
+        "hybrid_rag": 0.8775652
+      }
+    }
+  }
+}

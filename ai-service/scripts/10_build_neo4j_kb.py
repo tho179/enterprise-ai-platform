@@ -5,6 +5,8 @@ Examples:
   python scripts/10_build_neo4j_kb.py --pdf data/documents --kb KB1
   python scripts/10_build_neo4j_kb.py --links data/kb_sources/links.json --kb KB2
   python scripts/10_build_neo4j_kb.py --merge KB1 KB2 --target KB
+  python scripts/10_build_neo4j_kb.py --maintain
+  python scripts/10_build_neo4j_kb.py --pdf data/documents --kb KB1 --update --prune --maintain
   python scripts/10_build_neo4j_kb.py --export KB --out debug/kb_snapshot.json
   python scripts/10_build_neo4j_kb.py --pdf data/documents/quy_che_va_quy_trinh/Quy_che_hoat_dong_HDQT.pdf --dry-run --out debug/kb_sample.json
 """
@@ -14,6 +16,7 @@ import argparse
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,6 +30,8 @@ from app.knowledge_graph.pipeline import (  # noqa: E402
     load_links,
     load_pdf,
     load_pdf_folder,
+    log_run,
+    maintain,
     merge,
 )
 from app.knowledge_graph.store import Neo4jStore  # noqa: E402
@@ -50,6 +55,13 @@ def main() -> int:
     parser.add_argument("--export", metavar="KB")
     parser.add_argument("--out", default="debug/kb_snapshot.json")
     parser.add_argument("--update", action="store_true", help="hash-based incremental update")
+    parser.add_argument("--prune", action="store_true", help="retire PDFs no longer in the folder")
+    parser.add_argument(
+        "--maintain",
+        action="store_true",
+        help="resolve duplicates, versions, fuzzy entities and conflicting claims",
+    )
+    parser.add_argument("--report", default="debug/kb_maintenance.json")
     parser.add_argument("--dry-run", action="store_true", help="build JSON only, no Neo4j")
     args = parser.parse_args()
 
@@ -84,14 +96,18 @@ def main() -> int:
 
         if args.pdf:
             path = Path(args.pdf)
-            result = (
-                load_pdf_folder(store, path, kb_id=args.kb, update=args.update)
-                if path.is_dir()
-                else load_pdf(store, path, kb_id=args.kb, update=args.update)
-            )
-            print(json.dumps(result, ensure_ascii=False, indent=2)[:2000])
+            if path.is_dir():
+                result = load_pdf_folder(
+                    store, path, kb_id=args.kb, update=args.update, prune=args.prune
+                )
+            else:
+                started_at = datetime.now(timezone.utc).isoformat()
+                result = {"path": str(path), **load_pdf(store, path, kb_id=args.kb, update=args.update)}
+                result["run"] = log_run(store, args.kb, str(path), started_at, [result])
+            print(json.dumps(result, ensure_ascii=False, indent=2)[:3000])
 
         if args.links:
+            started_at = datetime.now(timezone.utc).isoformat()
             payload = _links(Path(args.links))
             result = load_links(
                 store,
@@ -99,10 +115,32 @@ def main() -> int:
                 kb_id=args.kb,
                 update=args.update,
             )
-            print(json.dumps(result, ensure_ascii=False, indent=2)[:2000])
+            items = result["loaded"] + [{**item, "error": item["error"]} for item in result["failed"]]
+            result["run"] = log_run(store, args.kb, str(args.links), started_at, items)
+            print(json.dumps(result, ensure_ascii=False, indent=2)[:3000])
 
         if args.merge:
             print(json.dumps(merge(store, tuple(args.merge), target=args.target), ensure_ascii=False, indent=2))
+
+        if args.maintain:
+            report = maintain(store)
+            out = Path(args.report)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+            print(json.dumps(
+                {
+                    "duplicates": sum(p["relation"] == "DUPLICATE_OF" for p in report["duplicates"]),
+                    "similar_documents": sum(p["relation"] == "SIMILAR_TO" for p in report["duplicates"]),
+                    "series_links": len(report["series"]),
+                    "same_as": sum(p["relation"] == "SAME_AS" for p in report["entity_pairs"]),
+                    "possibly_same_as": sum(p["relation"] == "POSSIBLY_SAME_AS" for p in report["entity_pairs"]),
+                    "relation_weights": report["relation_weights"],
+                    **report["written"],
+                    "report": str(out),
+                },
+                ensure_ascii=False,
+                indent=2,
+            ))
 
         if args.export:
             data = store.sample(args.export, chunk_limit=8)

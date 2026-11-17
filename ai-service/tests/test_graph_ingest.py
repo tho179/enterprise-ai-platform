@@ -170,7 +170,8 @@ class TestGraphIngest(unittest.TestCase):
             def entity_names(self, kb_id="KB", limit=5000):
                 return []
 
-            def graph_candidates(self, names, kb_ids, limit, source_type=None, document_id=None, allowed_roles=None):
+            def graph_candidates(self, names, kb_ids, limit, source_type=None, document_id=None,
+                                 allowed_roles=None, min_confidence=0.0):
                 self.names = list(names)
                 return [
                     {

@@ -51,8 +51,17 @@ class RAGService:
     and LLM Generation (Gemini / OpenAI with Extractive Fallback).
     """
 
-    def __init__(self, retriever: Optional[VectorRetriever] = None):
+    def __init__(
+        self,
+        retriever: Optional[VectorRetriever] = None,
+        graph_source_type: Optional[str] = None,
+    ):
         self.retriever = retriever or VectorRetriever()
+        # The graph also holds the research corpus (source_type pdf/web) whose
+        # IDs the backend does not know; the chat API restricts graph hits to
+        # uploaded documents so every citation can be opened. None = no filter
+        # (used by the evaluation scripts).
+        self.graph_source_type = graph_source_type
 
     @staticmethod
     def _fuse_hits(
@@ -114,7 +123,7 @@ class RAGService:
                     cleaned_query,
                     limit=max(settings.GRAPH_SEARCH_LIMIT, top_k * 4),
                     document_id=document_id,
-                    source_type=None,
+                    source_type=self.graph_source_type,
                     query_vector=query_vector,
                     seed_chunk_ids=[
                         hit["chunk_id"]

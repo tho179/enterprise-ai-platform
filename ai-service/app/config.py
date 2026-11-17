@@ -126,6 +126,9 @@ class Settings:
     # GraphRAG: đồng bộ chunk upload vào Neo4j và trộn ứng viên graph với vector.
     # Tắt mặc định để test/CLI chạy được khi không có Neo4j; compose bật true.
     GRAPH_ENABLED: bool = os.getenv("GRAPH_ENABLED", "false").lower() in ("1", "true", "yes")
+    # Graph documents the chat API may cite. "upload" = only documents the
+    # backend stores (their PDFs can be opened); empty = whole graph.
+    CHAT_GRAPH_SOURCE_TYPE: str = os.getenv("CHAT_GRAPH_SOURCE_TYPE", "upload")
     GRAPH_SEARCH_LIMIT: int = int(os.getenv("GRAPH_SEARCH_LIMIT", "8"))
     GRAPH_RRF_WEIGHT: float = float(os.getenv("GRAPH_RRF_WEIGHT", "0.2"))
     # Top vector chunks used as starting points for graph traversal.
@@ -133,5 +136,14 @@ class Settings:
     # Skip entities mentioned by more chunks than this during traversal.
     GRAPH_MAX_ENTITY_DF: int = int(os.getenv("GRAPH_MAX_ENTITY_DF", "25"))
     GRAPH_ENTITY_MIN_SCORE: float = float(os.getenv("GRAPH_ENTITY_MIN_SCORE", "0.9"))
+    # Ignore MENTIONS below this extraction confidence (0.6 = accent-free/OCR match, heading).
+    # 0.7 measured on the 26-question set: hybrid MRR 0.669 -> 0.745, graph 0.222 -> 0.296.
+    GRAPH_MIN_MENTION_CONFIDENCE: float = float(os.getenv("GRAPH_MIN_MENTION_CONFIDENCE", "0.7"))
+
+    # /chat/ask đi qua tác tử dựa trên luật (app/agent); false = gọi thẳng RAGService.
+    AGENT_ENABLED: bool = os.getenv("AGENT_ENABLED", "true").lower() in ("1", "true", "yes")
+    # Luật R6 (có thực thể -> truy xuất lai). Tắt theo kết quả scripts/20_bandit_policy.py:
+    # trên bộ 26 câu, vector thắng truy xuất lai ở hầu hết ngữ cảnh có thực thể.
+    AGENT_ENTITY_HYBRID: bool = os.getenv("AGENT_ENTITY_HYBRID", "false").lower() in ("1", "true", "yes")
 
 settings = Settings()

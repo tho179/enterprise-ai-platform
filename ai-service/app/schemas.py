@@ -84,6 +84,8 @@ class AskResponse(BaseModel):
     # Chỉ dùng cho benchmark: top-k trước bước lọc câu trả lời.
     retrieved_chunk_ids: List[str] = Field(default_factory=list)
     retrieved_contents: List[str] = Field(default_factory=list)
+    # Các bước của tác tử: nhận thức, luật được kích hoạt, công cụ, kết quả.
+    agent_trace: List[Dict[str, Any]] = Field(default_factory=list)
 
 class ExtractedWord(BaseModel):
     """Một từ với tọa độ khung hình theo tỷ lệ 0..1 (x, y là góc trên-trái)."""

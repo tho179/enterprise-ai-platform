@@ -15,6 +15,8 @@ class Neo4jStore:
             uri,
             auth=(user, password),
             connection_timeout=3.0,
+            # Schema-less writes warn about properties that do not exist yet.
+            notifications_min_severity="OFF",
         )
 
     def close(self) -> None:
@@ -43,7 +45,88 @@ class Neo4jStore:
         self._run(schema.UPSERT_ENTITIES, chunks=record["chunks"])
         self._run(schema.UPSERT_REFERENCES, chunks=record["chunks"])
         self._run(schema.UPSERT_APPLIES_TO, chunks=record["chunks"])
+        self._run(schema.PROPAGATE_TO_MERGED, kb_id=kb_id, doc_id=record["doc"]["doc_id"])
         return rows[0] if rows else {"doc_id": record["doc"]["doc_id"], "chunks": 0}
+
+    def query(self, name: str, **params) -> List[Dict[str, Any]]:
+        """Run any named query from the .cypher files."""
+        return self._run(schema.QUERIES[name], **params)
+
+    # ----------------------------------------------------- integration problems
+    def recompute_relation_weights(self) -> Dict[str, Any]:
+        rows = self._run(schema.RECOMPUTE_RELATION_WEIGHTS)
+        deleted = self._run(schema.DELETE_STALE_RELATIONS)
+        return {**(rows[0] if rows else {}), "deleted": deleted[0]["deleted"] if deleted else 0}
+
+    def resolution_candidates(self, types: Iterable[str]) -> List[Dict[str, Any]]:
+        return self._run(schema.RESOLUTION_CANDIDATES, types=list(types))
+
+    def manual_decisions(self) -> Dict[tuple, str]:
+        return {(row["a"], row["b"]): row["relation"] for row in self._run(schema.MANUAL_DECISIONS)}
+
+    def write_entity_resolution(self, pairs: List[Dict[str, Any]]) -> int:
+        self._run(schema.CLEAR_ENTITY_RESOLUTION)
+        if not pairs:
+            return 0
+        rows = self._run(schema.WRITE_ENTITY_RESOLUTION, pairs=pairs)
+        return int(rows[0]["written"]) if rows else 0
+
+    def aliases_of(self, names: Iterable[str]) -> List[str]:
+        return [row["name"] for row in self._run(schema.ALIASES_OF, names=list(names))]
+
+    def document_texts(self) -> List[Dict[str, Any]]:
+        rows = self._run(schema.DOCUMENT_TEXTS)
+        return [{**row, "text": "\n".join(row.pop("texts") or [])} for row in rows]
+
+    def write_duplicates(self, pairs: List[Dict[str, Any]]) -> int:
+        self._run(schema.CLEAR_DUPLICATES)
+        if not pairs:
+            return 0
+        rows = self._run(schema.WRITE_DUPLICATES, pairs=pairs)
+        return int(rows[0]["written"]) if rows else 0
+
+    def write_series(self, links: List[Dict[str, Any]]) -> int:
+        self._run(schema.CLEAR_SERIES)
+        if not links:
+            return 0
+        rows = self._run(schema.WRITE_SERIES, links=links)
+        return int(rows[0]["written"]) if rows else 0
+
+    def claim_source_chunks(self, keywords: Iterable[str]) -> List[Dict[str, Any]]:
+        return self._run(schema.CLAIM_SOURCE_CHUNKS, keywords=list(keywords))
+
+    def write_claims(self, claims: List[Dict[str, Any]], conflicts: List[Dict[str, Any]]) -> Dict[str, int]:
+        self._run(schema.CLEAR_CLAIMS)
+        written = self._run(schema.WRITE_CLAIMS, claims=claims) if claims else []
+        edges = self._run(schema.WRITE_CONFLICTS, conflicts=conflicts) if conflicts else []
+        return {
+            "claims": int(written[0]["written"]) if written else 0,
+            "conflicts": int(edges[0]["written"]) if edges else 0,
+        }
+
+    def attribute_values(self, attribute: str) -> List[Dict[str, Any]]:
+        return self._run(schema.ATTRIBUTE_VALUES, attribute=attribute)
+
+    # ------------------------------------------------------------------ update
+    def retire_missing(self, kb_id: str, source_type: str, prefix: str, present: Iterable[str]) -> List[str]:
+        rows = self._run(
+            schema.RETIRE_MISSING,
+            kb_id=kb_id,
+            source_type=source_type,
+            prefix=prefix,
+            present=list(present),
+        )
+        return list(rows[0]["retired"]) if rows else []
+
+    def log_run(self, **fields) -> None:
+        self._run(schema.LOG_RUN, **fields)
+
+    def quality(self) -> Dict[str, List[Dict[str, Any]]]:
+        with self.driver.session(database=self.database) as session:
+            return {
+                name: [dict(row) for row in session.run(query)]
+                for name, query in schema.QUALITY_QUERIES.items()
+            }
 
     def merge_kbs(self, sources: Iterable[str], target: str, target_name: str = "KB hợp nhất") -> int:
         rows = self._run(
@@ -73,6 +156,7 @@ class Neo4jStore:
         source_type: Optional[str] = None,
         document_id: Optional[str] = None,
         allowed_roles: Optional[List[str]] = None,
+        min_confidence: float = 0.0,
     ) -> List[Dict[str, Any]]:
         return self._run(
             schema.GRAPH_CANDIDATES,
@@ -82,6 +166,7 @@ class Neo4jStore:
             source_type=source_type,
             document_id=document_id,
             roles=allowed_roles,
+            min_confidence=min_confidence,
         )
 
     def expand_from_chunks(
@@ -92,6 +177,7 @@ class Neo4jStore:
         document_id: Optional[str] = None,
         allowed_roles: Optional[List[str]] = None,
         max_entity_df: int = 25,
+        min_confidence: float = 0.0,
     ) -> List[Dict[str, Any]]:
         """1-2 hops from chunks found by vector search."""
         params = {
@@ -101,9 +187,10 @@ class Neo4jStore:
             "document_id": document_id,
             "roles": allowed_roles,
         }
+        shared_params = {**params, "min_confidence": min_confidence}
         return [
             *self._run(schema.EXPAND_REFERENCES, **params),
-            *self._run(schema.EXPAND_SHARED_ENTITIES, max_df=max_entity_df, **params),
+            *self._run(schema.EXPAND_SHARED_ENTITIES, max_df=max_entity_df, **shared_params),
         ]
 
     def similar_entities(self, vector: List[float], min_score: float, k: int = 5) -> List[str]:
@@ -133,6 +220,7 @@ class Neo4jStore:
             # Deleting the last version must not leave an empty Document node.
             self._run(schema.DELETE_EMPTY_DOCUMENT, document_id=document_id)
         self._run(schema.DELETE_ORPHAN_ENTITIES)
+        self._run(schema.DELETE_ORPHAN_CLAIMS)
         return deleted
 
     def stats(self, kb_id: str) -> Dict[str, int]:

@@ -19,6 +19,17 @@ def fold(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip().casefold()
 
 
+def fold_keep_length(text: str) -> str:
+    """Like fold(), but one output char per input char, so match positions in
+    the folded copy are valid in the original text."""
+    out = []
+    for char in text or "":
+        base = "".join(ch for ch in unicodedata.normalize("NFD", char) if not unicodedata.combining(ch))
+        base = base.replace("đ", "d").replace("Đ", "D").casefold()
+        out.append(base[:1] if base else " ")
+    return "".join(out)
+
+
 def sha1_text(text: str) -> str:
     return hashlib.sha1((text or "").encode("utf-8")).hexdigest()
 

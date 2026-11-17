@@ -11,7 +11,8 @@
       "classifier_confidence": 0.8,
       "is_garbage": false,
       "section_path": [],
-      "page": 1
+      "page": 1,
+      "section_type": "PREAMBLE"
     }
   ],
   "legal_document_structure": [
@@ -21,14 +22,15 @@
       "block_type": "HEADING",
       "heading_type": "CHAPTER",
       "list_type": null,
-      "depth": 1,
+      "depth": 2,
       "ocr_confidence": 0.95,
       "classifier_confidence": 0.9166666666666667,
       "is_garbage": false,
       "section_path": [
         "CHƯƠNG I QUY ĐỊNH CHUNG"
       ],
-      "page": 1
+      "page": 1,
+      "section_type": "CHAPTER"
     },
     {
       "id": 2,
@@ -36,7 +38,7 @@
       "block_type": "HEADING",
       "heading_type": "ARTICLE",
       "list_type": null,
-      "depth": 2,
+      "depth": 3,
       "ocr_confidence": 0.95,
       "classifier_confidence": 0.9,
       "is_garbage": false,
@@ -44,7 +46,8 @@
         "CHƯƠNG I QUY ĐỊNH CHUNG",
         "Điều 1. Phạm vi áp dụng"
       ],
-      "page": 1
+      "page": 1,
+      "section_type": "ARTICLE"
     },
     {
       "id": 3,
@@ -52,7 +55,7 @@
       "block_type": "HEADING",
       "heading_type": "NUMBERED",
       "list_type": null,
-      "depth": 3,
+      "depth": 4,
       "ocr_confidence": 0.95,
       "classifier_confidence": 0.9,
       "is_garbage": false,
@@ -61,7 +64,8 @@
         "Điều 1. Phạm vi áp dụng",
         "1. Quy chế này quy định..."
       ],
-      "page": 1
+      "page": 1,
+      "section_type": "NUMBERED"
     },
     {
       "id": 4,
@@ -69,7 +73,7 @@
       "block_type": "LIST_ITEM",
       "heading_type": null,
       "list_type": "ALPHA",
-      "depth": 4,
+      "depth": 5,
       "ocr_confidence": 0.95,
       "classifier_confidence": 0.85,
       "is_garbage": false,
@@ -78,7 +82,8 @@
         "Điều 1. Phạm vi áp dụng",
         "1. Quy chế này quy định..."
       ],
-      "page": 1
+      "page": 1,
+      "section_type": "NUMBERED"
     },
     {
       "id": 5,
@@ -86,7 +91,7 @@
       "block_type": "LIST_ITEM",
       "heading_type": null,
       "list_type": "BULLET",
-      "depth": 4,
+      "depth": 5,
       "ocr_confidence": 0.95,
       "classifier_confidence": 0.9,
       "is_garbage": false,
@@ -95,7 +100,8 @@
         "Điều 1. Phạm vi áp dụng",
         "1. Quy chế này quy định..."
       ],
-      "page": 1
+      "page": 1,
+      "section_type": "NUMBERED"
     },
     {
       "id": 6,
@@ -103,7 +109,7 @@
       "block_type": "LIST_ITEM",
       "heading_type": null,
       "list_type": "BULLET",
-      "depth": 4,
+      "depth": 5,
       "ocr_confidence": 0.95,
       "classifier_confidence": 0.9,
       "is_garbage": false,
@@ -112,7 +118,8 @@
         "Điều 1. Phạm vi áp dụng",
         "1. Quy chế này quy định..."
       ],
-      "page": 1
+      "page": 1,
+      "section_type": "NUMBERED"
     }
   ],
   "ocr_resilience": [
@@ -122,14 +129,15 @@
       "block_type": "HEADING",
       "heading_type": "ARTICLE",
       "list_type": null,
-      "depth": 2,
+      "depth": 3,
       "ocr_confidence": 0.95,
       "classifier_confidence": 0.8166666666666667,
       "is_garbage": false,
       "section_path": [
         "diều 1. Lỗi chữ d đieu 2. Lỗi mất dấu nón"
       ],
-      "page": 1
+      "page": 1,
+      "section_type": "ARTICLE"
     }
   ],
   "process_document_structure": [
@@ -139,34 +147,19 @@
       "block_type": "HEADING",
       "heading_type": "NUMBERED",
       "list_type": null,
-      "depth": 2,
+      "depth": 3,
       "ocr_confidence": 0.95,
       "classifier_confidence": 0.95,
       "is_garbage": false,
       "section_path": [
         "I. Tổng quan"
       ],
-      "page": 1
+      "page": 1,
+      "section_type": "NUMBERED"
     },
     {
       "id": 2,
       "text": "1. Mục đích",
-      "block_type": "HEADING",
-      "heading_type": "NUMBERED",
-      "list_type": null,
-      "depth": 3,
-      "ocr_confidence": 0.95,
-      "classifier_confidence": 0.95,
-      "is_garbage": false,
-      "section_path": [
-        "I. Tổng quan",
-        "1. Mục đích"
-      ],
-      "page": 1
-    },
-    {
-      "id": 3,
-      "text": "1.1. Phạm vi.",
       "block_type": "HEADING",
       "heading_type": "NUMBERED",
       "list_type": null,
@@ -176,10 +169,28 @@
       "is_garbage": false,
       "section_path": [
         "I. Tổng quan",
+        "1. Mục đích"
+      ],
+      "page": 1,
+      "section_type": "NUMBERED"
+    },
+    {
+      "id": 3,
+      "text": "1.1. Phạm vi.",
+      "block_type": "HEADING",
+      "heading_type": "NUMBERED",
+      "list_type": null,
+      "depth": 5,
+      "ocr_confidence": 0.95,
+      "classifier_confidence": 0.95,
+      "is_garbage": false,
+      "section_path": [
+        "I. Tổng quan",
         "1. Mục đích",
         "1.1. Phạm vi."
       ],
-      "page": 1
+      "page": 1,
+      "section_type": "NUMBERED"
     },
     {
       "id": 4,
@@ -196,7 +207,8 @@
         "1. Mục đích",
         "1.1. Phạm vi."
       ],
-      "page": 1
+      "page": 1,
+      "section_type": "NUMBERED"
     }
   ],
   "toc_filter": []

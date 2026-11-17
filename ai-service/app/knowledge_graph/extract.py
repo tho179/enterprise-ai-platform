@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 try:
     from app.adaptive_chunker import AdaptiveChunker
@@ -13,7 +13,7 @@ except ImportError:  # scripts run with ai-service/ on sys.path
     from adaptive_chunker import AdaptiveChunker
     from document_parser import extract_text_from_pdf
 
-from .ids import chunk_id, document_id, entity_id, fold, sha1_text
+from .ids import chunk_id, document_id, entity_id, fold, fold_keep_length, sha1_text
 
 # Case-sensitive on purpose: "phần vốn góp" and "điều lệ." are ordinary text.
 # Lowercase l is kept because OCR reads "Điều 1" as "Điều l".
@@ -24,14 +24,31 @@ HEADING_RE = re.compile(
 NUMBERED_HEADING_RE = re.compile(r"^((?:[IVX]+\.)|(?:\d+(?:\.\d+)*\.?))\s+(\S.*)$")
 ARTICLE_RE = re.compile(r"\bĐiều\s+(\d{1,3})\b", re.IGNORECASE)
 DATE_RE = re.compile(r"\bngày\s+(\d{1,2})[/-](\d{1,2})[/-](\d{4})", re.IGNORECASE)
-LAW_RE = re.compile(r"\b(Bộ luật|Luật)\s+([^\W\d_]+(?:\s+[^\W\d_]+)?)")
+# "Kỷ luật lao động" (labour discipline) is not the "Luật Lao động" statute.
+LAW_RE = re.compile(r"(?<![Kk]ỷ )(?<!KỶ )\b(Bộ luật|Luật)\s+([^\W\d_]+(?:\s+[^\W\d_]+)?)")
+# Multi-word statute names the two-word rule would cut short. Matched first,
+# accent-insensitively; the regex only handles names not listed here.
+LAW_GAZETTEER = [
+    "Luật Quản lý, sử dụng vốn nhà nước đầu tư vào sản xuất, kinh doanh tại doanh nghiệp",
+    "Luật An toàn thông tin mạng",
+    "Luật An ninh mạng",
+    "Luật Bảo vệ dữ liệu cá nhân",
+    "Luật Bảo hiểm xã hội",
+    "Luật Chứng khoán",
+    "Luật Doanh nghiệp",
+    "Bộ luật Lao động",
+    "Bộ luật Dân sự",
+]
+# OCR and line breaks split "155/2020/NĐ-CP" into "155/2020/NĐ- CP".
 DECREE_RE = re.compile(
-    r"\b(Nghị định|Thông tư)\s+(?:số\s+)?(\d+/\d{4}/[^\s,.;)]+)",
+    r"\b(Nghị định|Thông tư)\s+(?:số\s+)?(\d+/\d{4}/[^\s,.;)]*-\s?[A-ZĐ]{2,}|\d+/\d{4}/[^\s,.;)]+)",
     re.IGNORECASE,
 )
 HEADING_TITLE_RE = re.compile(
-    r"^(?:CHƯƠNG|Chương|PHẦN|Phần|MỤC|Mục|ĐIỀU|Điều)\s+(?:[IVXLC]+|l|\d+)\s*[\.:\-–]*\s*(.+)$",
+    r"^(?:CHƯƠNG|Chương|PHẦN|Phần|MỤC|Mục|ĐIỀU|Điều)\s+(?:[IVXLC]+|l|\d+)(?![^\W\d_])\s*[\.:\-–]*\s*(.+)$",
 )
+# "Công ty Cổ phần" is a company type, not the topic "Cổ phần" (shares).
+ALIAS_EXCLUDED_AFTER = {"Cổ phần": ("cong ty",)}
 ARTICLE_HEADING_RE = re.compile(r"^\s*(?:ĐIỀU|Điều)\s+(\d{1,3})\b")
 EXTERNAL_LAW_RE = re.compile(r"Bộ luật|Luật|Nghị định|Thông tư")
 LAW_STOPWORDS = {"và", "số", "này", "của", "có", "về", "hoặc", "theo", "định", "pháp"}
@@ -76,6 +93,81 @@ TOPIC_ALIASES = {
 }
 
 ENTITY_ALIASES = {**ROLE_ALIASES, **TOPIC_ALIASES}
+
+# English names map to the same canonical (Vietnamese) entity, so an English
+# web page and a Vietnamese PDF share one node instead of two.
+ENGLISH_ALIASES = {
+    "Chủ tịch Hội đồng Quản trị": ["Chairman of the Board of Directors", "Chairman of the Board"],
+    "Hội đồng Quản trị": ["Board of Directors"],
+    "Tổng Giám đốc": ["General Director", "Chief Executive Officer", "CEO"],
+    "Ban Kiểm soát": ["Supervisory Board", "Board of Supervisors"],
+    "Đại hội đồng cổ đông": ["General Meeting of Shareholders", "General Shareholders Meeting"],
+    "Ủy ban Kiểm toán": ["Audit Committee"],
+    "Người đại diện theo pháp luật": ["Legal representative"],
+    "Kế toán trưởng": ["Chief Accountant"],
+    "Người sử dụng lao động": ["Employer"],
+    "Người lao động": ["Employee", "Employees"],
+    "Cổ tức": ["dividend", "dividends"],
+    "Cổ phần": ["shares", "share capital"],
+    "Vốn điều lệ": ["charter capital"],
+    "Trái phiếu": ["bond", "bonds"],
+    "Hợp đồng lao động": ["labor contract", "labour contract", "employment contract"],
+    "Tiền lương": ["salary", "wage", "wages"],
+    "Bảo hiểm xã hội": ["social insurance"],
+    "Nghỉ hằng năm": ["annual leave"],
+    "An toàn thông tin": ["information security"],
+    "Dữ liệu cá nhân": ["personal data"],
+    "Quyền truy cập": ["access right", "access rights", "access control"],
+    "Sự cố": ["incident", "incidents"],
+    "Đào tạo": ["training"],
+    "Kỷ luật": ["discipline", "disciplinary"],
+}
+
+# Confidence of each extraction method. Rule output is not equally reliable:
+# a numbered article is unambiguous, an acronym or an accent-free match is not
+# ("công đoạn" folds to the same string as "công đoàn").
+CONFIDENCE = {
+    "regex_article": 0.95,
+    "regex_date": 0.95,
+    "regex_decree": 0.95,
+    "alias_full": 0.9,
+    "alias_en": 0.85,
+    "alias_abbrev": 0.75,
+    "gazetteer_law": 0.9,
+    "regex_law": 0.7,
+    "alias_folded": 0.6,
+    "heading": 0.6,
+}
+
+
+def _alias_pattern(alias: str) -> re.Pattern:
+    return re.compile(rf"(?<!\w){re.escape(alias.casefold())}(?!\w)")
+
+
+def _is_abbreviation(alias: str) -> bool:
+    return len(alias) <= 5 and alias.upper() == alias
+
+
+# (canonical, kind, method, compiled pattern, folded?)
+_ALIAS_RULES: List[tuple] = []
+for _canonical, (_kind, _aliases) in ENTITY_ALIASES.items():
+    for _alias in _aliases:
+        _method = "alias_abbrev" if _is_abbreviation(_alias) else "alias_full"
+        _ALIAS_RULES.append((_canonical, _kind, _method, _alias_pattern(_alias), False))
+        if not _is_abbreviation(_alias):
+            # OCR drops or swaps diacritics ("Vôn điều lệ", "cô phân"): match
+            # the accent-free form too, at a lower confidence.
+            _ALIAS_RULES.append((_canonical, _kind, "alias_folded", _alias_pattern(fold(_alias)), True))
+for _canonical, _aliases in ENGLISH_ALIASES.items():
+    _kind = ENTITY_ALIASES[_canonical][0]
+    for _alias in _aliases:
+        _ALIAS_RULES.append((_canonical, _kind, "alias_en", _alias_pattern(_alias), False))
+
+# Matched on accent-free text; "," in a name may be absent after OCR.
+_LAW_PATTERNS = [
+    (name, re.compile(r"(?<!\w)" + r",?\s+".join(map(re.escape, fold(name).replace(",", "").split())) + r"(?!\w)"))
+    for name in sorted(LAW_GAZETTEER, key=len, reverse=True)
+]
 
 
 def _is_heading(line: str) -> bool:
@@ -188,39 +280,70 @@ def pages_to_nodes(pages: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return nodes
 
 
-def extract_entities(text: str) -> List[Dict[str, str]]:
-    """Baseline rule-based NER: articles, roles and explicit dates."""
-    found: Dict[str, Dict[str, str]] = {}
+def _add(found: Dict[str, Dict[str, Any]], name: str, kind: str, method: str) -> None:
+    """Keep one record per entity, with the most reliable method that found it."""
+    eid = entity_id(name, kind)
+    confidence = CONFIDENCE[method]
+    if eid not in found or found[eid]["confidence"] < confidence:
+        found[eid] = {
+            "entity_id": eid,
+            "name": name,
+            "type": kind,
+            "confidence": confidence,
+            "method": method,
+        }
 
-    for match in ARTICLE_RE.finditer(text or ""):
-        name = f"Điều {match.group(1)}"
-        eid = entity_id(name, "dieu_khoan")
-        found[eid] = {"entity_id": eid, "name": name, "type": "dieu_khoan"}
 
-    for canonical, (kind, aliases) in ENTITY_ALIASES.items():
-        if any(alias.casefold() in (text or "").casefold() for alias in aliases):
-            eid = entity_id(canonical, kind)
-            found[eid] = {"entity_id": eid, "name": canonical, "type": kind}
+def extract_entities(text: str) -> List[Dict[str, Any]]:
+    """Rule-based NER with a confidence per mention.
 
-    for match in DATE_RE.finditer(text or ""):
-        name = f"{match.group(1)}/{match.group(2)}/{match.group(3)}"
-        eid = entity_id(name, "moc_thoi_gian")
-        found[eid] = {"entity_id": eid, "name": name, "type": "moc_thoi_gian"}
+    Numbers are normalised ("Điều 07" -> "Điều 7", "05/03/2020" -> "5/3/2020")
+    so the same article or date maps to one entity across documents.
+    """
+    text = text or ""
+    lowered = text.casefold()
+    folded = fold(text)
+    found: Dict[str, Dict[str, Any]] = {}
 
-    for match in LAW_RE.finditer(text or ""):
+    for match in ARTICLE_RE.finditer(text):
+        _add(found, f"Điều {int(match.group(1))}", "dieu_khoan", "regex_article")
+
+    for canonical, kind, method, pattern, on_folded in _ALIAS_RULES:
+        haystack = folded if on_folded else lowered
+        excluded = ALIAS_EXCLUDED_AFTER.get(canonical, ())
+        for match in pattern.finditer(haystack):
+            before = fold(haystack[max(0, match.start() - 12):match.start()])
+            if any(before.endswith(prefix + " ") or before.endswith(prefix) for prefix in excluded):
+                continue
+            _add(found, canonical, kind, method)
+            break
+
+    for match in DATE_RE.finditer(text):
+        day, month, year = (int(group) for group in match.groups())
+        _add(found, f"{day}/{month}/{year}", "moc_thoi_gian", "regex_date")
+
+    covered: List[tuple] = []
+    aligned = fold_keep_length(text)
+    for name, pattern in _LAW_PATTERNS:
+        for match in pattern.finditer(aligned):
+            if any(start <= match.start() < end for start, end in covered):
+                continue
+            covered.append(match.span())
+            _add(found, name, "van_ban", "gazetteer_law")
+
+    for match in LAW_RE.finditer(text):
+        if any(start <= match.start() < end for start, end in covered):
+            continue  # already named in full by the gazetteer
         words = match.group(2).split()
         if not words[0][0].isupper() or words[0].casefold() in LAW_STOPWORDS:
             continue
         if len(words) > 1 and words[1].casefold() in LAW_STOPWORDS:
             words = words[:1]
-        name = " ".join([match.group(1), *words])
-        eid = entity_id(name, "van_ban")
-        found[eid] = {"entity_id": eid, "name": name, "type": "van_ban"}
+        _add(found, " ".join([match.group(1), *words]), "van_ban", "regex_law")
 
-    for match in DECREE_RE.finditer(text or ""):
-        name = f"{match.group(1).capitalize()} {match.group(2)}"
-        eid = entity_id(name, "van_ban")
-        found[eid] = {"entity_id": eid, "name": name, "type": "van_ban"}
+    for match in DECREE_RE.finditer(text):
+        number = re.sub(r"\s+", "", match.group(2))
+        _add(found, f"{match.group(1).capitalize()} {number}", "van_ban", "regex_decree")
 
     return sorted(found.values(), key=lambda item: (item["type"], item["name"]))
 
@@ -236,6 +359,10 @@ def heading_entity(section_path: List[str]) -> Optional[Dict[str, str]]:
     title = re.sub(r"\s+", " ", match.group(match.lastindex)).strip(" .:;-–")
     if not 2 <= len(title.split()) <= 12:
         return None
+    if title[:1].islower():
+        return None  # a sentence fragment, e.g. "ệ lần thứ năm ký ngày..."
+    if re.search(r"[^\W\d_]\d+$", title) or re.search(r"\.{3,}|…", title):
+        return None  # table-of-contents line: "...hệ thống kế toán34"
     if title.isupper():
         title = title.capitalize()
     folded = fold(title)
@@ -243,7 +370,13 @@ def heading_entity(section_path: List[str]) -> Optional[Dict[str, str]]:
         if folded in {fold(canonical), *(fold(alias) for alias in aliases)}:
             return None  # already covered by the canonical entity
     eid = entity_id(title, "tieu_de")
-    return {"entity_id": eid, "name": title, "type": "tieu_de"}
+    return {
+        "entity_id": eid,
+        "name": title,
+        "type": "tieu_de",
+        "confidence": CONFIDENCE["heading"],
+        "method": "heading",
+    }
 
 
 def own_article(section_path: List[str], text: str) -> Optional[str]:
@@ -295,6 +428,42 @@ def link_chunks(chunks: List[Dict[str, Any]]) -> None:
         ]
 
 
+# How much a source is trusted when two sources disagree. Internal documents
+# (PDF corpus, user uploads) are the official record; public web pages are
+# summaries that may lag behind.
+SOURCE_TRUST = {"pdf": 1.0, "upload": 1.0, "web": 0.6}
+
+YEAR_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})(?!\d)")
+LONG_DATE_RE = re.compile(
+    r"ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})\s+năm\s+((?:19|20)\d{2})",
+    re.IGNORECASE,
+)
+
+
+def effective_date(title: str, text: str) -> Tuple[Optional[str], Optional[str]]:
+    """(ISO date, where it came from): a year in the title, else the latest
+    date in the opening text. Used to order versions and settle conflicts.
+
+    An amendment opens by citing the charter and every earlier amendment in
+    order ("Điều lệ ký ngày 23/4/2012, Bản điều chỉnh lần thứ hai ký ngày
+    18/02/2013 ... Hôm nay, ngày 22/4/2013"), so the first date is the oldest
+    one and the latest date is the document's own.
+    """
+    match = YEAR_RE.search(title or "")
+    if match:
+        return f"{match.group(1)}-01-01", "title"
+    head = (text or "")[:5000]
+    dates = []
+    for pattern in (LONG_DATE_RE, DATE_RE):
+        for found in pattern.finditer(head):
+            day, month, year = (int(group) for group in found.groups())
+            if 1 <= month <= 12 and 1 <= day <= 31:
+                dates.append(f"{year:04d}-{month:02d}-{day:02d}")
+    if dates:
+        return max(dates), "text"
+    return None, None
+
+
 def build_record_from_pages(
     title: str,
     source_uri: str,
@@ -307,6 +476,7 @@ def build_record_from_pages(
     full_text = "\n".join(p.get("text", "") for p in pages)
     content_hash = sha1_text(full_text)
     doc_id = document_id(content_hash, title)
+    date, date_source = effective_date(title, full_text)
 
     chunker = chunker or AdaptiveChunker()
     chunks = chunker.chunk_nodes(pages_to_nodes(pages))
@@ -346,6 +516,9 @@ def build_record_from_pages(
             "char_count": len(full_text),
             "is_current": True,
             "version": 1,
+            "source_trust": SOURCE_TRUST.get(source_type, 0.5),
+            "effective_date": date,
+            "date_source": date_source,
         },
         "chunks": chunk_records,
         "entities": list(all_entities.values()),
@@ -463,12 +636,29 @@ def build_record_from_ingest_chunks(chunks: Iterable[Dict[str, Any]]) -> List[Di
                     "document_code": first_meta.get("document_code"),
                     "document_type": first_meta.get("document_type"),
                     "allowed_roles": list(first_meta.get("allowed_roles") or ["*"]),
+                    "source_trust": SOURCE_TRUST["upload"],
+                    "effective_date": effective_date(
+                        title, " ".join(chunk["text"] for chunk in chunk_records[:3])
+                    )[0],
                 },
                 "chunks": chunk_records,
                 "entities": list(all_entities.values()),
             }
         )
     return records
+
+
+def source_uri_for(path) -> str:
+    """Stable identity of a PDF: POSIX path relative to the working directory.
+
+    Updates find the previous version by source_uri, so "/app/data/x.pdf" and
+    "data/x.pdf" must not count as two different sources.
+    """
+    path_obj = Path(path)
+    try:
+        return path_obj.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        return path_obj.as_posix()
 
 
 def build_pdf_record(path, title: Optional[str] = None) -> Dict[str, Any]:
@@ -479,7 +669,7 @@ def build_pdf_record(path, title: Optional[str] = None) -> Dict[str, Any]:
         raise ValueError(f"Không trích xuất được nội dung: {path_obj}")
     return build_record_from_pages(
         title=title or path_obj.stem.replace("_", " "),
-        source_uri=str(path_obj),
+        source_uri=source_uri_for(path_obj),
         source_type="pdf",
         pages=pages,
     )

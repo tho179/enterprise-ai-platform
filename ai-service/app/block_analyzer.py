@@ -116,6 +116,10 @@ class LineReconstructor:
         self.is_structure_start = re.compile(
             r"^(?:(?:[IVXLCDM]+|\d+(?:\.\d+)*)[\.\:]|[a-zA-Z]\)|[-+*•]|Điều \d|Chương [IVXLCDM]|Phần [IVXLCDM]|Mục \d)"
         )
+        # A heading that already carries its title ("Điều 5. Thử việc").
+        self.titled_heading = re.compile(
+            r"(?i)^(?:điều\s+\d+|chương\s+[ivxlcdm\d]+|phần\s+[ivxlcdm\d]+|mục\s+\d+)[\.\:\-]?\s+\S"
+        )
         
     def merge(self, raw_lines: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         merged = []
@@ -138,9 +142,17 @@ class LineReconstructor:
             prev_ends_with_punct = prev_text.endswith('.') or prev_text.endswith(':') or prev_text.endswith(';') or prev_text.endswith('!')
             starts_upper = text[0].isupper() if text else False
             
+            # "Điều 5. Thử việc" + "Nội dung..." are two blocks: a titled heading
+            # never absorbs a following line that starts a new sentence.
+            prev_is_titled_heading = (
+                bool(self.titled_heading.match(prev_text)) and len(prev_text.split()) <= 15
+            )
+
             should_merge = False
             if is_orphan_number:
                 should_merge = True
+            elif prev_is_titled_heading and starts_upper:
+                should_merge = False
             elif not starts_structured:
                 if not prev_ends_with_punct:
                     should_merge = True
@@ -187,16 +199,22 @@ class HeadingDetector:
         for h_type, pattern in self.patterns.items():
             if pattern.match(text):
                 best_heading = h_type
-                if h_type in [HeadingType.PART, HeadingType.CHAPTER]:
+                # Each level has its own depth: PHẦN > CHƯƠNG > ĐIỀU > MỤC > 1. > 1.1.
+                # Sharing a depth made the resolver drop a PHẦN when a CHƯƠNG started.
+                if h_type == HeadingType.PART:
                     best_depth = 1
-                elif h_type in [HeadingType.ARTICLE, HeadingType.SECTION]:
+                elif h_type == HeadingType.CHAPTER:
                     best_depth = 2
+                elif h_type == HeadingType.ARTICLE:
+                    best_depth = 3
+                elif h_type == HeadingType.SECTION:
+                    best_depth = 4
                 elif h_type == HeadingType.NUMBERED:
                     match_str = text.split()[0]
                     if re.match(r"^[IVXLCDM]+[\.\:]", match_str):
-                        best_depth = 2
+                        best_depth = 3
                     else:
-                        best_depth = 2 + match_str.count('.')
+                        best_depth = 4 + match_str.rstrip('.:').count('.')
                         
                 word_count = len(text.split())
                 length_score = 0.5 if word_count < 2 else max(0.0, 1.0 - (word_count / 30.0))

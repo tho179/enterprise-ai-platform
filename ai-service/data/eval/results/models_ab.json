@@ -1,0 +1,92 @@
+{
+  "questions": 18,
+  "chunks": 321,
+  "rerank_depth": 20,
+  "reranker": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+  "results": [
+    {
+      "model": "MiniLM-L12 (đa ngữ)",
+      "hf_id": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+      "dimensions": 384,
+      "parameters_m": 117.7,
+      "index_seconds": 15.9,
+      "A": {
+        "mrr": 0.5558,
+        "recall_at_1": 0.3889,
+        "recall_at_3": 0.7222,
+        "recall_at_10": 0.7778,
+        "ms_per_query": 67.4
+      },
+      "AB": {
+        "mrr": 0.7132,
+        "recall_at_1": 0.6111,
+        "recall_at_3": 0.7778,
+        "recall_at_10": 0.8889,
+        "ms_per_query": 1995.4
+      }
+    },
+    {
+      "model": "BKAI Vietnamese bi-encoder",
+      "hf_id": "bkai-foundation-models/vietnamese-bi-encoder",
+      "dimensions": 768,
+      "parameters_m": 135.0,
+      "index_seconds": 86.8,
+      "A": {
+        "mrr": 0.6315,
+        "recall_at_1": 0.5,
+        "recall_at_3": 0.7778,
+        "recall_at_10": 0.8333,
+        "ms_per_query": 138.1
+      },
+      "AB": {
+        "mrr": 0.7318,
+        "recall_at_1": 0.6111,
+        "recall_at_3": 0.7778,
+        "recall_at_10": 0.9444,
+        "ms_per_query": 2163.3
+      }
+    },
+    {
+      "model": "Multilingual-E5-Small",
+      "hf_id": "intfloat/multilingual-e5-small",
+      "dimensions": 384,
+      "parameters_m": 117.7,
+      "index_seconds": 38.0,
+      "A": {
+        "mrr": 0.8061,
+        "recall_at_1": 0.7222,
+        "recall_at_3": 0.8889,
+        "recall_at_10": 1.0,
+        "ms_per_query": 59.2
+      },
+      "AB": {
+        "mrr": 0.8287,
+        "recall_at_1": 0.7222,
+        "recall_at_3": 0.9444,
+        "recall_at_10": 1.0,
+        "ms_per_query": 1925.9
+      }
+    },
+    {
+      "model": "Multilingual-E5-Base",
+      "hf_id": "intfloat/multilingual-e5-base",
+      "dimensions": 768,
+      "parameters_m": 278.0,
+      "index_seconds": 118.9,
+      "A": {
+        "mrr": 0.787,
+        "recall_at_1": 0.7222,
+        "recall_at_3": 0.8333,
+        "recall_at_10": 0.9444,
+        "ms_per_query": 152.2
+      },
+      "AB": {
+        "mrr": 0.7704,
+        "recall_at_1": 0.6667,
+        "recall_at_3": 0.7778,
+        "recall_at_10": 1.0,
+        "ms_per_query": 2155.6
+      }
+    }
+  ]
+}
