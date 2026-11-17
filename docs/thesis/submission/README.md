@@ -2,6 +2,33 @@
 
 Cập nhật: 05/11/2026
 
+## 0. Bản nộp lần 2 (17/11/2026): Chương 2–5
+
+| File | Nội dung |
+| :--- | :--- |
+| `DO_AN_IN_CHUONG_2_5.pdf` / `.docx` | **Bản chính để nộp**: bìa, mục lục, danh mục hình/bảng, Chương 2 (Phân tích và thiết kế microservice), Chương 3 (Học sâu, có mục 3.7.6 mô hình A/AB), Chương 4 (Cơ sở tri thức đồ thị), Chương 5 (Kiến trúc và tác tử). 129 trang, 31 hình, 59 bảng. |
+| `chuong_2_thiet_ke.md` | Nguồn Chương 2 |
+| `in_chuong_2_5.md` | Nguồn đã ghép của bản in |
+| `assets/vp/EAKWP_chuong_2.vpp`, `EAKWP_chuong_5.vpp` | Project Visual Paradigm của 14 hình Chương 2 và 2 hình Chương 5 |
+| `tools/vp_gen/` | Bộ sinh XML cho Visual Paradigm (`vpgen.py`, `ch2_diagrams.py`, `ch5_diagrams.py`) |
+| `tools/fill_ch4_ch5.py` | Điền số liệu Chương 4–5 từ `ai-service/data/eval/results/*.json` và `assets/agent_traces_20261116.json` |
+
+Hình và công thức:
+
+- Hình VP xuất **SVG** (`ExportDiagramImage -type svg`), rồi vẽ lại bằng Edge ở ~2.600 px qua `tools/vp_gen/svg2png.py`. Không dùng `-type pdf`: VP làm mất chữ tiếng Việt có dấu. PNG mặc định của VP chỉ tỉ lệ 1:1 nên bị mờ.
+- Ảnh chụp Neo4j: `SCALE=2.5 node tools/neo4j_capture/capture_kb_v2.cjs <thư mục>`; ảnh code vẽ ở tỉ lệ 3 (`render_code_images.SCALE`).
+- Word tự hạ ảnh xuống ~200 dpi khi xuất PDF; `build_do_an_form.py` thay lại ảnh gốc vào PDF (`restore_full_resolution`). Ảnh trong PDF hiện ≥ 241 dpi, trung vị 418 dpi.
+- Dòng `> **Công thức N.M.** $...$` được dựng thành phương trình hiển thị của Word (OMML), căn giữa, số (N.M) căn phải; nhiều phương trình ghép bằng `;` hoặc `,` được tách mỗi dòng một phương trình.
+
+Dựng lại:
+
+```bash
+python tools/fill_ch4_ch5.py        # chỉ cần khi còn {{...}} trong nguồn
+python tools/assemble_chuong_3_6.py
+# ghép chuong_2_thiet_ke.md + Chương 3-5 của do_an_chuong_3_6.md thành in_chuong_2_5.md
+python tools/build_do_an_form.py --source in_chuong_2_5.md --out DO_AN_IN_CHUONG_2_5 --pdf
+```
+
 ## 1. Bản nộp theo yêu cầu mới
 
 | File | Nội dung | Dùng để |

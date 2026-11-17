@@ -16,6 +16,7 @@ from pygments.lexers import JsonLexer, PythonLexer
 from pygments.token import Comment, Name, Number, Operator, Punctuation, String
 
 PX_TO_CM = 0.0226  # 14px editor font prints at about 9pt
+SCALE = 3  # device pixels per CSS pixel; 3 gives ~340 dpi in print
 CHAR_W = 7.7
 FENCE = re.compile(r"^```(\w*)\n(.*?)^```[ \t]*$", re.S | re.M)
 
@@ -184,7 +185,7 @@ def render(body: str, outdir: Path) -> str:
     widths = {}
     with sync_playwright() as p:
         b = p.chromium.launch(channel="msedge", headless=True)
-        pg = b.new_page(viewport={"width": 1200, "height": 900}, device_scale_factor=2)
+        pg = b.new_page(viewport={"width": 1200, "height": 900}, device_scale_factor=SCALE)
         neo = None
         for lang, code, png in jobs:
             if lang == "python":
@@ -197,7 +198,7 @@ def render(body: str, outdir: Path) -> str:
                 page, w = terminal(code)
             else:
                 if neo is None:
-                    neo = b.new_page(viewport={"width": 1500, "height": 950}, device_scale_factor=2)
+                    neo = b.new_page(viewport={"width": 1500, "height": 950}, device_scale_factor=SCALE)
                     neo.goto("http://localhost:7474/browser/", wait_until="domcontentloaded")
                     neo.wait_for_selector("input[type=password]")
                     neo.fill("input[type=password]", "eakwp-neo4j"); neo.press("input[type=password]", "Enter")
@@ -223,10 +224,10 @@ def render(body: str, outdir: Path) -> str:
 
 def image_width(png: Path) -> int:
     from PIL import Image
-    return Image.open(png).width // 2
+    return Image.open(png).width // SCALE
 
 
-def trim_right(png: Path, pad=36):
+def trim_right(png: Path, pad=18 * SCALE // 1):
     from PIL import Image, ImageChops
     im = Image.open(png).convert("RGB")
     bg = Image.new("RGB", im.size, (255, 255, 255))

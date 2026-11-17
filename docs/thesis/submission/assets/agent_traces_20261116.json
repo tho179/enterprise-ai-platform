@@ -1,0 +1,1012 @@
+[
+ {
+  "q": "Vốn điều lệ hiện nay của công ty là bao nhiêu?",
+  "rules": [
+   "R3_thuoc_tinh_mot_gia_tri",
+   "R4_thuoc_tinh_da_co"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "count",
+     "article": null,
+     "attribute": "Vốn điều lệ",
+     "entities": [
+      "Vốn điều lệ"
+     ],
+     "content_words": 11
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R3_thuoc_tinh_mot_gia_tri",
+    "action": "kb_attribute",
+    "result": "found",
+    "ms": 2164.6
+   },
+   {
+    "step": 2,
+    "rule": "R4_thuoc_tinh_da_co",
+    "action": "respond"
+   }
+  ],
+  "answer": "Vốn điều lệ hiện hành là **13.074.049.490.000 đồng**, theo Dieu le cong ty 2026 (năm 2026) [1]. Các văn bản cũ hơn ghi giá trị khác: 10.623.648.220.000 đồng (Di",
+  "citations": 3
+ },
+ {
+  "q": "Hội đồng Quản trị gồm bao nhiêu thành viên?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "count",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Hội đồng Quản trị"
+     ],
+     "content_words": 9
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 3163.7
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 26. Thành phần và nhiệm kỳ của thành viên Hội đồng Quản trị (Trang 21)** [1]:\n\n> Điều 26. Thành phần và nhiệm kỳ của thành viên Hội đồn",
+  "citations": 1
+ },
+ {
+  "q": "Hội đồng Quản trị phải họp ít nhất bao nhiêu lần?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "count",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Hội đồng Quản trị"
+     ],
+     "content_words": 11
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 3473.2
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều l6. Cuộc họp của Hội đồng Quản trị (Trang 10 → 11)** [1]:\n\n> Các cuộc họp thường kỳ: Chủ tịch Hội đồng Quản trị triệu tập các cuộc họp ",
+  "citations": 1
+ },
+ {
+  "q": "Số lượng thành viên Ban Kiểm soát của công ty là bao nhiêu?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "count",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Ban Kiểm soát"
+     ],
+     "content_words": 13
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 2274.8
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 32. Thành phần Ủy ban Kiểm toán (Trang 28 → 29)** [1]:\n\n> Ủy ban Kiêm toán có từ 02 thành viên trở lên. Chủ tịch Ủy ban Kiêm toán phải ",
+  "citations": 1
+ },
+ {
+  "q": "Nghị quyết Đại hội đồng cổ đông được thông qua khi đạt tỷ lệ bao nhiêu?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "count",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Đại hội đồng cổ đông"
+     ],
+     "content_words": 16
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 2,
+    "ms": 4504.0
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều l6. Cuộc họp của Hội đồng Quản trị (Trang 12)** [1]:\n\n> Thành viên Hội đông Quản trị không được biêu quyết về các hợp đồng, các giao dị",
+  "citations": 2
+ },
+ {
+  "q": "Một số tiêu chí cơ bản được dùng để đánh giá, lựa chọn nhà cung cấp dịch vụ gồm những gì?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "list",
+     "article": null,
+     "attribute": null,
+     "entities": [],
+     "content_words": 21
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 2,
+    "ms": 8656.1
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Trang 5** [1]:\n\n> Cam kết giao hàng/ thực hiện dịch vụ đúng hạn (*) -_ Tốc độ phản hồi. tính linh hoạt. 4). Công nghệ tiên tiến, bảo mât thô",
+  "citations": 2
+ },
+ {
+  "q": "Nhiệm kỳ của thành viên Hội đồng Quản trị là bao lâu?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "time",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Hội đồng Quản trị"
+     ],
+     "content_words": 12
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 2,
+    "ms": 4759.0
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 26. Thành phần và nhiệm kỳ của thành viên Hội đồng Quản trị (Trang 21)** [1]:\n\n> Thành phần và nhiệm kỳ của thành viên Hội đồng Quản tr",
+  "citations": 2
+ },
+ {
+  "q": "Thời hạn hoạt động của Công ty là bao lâu?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "time",
+     "article": null,
+     "attribute": null,
+     "entities": [],
+     "content_words": 10
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 2,
+    "ms": 4955.5
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 2. Tên, hình thức, trụ sở, đại điện theo pháp luật, chỉ nhánh, văn phòng đại diện và thời (Trang 6)** [1]:\n\n> Trừ khi chấm dứt hoạt độn",
+  "citations": 2
+ },
+ {
+  "q": "Thời giờ làm việc bình thường của người lao động được quy định như thế nào?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "open",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Người lao động"
+     ],
+     "content_words": 16
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 6145.0
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 6: Thời Giờ Làm Việc, Thời Giờ Nghĩ Ngơi (Trang 7)** [1]:\n\n> Điều 6: Thời Giờ Làm Việc, Thời Giờ Nghĩ Ngơi Thời giờ làm việc, thời giờ ",
+  "citations": 1
+ },
+ {
+  "q": "Cổ tức phải được thanh toán đầy đủ trong thời hạn bao lâu kể từ ngày kết thúc họp ĐHĐCĐ?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "time",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Cổ tức",
+      "Đại hội đồng cổ đông"
+     ],
+     "content_words": 20
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 5103.7
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 13. Đại Hội đồng Cổ đông (Trang 11)** [1]:\n\n> Ngoài cuộc họp thường niên, Đại Hội đồng Cổ đông có thê họp bất thường. Địa điểm họp Đại ",
+  "citations": 1
+ },
+ {
+  "q": "Thông báo mời họp Đại hội đồng cổ đông phải gửi chậm nhất bao nhiêu ngày trước ngày khai mạc?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "count",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Đại hội đồng cổ đông"
+     ],
+     "content_words": 20
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 2,
+    "ms": 4942.2
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 16. Triệu tập họp Đại Hội đồng Cổ đông, chương trình và nội dung họp, và mời họp Đại (Trang 14)** [1]:\n\n> và h. _ Các công việc khác ph",
+  "citations": 2
+ },
+ {
+  "q": "Công ty có bắt buộc phải lập Ủy ban Kiểm toán trực thuộc Hội đồng Quản trị không?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "yes_no",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Hội đồng Quản trị",
+      "Ủy ban Kiểm toán"
+     ],
+     "content_words": 18
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 6023.4
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 32. Thành phần Ủy ban Kiểm toán (Trang 28 → 29)** [1]:\n\n> Chủ tịch Ủy ban Kiêm toán phải là thành viên độc lập Hội đồng Quản trị. 28 Cá",
+  "citations": 1
+ },
+ {
+  "q": "Công ty có được phép sử dụng lao động trẻ em không?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "yes_no",
+     "article": null,
+     "attribute": null,
+     "entities": [],
+     "content_words": 12
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 5425.6
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **V. NỘI DUNG (Trang 3)** [1]:\n\n> Công ty tìm cách thu hút các đối tác tin tưởng và ủng hộ các giá trị được thể hiện trong giao ước của Công t",
+  "citations": 1
+ },
+ {
+  "q": "Công ty có thể mua lại cổ phần của chính mình không?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "yes_no",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Cổ phần"
+     ],
+     "content_words": 12
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 4151.8
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 5. Vôn điều lệ, cô phân, các loại chứng khoán khác (Trang 8)** [1]:\n\n> _ Các trường hợp khác do Đại Hội đồng Cổ đông quyết định hoặc Ph",
+  "citations": 1
+ },
+ {
+  "q": "Nhân viên có được phép chia sẻ mật khẩu tài khoản nội bộ cho đồng nghiệp không?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "yes_no",
+     "article": null,
+     "attribute": null,
+     "entities": [],
+     "content_words": 17
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 4243.4
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Trang 13** [1]:\n\n> Do not send Confidential Information through public methods such as Mĩ-FÌĩ, Internet, puBÏic email unless appropriate mea",
+  "citations": 1
+ },
+ {
+  "q": "Chủ tịch Hội đồng Quản trị có được kiêm nhiệm chức danh Tổng Giám đốc không?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "yes_no",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Chủ tịch Hội đồng Quản trị",
+      "Hội đồng Quản trị",
+      "Tổng Giám đốc"
+     ],
+     "content_words": 16
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 6052.3
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 28. Chủ tịch, Phó Chủ tịch Hội đồng Quản trị (Trang 24)** [1]:\n\n> Hội đồng Quản trị bầu một trong số các thành viên Hội đồng Quản trị đ",
+  "citations": 1
+ },
+ {
+  "q": "Quyền và nghĩa vụ của Đại hội đồng cổ đông gồm những gì?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "list",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Đại hội đồng cổ đông"
+     ],
+     "content_words": 13
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 6784.4
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 14. Quyền và nghĩa vụ của Đại Hội đồng Cổ đông (Trang 12)** [1]:\n\n> Quyền và nghĩa vụ của Đại Hội đồng Cổ đông 1. Đại Hội đông Cô đông ",
+  "citations": 1
+ },
+ {
+  "q": "Quy trình xử lý vụ việc gây rối hoặc vi phạm kỷ luật lao động được thực hiện qua những bước nào?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "list",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Kỷ luật"
+     ],
+     "content_words": 22
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 3,
+    "ms": 9745.1
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 13: Kỷ Luật Lao Động (Trang 14 → 15)** [1]:\n\n> Điều 13: Kỷ Luật Lao Động Thực hiện theo Nội quy lao động Công ty đã đăng ký với cơ quan",
+  "citations": 3
+ },
+ {
+  "q": "Chính sách nhân quyền của công ty cam kết những nội dung cơ bản nào?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "open",
+     "article": null,
+     "attribute": null,
+     "entities": [],
+     "content_words": 15
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 6182.2
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **V. NỘI DUNG (Trang 2)** [1]:\n\n> Tuyên bố chính sách chung: 1.1. Công ty cam kết tôn trọng và bảo vệ nhân quyền trong các hoạt động kinh doan",
+  "citations": 1
+ },
+ {
+  "q": "Ai là người đại diện theo pháp luật của công ty và có thẩm quyền gì?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "open",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Người đại diện theo pháp luật"
+     ],
+     "content_words": 16
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 5026.2
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 2. Tên, hình thức, trụ sở, đại điện theo pháp luật, chỉ nhánh, văn phòng đại diện và thời (Trang 5)** [1]:\n\n> a. _ Chủ tịch Hội đồng Qu",
+  "citations": 1
+ },
+ {
+  "q": "Quy định về bảo mật và quản lý mật khẩu của nhân viên bao gồm những yêu cầu gì?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R8_thu_lai_mo_rong",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "list",
+     "article": null,
+     "attribute": null,
+     "entities": [],
+     "content_words": 19
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "gate_refused",
+    "citations": 0,
+    "ms": 10049.5
+   },
+   {
+    "step": 2,
+    "rule": "R8_thu_lai_mo_rong",
+    "action": "retrieve:hybrid_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 11504.8
+   },
+   {
+    "step": 3,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 22: Quy Định Về An Toàn Và Bảo Mật Thông Tin (Trang 22)** [1]:\n\n> Quy định về an toàn và bảo mật thông tin căn cứ trên các chỉ tiết tại",
+  "citations": 1
+ },
+ {
+  "q": "Cổ đông hoặc nhóm cổ đông theo khoản 3 Điều 11 có quyền gì đối với chương trình họp Đại hội đồng cổ đông?",
+  "rules": [
+   "R5_dan_chieu_dieu_khoan",
+   "R2_tra_loi_xong"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "article",
+     "article": "11",
+     "attribute": null,
+     "entities": [
+      "Đại hội đồng cổ đông"
+     ],
+     "content_words": 23
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R5_dan_chieu_dieu_khoan",
+    "action": "retrieve:hybrid_rag",
+    "result": "answered",
+    "citations": 1,
+    "ms": 4977.1
+   },
+   {
+    "step": 2,
+    "rule": "R2_tra_loi_xong",
+    "action": "respond"
+   }
+  ],
+  "answer": "Theo quy định tại **Điều 16. Triệu tập họp Đại Hội đồng Cổ đông, chương trình và nội dung họp, và mời họp Đại (Trang 14)** [1]:\n\n> ác Cổ đông có thể tiếp cận cá",
+  "citations": 1
+ },
+ {
+  "q": "Cách làm bánh pizza hải sản phô mai?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R8_thu_lai_mo_rong",
+   "R9_tu_choi"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "open",
+     "article": null,
+     "attribute": null,
+     "entities": [],
+     "content_words": 8
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "gate_refused",
+    "citations": 0,
+    "ms": 2312.9
+   },
+   {
+    "step": 2,
+    "rule": "R8_thu_lai_mo_rong",
+    "action": "retrieve:hybrid_rag",
+    "result": "gate_refused",
+    "citations": 0,
+    "ms": 1820.8
+   },
+   {
+    "step": 3,
+    "rule": "R9_tu_choi",
+    "action": "refuse"
+   }
+  ],
+  "answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
+  "citations": 0
+ },
+ {
+  "q": "Dự báo thời tiết Hà Nội ngày mai thế nào?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R8_thu_lai_mo_rong",
+   "R9_tu_choi"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "open",
+     "article": null,
+     "attribute": null,
+     "entities": [],
+     "content_words": 10
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "gate_refused",
+    "citations": 0,
+    "ms": 4967.6
+   },
+   {
+    "step": 2,
+    "rule": "R8_thu_lai_mo_rong",
+    "action": "retrieve:hybrid_rag",
+    "result": "gate_refused",
+    "citations": 0,
+    "ms": 5658.6
+   },
+   {
+    "step": 3,
+    "rule": "R9_tu_choi",
+    "action": "refuse"
+   }
+  ],
+  "answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
+  "citations": 0
+ },
+ {
+  "q": "Công ty có bao nhiêu nhân viên?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R8_thu_lai_mo_rong",
+   "R9_tu_choi"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "count",
+     "article": null,
+     "attribute": null,
+     "entities": [],
+     "content_words": 7
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "gate_refused",
+    "citations": 0,
+    "ms": 1876.3
+   },
+   {
+    "step": 2,
+    "rule": "R8_thu_lai_mo_rong",
+    "action": "retrieve:hybrid_rag",
+    "result": "gate_refused",
+    "citations": 0,
+    "ms": 3455.8
+   },
+   {
+    "step": 3,
+    "rule": "R9_tu_choi",
+    "action": "refuse"
+   }
+  ],
+  "answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
+  "citations": 0
+ },
+ {
+  "q": "Mức lương của Tổng Giám đốc năm 2025 là bao nhiêu?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R8_thu_lai_mo_rong",
+   "R9_tu_choi"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "count",
+     "article": null,
+     "attribute": null,
+     "entities": [
+      "Tiền lương",
+      "Tổng Giám đốc"
+     ],
+     "content_words": 11
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "gate_refused",
+    "citations": 0,
+    "ms": 1486.9
+   },
+   {
+    "step": 2,
+    "rule": "R8_thu_lai_mo_rong",
+    "action": "retrieve:hybrid_rag",
+    "result": "gate_refused",
+    "citations": 0,
+    "ms": 1881.0
+   },
+   {
+    "step": 3,
+    "rule": "R9_tu_choi",
+    "action": "refuse"
+   }
+  ],
+  "answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
+  "citations": 0
+ },
+ {
+  "q": "Chính sách bảo hành xe máy điện như thế nào?",
+  "rules": [
+   "R7_mac_dinh_vector",
+   "R8_thu_lai_mo_rong",
+   "R9_tu_choi"
+  ],
+  "trace": [
+   {
+    "step": 0,
+    "perception": {
+     "shape": "count",
+     "article": null,
+     "attribute": null,
+     "entities": [],
+     "content_words": 10
+    }
+   },
+   {
+    "step": 1,
+    "rule": "R7_mac_dinh_vector",
+    "action": "retrieve:flat_rag",
+    "result": "gate_refused",
+    "citations": 0,
+    "ms": 5299.7
+   },
+   {
+    "step": 2,
+    "rule": "R8_thu_lai_mo_rong",
+    "action": "retrieve:hybrid_rag",
+    "result": "gate_refused",
+    "citations": 0,
+    "ms": 5390.8
+   },
+   {
+    "step": 3,
+    "rule": "R9_tu_choi",
+    "action": "refuse"
+   }
+  ],
+  "answer": "Dựa trên các tài liệu nội bộ hiện tại, tôi chưa tìm thấy thông tin phù hợp với câu hỏi này.",
+  "citations": 0
+ }
+]

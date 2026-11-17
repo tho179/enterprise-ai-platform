@@ -16,8 +16,9 @@ import sys
 from pathlib import Path
 
 from docx.enum.section import WD_SECTION
-from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
@@ -34,6 +35,8 @@ CODE_DIR = BASE / "assets" / "code"
 
 BLACK = RGBColor(0, 0, 0)
 CAPTION_RE = re.compile(r"^\*{1,2}(Hình|Bảng) \d+\.\d+\.")
+# "> **Công thức 3.5.** $...$" after bold markers are stripped by clean_body.
+FORMULA_RE = re.compile(r"^\**Công thức (\d+\.\d+)\.\**\s*(.*)$")
 
 # Black text only; inline code without grey shading.
 bd.COLOR_TEXT = bd.COLOR_MUTED = bd.COLOR_ACCENT = BLACK
@@ -276,10 +279,81 @@ class FormDocx(bd.ThesisDocx):
                             run.font.size = Pt(9) if run.font.name == bd.FONT_CODE else Pt(10.5)
 
     def _quote(self, line):
+        m = FORMULA_RE.match(line.strip())
+        if m and "$" in m.group(2):
+            self._formula(m.group(1), m.group(2))
+            return
         p = self._new_para("Quote Box")
         p.paragraph_format.left_indent = Cm(0.6)
         bd.border_paragraph(p, "left", "7F7F7F", 18, 8)
         bd.add_inline(p, line)
+
+    def _formula(self, number: str, body: str):
+        """Display equations: one centred line per equation, number (N.M) at the right
+        of the last line, laid out in a borderless two-column table. Text written after
+        the equations ("trong đó ...") becomes a normal paragraph below."""
+        parts = re.split(r"(\$[^$]+\$)", body)
+        equations, tail = [], ""
+        for i, part in enumerate(parts):
+            if part.startswith("$") and part.endswith("$") and len(part) > 2:
+                if tail.strip(" ;,.") and equations:
+                    # prose between equations: keep it (and the rest) as the explanation
+                    tail = "".join(parts[i - 1:])
+                    break
+                equations.append(part[1:-1].strip())
+                tail = ""
+            else:
+                tail += part
+        tail = tail.strip().lstrip(";,").strip()
+
+        table = self.doc.add_table(rows=len(equations), cols=2)
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table.autofit = False
+        tbl_pr = table._tbl.tblPr
+        borders = tbl_pr.find(qn("w:tblBorders"))
+        if borders is None:
+            borders = OxmlElement("w:tblBorders")
+            tbl_pr.append(borders)
+        for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+            el = OxmlElement(f"w:{edge}")
+            el.set(qn("w:val"), "nil")
+            borders.append(el)
+        widths = (Cm(14.4), Cm(1.6))
+        for r, latex in enumerate(equations):
+            row = table.rows[r]
+            for c, cell in enumerate(row.cells):
+                cell.width = widths[c]
+                cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                p = cell.paragraphs[0]
+                pf = p.paragraph_format
+                pf.first_line_indent = Cm(0)
+                pf.left_indent = pf.right_indent = Cm(0)
+                pf.space_before, pf.space_after, pf.line_spacing = Pt(4), Pt(4), 1.0
+            eq_p = row.cells[0].paragraphs[0]
+            eq_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            omml = bd.make_omml(latex)
+            if omml is None:
+                bd.add_math(eq_p, latex, size=13)
+            else:
+                bd.set_omml_size(omml, 13)
+                para = OxmlElement("m:oMathPara")
+                ppr = OxmlElement("m:oMathParaPr")
+                jc = OxmlElement("m:jc")
+                jc.set(qn("m:val"), "center")
+                ppr.append(jc)
+                para.append(ppr)
+                inner = omml if omml.tag.endswith("}oMath") else omml.find(qn("m:oMath"))
+                para.append(inner if inner is not None else omml)
+                eq_p._p.append(para)
+            num_p = row.cells[1].paragraphs[0]
+            num_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            if r == len(equations) - 1:
+                bd.set_run_font(num_p.add_run(f"({number})"), bd.FONT_BODY, 13, False, False, BLACK)
+        self.doc.add_paragraph().paragraph_format.space_after = Pt(0)
+        self.doc.paragraphs[-1].paragraph_format.line_spacing = 0.6
+        if tail:
+            text = tail[0].upper() + tail[1:]
+            bd.add_inline(self._new_para("Normal"), text)
 
     def _rule(self):
         return None
@@ -288,6 +362,54 @@ class FormDocx(bd.ThesisDocx):
 # ---------------------------------------------------------------------------
 # PDF export
 # ---------------------------------------------------------------------------
+
+def restore_full_resolution(pdf_path: Path, sources: list[Path]) -> None:
+    """Word's PDF export downsamples pictures to ~200 dpi with no option to stop it.
+    Put the original files back: each embedded image is matched to its source file
+    by comparing 48x48 grey thumbnails, then replaced in place (same position/size)."""
+    import fitz
+    from PIL import Image, ImageChops, ImageStat
+
+    def thumb(img):
+        return img.convert("L").resize((48, 48), Image.BILINEAR)
+
+    cands = []
+    for src in dict.fromkeys(sources):
+        if src.exists():
+            im = Image.open(src)
+            cands.append((src, im.width / im.height, im.width, thumb(im)))
+    doc = fitz.open(str(pdf_path))
+    done, replaced = set(), 0
+    for page in doc:
+        for info in page.get_images(full=True):
+            xref, w, h = info[0], info[2], info[3]
+            if xref in done or w < 300:
+                continue
+            done.add(xref)
+            try:
+                pix = fitz.Pixmap(doc, xref)
+                if pix.alpha or pix.n > 3:
+                    pix = fitz.Pixmap(fitz.csRGB, pix)
+                emb = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+            except Exception:
+                continue
+            t = thumb(emb)
+            best = None
+            for src, ratio, width, ct in cands:
+                if abs(ratio - w / h) / ratio > 0.02 or width <= w:
+                    continue
+                diff = ImageStat.Stat(ImageChops.difference(t, ct)).mean[0]
+                if best is None or diff < best[0]:
+                    best = (diff, src)
+            if best and best[0] < 12:
+                page.replace_image(xref, filename=str(best[1]))
+                replaced += 1
+    tmp = pdf_path.with_name(pdf_path.stem + "_hires.pdf")
+    doc.save(str(tmp), garbage=3, deflate=True)
+    doc.close()
+    shutil.move(str(tmp), str(pdf_path))
+    print(f"restored {replaced} images at full resolution")
+
 
 def export_pdf(docx_path: Path):
     import fitz
@@ -300,6 +422,9 @@ def export_pdf(docx_path: Path):
     d = Document(str(tmp))
     for el in d.settings.element.findall(qn("w:updateFields")):
         d.settings.element.remove(el)
+    # Keep figures at full resolution (Word otherwise downsamples to 220 ppi on save).
+    if d.settings.element.find(qn("w:doNotAutoCompressPictures")) is None:
+        d.settings.element.append(OxmlElement("w:doNotAutoCompressPictures"))
     d.save(str(tmp))
     word = doc = None
     try:
@@ -334,9 +459,9 @@ def export_pdf(docx_path: Path):
                 style.Font.Bold = bold
                 style.Font.Color = 0
                 style.ParagraphFormat.Alignment = 0
-                style.ParagraphFormat.LeftIndent = word.CentimetersToPoints(indent)
-                style.ParagraphFormat.FirstLineIndent = -word.CentimetersToPoints(hang)
-                style.ParagraphFormat.RightIndent = word.CentimetersToPoints(right)
+                style.ParagraphFormat.LeftIndent = (indent * 28.3465)
+                style.ParagraphFormat.FirstLineIndent = -(hang * 28.3465)
+                style.ParagraphFormat.RightIndent = (right * 28.3465)
                 style.ParagraphFormat.SpaceBefore = before
                 style.ParagraphFormat.SpaceAfter = after
                 style.ParagraphFormat.LineSpacingRule = 0
@@ -373,21 +498,29 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--pdf", action="store_true")
     parser.add_argument("--no-code-images", action="store_true", help="reuse images already in assets/code")
+    parser.add_argument("--source", default=SOURCE_MD.name, help="Markdown source, e.g. in_chuong_2_5.md")
+    parser.add_argument("--out", default=OUT_DOCX.stem, help="output stem, e.g. DO_AN_IN_CHUONG_2_5")
     args = parser.parse_args()
+    source_md = BASE / args.source
+    out_docx = BASE / f"{args.out}.docx"
+    out_md = BASE / f"{args.out}.md"
 
-    clean = clean_body(bd.read_body(SOURCE_MD))
+    clean = clean_body(bd.read_body(source_md))
 
-    old = OUT_MD.read_text(encoding="utf-8")
-    m = re.search(r"^# CHƯƠNG 3\.", old, flags=re.M)
-    OUT_MD.write_text(old[: m.start()] + clean, encoding="utf-8")
+    # Front matter (cover text) of the Markdown copy comes from the first print edition.
+    old = (out_md if out_md.exists() else OUT_MD).read_text(encoding="utf-8")
+    m = re.search(r"^# (MỤC LỤC|CHƯƠNG \d+\.)", old, flags=re.M)
+    out_md.write_text(old[: m.start()] + clean, encoding="utf-8")
 
     body = move_table_captions_below(clean)
     body = rci.render(body, CODE_DIR)
     figures, tables = collect_captions(body)
-    FormDocx(SOURCE_MD, figures, tables).build(body, OUT_DOCX)
-    print(f"wrote {OUT_DOCX} ({OUT_DOCX.stat().st_size:,} bytes); {len(figures)} hình, {len(tables)} bảng")
+    FormDocx(source_md, figures, tables).build(body, out_docx)
+    print(f"wrote {out_docx} ({out_docx.stat().st_size:,} bytes); {len(figures)} hình, {len(tables)} bảng")
     if args.pdf:
-        export_pdf(OUT_DOCX)
+        export_pdf(out_docx)
+        images = [(BASE / m).resolve() for m in re.findall(r"!\[[^\]]*\]\(([^)]+)\)", body)]
+        restore_full_resolution(out_docx.with_suffix(".pdf"), images)
 
 
 if __name__ == "__main__":
