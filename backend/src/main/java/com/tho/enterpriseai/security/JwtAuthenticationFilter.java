@@ -57,6 +57,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
+            // 6b. A locked account loses access on its next request, not when the token expires
+            if (!user.isActive()) {
+                writeUnauthorized(response);
+                return;
+            }
+
             // 7. Build a granted authority with the ROLE_ prefix required by Spring Security hasRole()
             SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole());
 

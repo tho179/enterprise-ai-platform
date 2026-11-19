@@ -19,7 +19,7 @@ Chương này giải quyết P1–P6 như sau:
 - **P2:** phân rã thành năm module và 28 chức năng; biểu đồ use case tổng quan và theo từng module (mục 2.4–2.6).
 - **P3:** kịch bản chuẩn và ngoại lệ cho tám use case chính, lấy đúng thông báo lỗi trong mã nguồn (mục 2.7).
 - **P4:** biểu đồ tuần tự cho ba luồng quan trọng nhất, biểu đồ hoạt động cho vòng đời phiên bản tài liệu, biểu đồ lớp của backend (mục 2.8–2.10).
-- **P5:** thiết kế cơ sở dữ liệu quan hệ theo đúng lược đồ Flyway, cấu trúc payload vector và nguyên tắc đồng bộ giữa các kho (mục 2.11).
+- **P5:** kết hợp SQL (PostgreSQL) cho dữ liệu nghiệp vụ và NoSQL (Qdrant, Neo4j, Redis) cho vector, đồ thị và bộ đếm; thiết kế cơ sở dữ liệu quan hệ theo đúng lược đồ Flyway, cấu trúc payload vector và nguyên tắc đồng bộ giữa các kho (mục 2.11).
 - **P6:** danh mục API công khai và nội bộ (mục 2.12).
 
 Mọi biểu đồ trong chương được vẽ bằng Visual Paradigm (tệp `assets/vp/EAKWP_chuong_2.vpp`) và bám mã nguồn đang chạy. Việc các module được nối với nhau bằng đoạn mã cụ thể nào được trình bày ở Chương 5.
@@ -86,6 +86,8 @@ Giao tiếp giữa các dịch vụ là REST đồng bộ. Tác vụ dài (nạp
 
 *Hình 2.1. Kiến trúc microservice: tám container và giao thức kết nối.*
 
+Tám container trong `docker-compose.yml` gồm frontend, backend, ai-service, PostgreSQL, Redis, Qdrant, Neo4j và Ollama (khối LLM). Trình duyệt, kho tệp PDF (volume `backend_uploads`) và mô hình nhúng (chạy trong tiến trình ai-service, tệp mô hình nằm ở volume `huggingface_cache`) không phải container riêng. Chỉ frontend (cổng 3000) và backend (cổng 8080) mở ra ngoài. ai-service và các kho dữ liệu chỉ gắn cổng vào `127.0.0.1`, nên trình duyệt không gọi trực tiếp được.
+
 | Dịch vụ | Công nghệ | Cổng | Dữ liệu sở hữu | Giao tiếp ra ngoài |
 | :--- | :--- | :--- | :--- | :--- |
 | `frontend` | React 19, TypeScript, Nginx | 3000 | Phiên đăng nhập và lịch sử chat trong `localStorage` của trình duyệt | REST `/api/*` tới backend |
@@ -99,15 +101,21 @@ Giao tiếp giữa các dịch vụ là REST đồng bộ. Tác vụ dài (nạp
 
 *Bảng 2.3. Các dịch vụ, dữ liệu sở hữu và giao tiếp.*
 
+![Biểu đồ triển khai](assets/vp/TK_trien_khai.png)
+
+*Hình 2.2. Biểu đồ triển khai trên một máy chủ Docker.*
+
+Biểu đồ triển khai đặt các container lên nút vật lý. Hàng trên là bốn dịch vụ xử lý, hàng dưới là kho dữ liệu và volume, mỗi kho nằm dưới dịch vụ sở hữu nó. Backend là dịch vụ duy nhất đọc PostgreSQL, Redis và thư mục tệp PDF; ai-service là dịch vụ duy nhất đọc Qdrant, Neo4j và gọi LLM. Mỗi kho có volume riêng (`postgres_data`, `redis_data`, `qdrant_data`, `neo4j_data`), nên xóa và tạo lại container không làm mất dữ liệu.
+
 ### 2.3.3. Lý do không chọn kiến trúc nguyên khối
 
-Một ứng dụng nguyên khối viết bằng Python đơn giản hơn khi triển khai, nhưng có ba bất lợi với bài toán này. Thứ nhất, mô hình nhúng và reranker chiếm hàng GB RAM và khởi động lâu; gộp chung khiến mỗi lần sửa một API quản trị cũng phải nạp lại mô hình. Thứ hai, ranh giới bảo mật rõ hơn khi dịch vụ AI không mở ra Internet và không giữ dữ liệu người dùng. Thứ ba, hai nhóm thành viên (nghiệp vụ và AI) làm việc song song trên hai mã nguồn với hợp đồng API cố định. Cái giá phải trả là thêm một bước gọi mạng và phải đồng bộ dữ liệu giữa các kho (mục 2.11.5).
+Một ứng dụng nguyên khối viết bằng Python đơn giản hơn khi triển khai, nhưng có ba bất lợi với bài toán này. Thứ nhất, mô hình nhúng và reranker chiếm hàng GB RAM và khởi động lâu; gộp chung khiến mỗi lần sửa một API quản trị cũng phải nạp lại mô hình. Thứ hai, ranh giới bảo mật rõ hơn khi dịch vụ AI không mở ra Internet và không giữ dữ liệu người dùng. Thứ ba, hai nhóm thành viên (nghiệp vụ và AI) làm việc song song trên hai mã nguồn với hợp đồng API cố định. Cái giá phải trả là thêm một bước gọi mạng và phải đồng bộ dữ liệu giữa các kho (mục 2.11.6).
 
 ## 2.4. Phân rã module và chức năng
 
 ![Sơ đồ phân rã chức năng](assets/vp/H2_2_phan_ra_chuc_nang.png)
 
-*Hình 2.2. Phân rã hệ thống thành 5 module và 28 chức năng.*
+*Hình 2.3. Phân rã hệ thống thành 5 module và 28 chức năng.*
 
 | Module | Mã | Chức năng | Dịch vụ thực hiện | Tác nhân |
 | :--- | :--- | :--- | :--- | :--- |
@@ -146,7 +154,7 @@ Một ứng dụng nguyên khối viết bằng Python đơn giản hơn khi tri
 
 ![Use case tổng quan](assets/vp/H2_3_use_case_tong_quan.png)
 
-*Hình 2.3. Biểu đồ use case tổng quan của hệ thống EAKWP.*
+*Hình 2.4. Biểu đồ use case tổng quan của hệ thống EAKWP.*
 
 Biểu đồ tổng quan gom 28 chức năng thành 9 use case mức cao. Bốn use case phía trên phục vụ Người dùng; năm use case phía dưới dành cho Quản trị viên. Quản trị viên kế thừa toàn bộ use case của Người dùng. Dịch vụ AI tham gia vào nạp tài liệu, hỏi đáp, tìm kiếm và quản trị đồ thị; LLM chỉ tham gia vào hỏi đáp và có thể vắng mặt (khi đó hệ thống trả lời bằng trích đoạn nguyên văn, xem Chương 5).
 
@@ -156,7 +164,7 @@ Biểu đồ tổng quan gom 28 chức năng thành 9 use case mức cao. Bốn 
 
 ![Use case M1](assets/vp/H2_4_uc_xac_thuc_nguoi_dung.png)
 
-*Hình 2.4. Use case của module Xác thực và quản lý người dùng.*
+*Hình 2.5. Use case của module Xác thực và quản lý người dùng.*
 
 | Use case | Mô tả |
 | :--- | :--- |
@@ -174,7 +182,7 @@ Biểu đồ tổng quan gom 28 chức năng thành 9 use case mức cao. Bốn 
 
 ![Use case M2](assets/vp/H2_5_uc_quan_ly_tai_lieu.png)
 
-*Hình 2.5. Use case của module Quản lý tài liệu.*
+*Hình 2.6. Use case của module Quản lý tài liệu.*
 
 | Use case | Mô tả |
 | :--- | :--- |
@@ -193,7 +201,7 @@ Biểu đồ tổng quan gom 28 chức năng thành 9 use case mức cao. Bốn 
 
 ![Use case M3](assets/vp/H2_6_uc_nap_tai_lieu.png)
 
-*Hình 2.6. Use case của module Nạp và xử lý tài liệu.*
+*Hình 2.7. Use case của module Nạp và xử lý tài liệu.*
 
 | Use case | Mô tả |
 | :--- | :--- |
@@ -212,7 +220,7 @@ Biểu đồ tổng quan gom 28 chức năng thành 9 use case mức cao. Bốn 
 
 ![Use case M4](assets/vp/H2_7_uc_hoi_dap_tim_kiem.png)
 
-*Hình 2.7. Use case của module Hỏi đáp và tìm kiếm.*
+*Hình 2.8. Use case của module Hỏi đáp và tìm kiếm.*
 
 | Use case | Mô tả |
 | :--- | :--- |
@@ -231,7 +239,7 @@ Biểu đồ tổng quan gom 28 chức năng thành 9 use case mức cao. Bốn 
 
 ![Use case M5](assets/vp/H2_8_uc_giam_sat_tri_thuc.png)
 
-*Hình 2.8. Use case của module Giám sát và quản trị tri thức.*
+*Hình 2.9. Use case của module Giám sát và quản trị tri thức.*
 
 | Use case | Mô tả |
 | :--- | :--- |
@@ -264,7 +272,7 @@ Mỗi kịch bản gồm tác nhân, điều kiện trước, điều kiện sau
 | :--- | :--- |
 | Tác nhân | Quản trị viên |
 | Điều kiện trước | Đã đăng nhập với vai trò `ADMIN` |
-| Điều kiện sau | Tài khoản được tạo hoặc cập nhật; thay đổi vai trò có hiệu lực từ lần đăng nhập sau |
+| Điều kiện sau | Tài khoản được tạo hoặc cập nhật; thay đổi vai trò và khóa tài khoản có hiệu lực từ yêu cầu kế tiếp của người dùng đó |
 | Luồng chuẩn | 1. Quản trị viên mở trang Người dùng; hệ thống tải danh sách phân trang. 2. Chọn Thêm người dùng, nhập họ tên, email, mật khẩu, vai trò. 3. Hệ thống chuẩn hóa vai trò, kiểm tra email chưa tồn tại, băm mật khẩu, lưu với `active = true`. 4. Để đổi vai trò, chọn vai trò mới (`PATCH /api/users/{id}/role`). 5. Để khóa, tắt trạng thái hoạt động (`PATCH /api/users/{id}/status`). |
 | Ngoại lệ | 3a. Email đã có: `409` "Email đã tồn tại." 3b/4a. Vai trò ngoài `EMPLOYEE, MANAGER, ADMIN, IT_SUPPORT`: `400` "Vai trò không hợp lệ." *. Người gọi không phải `ADMIN`: `403`. |
 
@@ -290,7 +298,7 @@ Mỗi kịch bản gồm tác nhân, điều kiện trước, điều kiện sau
 | Điều kiện trước | Tài liệu đã tồn tại; không có phiên bản nào đang `PROCESSING` |
 | Điều kiện sau | Phiên bản mới (số thứ tự tăng 1) được nạp và trở thành hiện hành; vector của phiên bản cũ bị xóa khỏi Qdrant, bản ghi phiên bản cũ vẫn được giữ |
 | Luồng chuẩn | 1. Quản trị viên mở chi tiết tài liệu, chọn Tải phiên bản mới, chọn tệp. 2. Backend kiểm tra không có phiên bản đang nạp, lưu tệp, tạo phiên bản `PROCESSING`. 3. Pipeline chạy như kịch bản 2.7.3. 4. Khi `INGESTED`, backend đặt phiên bản này hiện hành và xóa vector các phiên bản khác (`dropSupersededVectors`). 5. Nếu muốn quay về bản cũ, quản trị viên chọn phiên bản và bấm Đặt hiện hành (`PATCH /api/documents/versions/{id}/current`). |
-| Ngoại lệ | 2a. Phiên bản trước đang nạp: `409` "Vui lòng đợi phiên bản trước nạp xong." 5a. Phiên bản chưa nạp xong: `409` "Chỉ đặt phiên bản đã nạp làm hiện hành." |
+| Ngoại lệ | 2a. Phiên bản trước đang nạp: `409` "Vui lòng đợi phiên bản trước nạp xong." 5a. Phiên bản chưa nạp xong: `409` "Chỉ đặt phiên bản đã nạp làm hiện hành." 5b. Không ghi lại được vector của phiên bản: `502`, cờ hiện hành giữ nguyên. |
 
 *Bảng 2.13. Kịch bản Tải lên phiên bản mới và đặt hiện hành.*
 
@@ -301,7 +309,7 @@ Mỗi kịch bản gồm tác nhân, điều kiện trước, điều kiện sau
 | Tác nhân | Quản trị viên |
 | Điều kiện trước | Thử lại: phiên bản ở trạng thái `FAILED`. Nạp lại: phiên bản hiện hành ở trạng thái `INGESTED` |
 | Điều kiện sau | Phiên bản được nạp lại từ tệp gốc; chunk và vector cũ của phiên bản được thay thế |
-| Luồng chuẩn | 1. Quản trị viên bấm Thử lại (`POST /api/documents/versions/{id}/retry`) hoặc Nạp lại (`.../reindex`). 2. Backend kiểm tra trạng thái và tệp gốc còn trên đĩa. 3. Chuyển phiên bản về `PROCESSING`, tạo nhiệm vụ mới. 4. Pipeline chạy với cờ thay thế: xóa chunk và vector cũ của phiên bản trước khi ghi mới. |
+| Luồng chuẩn | 1. Quản trị viên bấm Thử lại (`POST /api/documents/versions/{id}/retry`) hoặc Nạp lại (`.../reindex`). 2. Backend kiểm tra trạng thái và tệp gốc còn trên đĩa. 3. Thử lại: xóa chunk cũ của phiên bản rồi chuyển về `PROCESSING`. Nạp lại: chuyển về `PROCESSING`, giữ chunk cũ cho đến khi có bản mới. 4. Tạo nhiệm vụ mới và chạy pipeline; với Nạp lại, pipeline chạy với cờ `replaceExisting` để thay chunk và vector cũ của phiên bản bằng bản mới. |
 | Ngoại lệ | 2a. Thử lại phiên bản không lỗi: `409` "Chỉ có thể nạp lại phiên bản đang lỗi." 2b. Nạp lại phiên bản không phải hiện hành: `409` "Chỉ nạp lại được phiên bản hiện hành đã nạp xong." 2c. Mất tệp gốc: `400` "Tệp gốc không còn trên máy chủ, vui lòng tải phiên bản mới." |
 
 *Bảng 2.14. Kịch bản Thử lại và nạp lại.*
@@ -348,31 +356,130 @@ Mỗi kịch bản gồm tác nhân, điều kiện trước, điều kiện sau
 
 ![Tuần tự đăng nhập](assets/vp/H2_9_tuan_tu_dang_nhap.png)
 
-*Hình 2.9. Biểu đồ tuần tự chức năng Đăng nhập.*
+*Hình 2.10. Biểu đồ tuần tự chức năng Đăng nhập.*
 
-Luồng đăng nhập là đồng bộ và chỉ chạm PostgreSQL. Kiểm tra mật khẩu và trạng thái hoạt động nằm trong cùng một phương thức `AuthService.login`, nên không có trạng thái nào để tài khoản bị khóa vẫn nhận được token.
+Các biểu đồ tuần tự dùng ký hiệu Boundary – Control – Entity:
+- trang giao diện là «boundary»;
+- controller và service là «control»;
+- repository là «entity»;
+- hệ thống ngoài (ai-service, Redis, Qdrant, LLM) là lifeline thường.
 
-### 2.8.2. Tải lên và nạp tài liệu
+Thông điệp trả về vẽ nét đứt. Nhánh lỗi nằm trong khối `alt`.
+
+Luồng đăng nhập là đồng bộ và chỉ chạm PostgreSQL. Kiểm tra mật khẩu (thông điệp 6) và trạng thái hoạt động nằm trong cùng phương thức `AuthService.login`:
+- sai email hoặc mật khẩu trả `401`;
+- tài khoản bị khóa trả `403`;
+- chỉ nhánh hợp lệ mới gọi `generateToken`.
+
+Vì vậy không có đường nào để tài khoản bị khóa vẫn nhận được token.
+
+### 2.8.2. Quản lý người dùng
+
+![Tuần tự quản lý người dùng](assets/vp/SQ_quan_ly_nguoi_dung.png)
+
+*Hình 2.11. Biểu đồ tuần tự chức năng Quản lý người dùng (tạo và khóa tài khoản).*
+
+Biểu đồ gồm hai thao tác: tạo tài khoản (thông điệp 1–10) và khóa tài khoản (11–18). Đổi vai trò đi cùng đường với khóa tài khoản, chỉ khác phương thức `updateRole`. Kiểm tra vai trò `ADMIN` diễn ra ở `SecurityConfig` trước khi yêu cầu tới controller, nên nhánh `403` không xuất hiện trên biểu đồ. JWT chỉ mang email; ở mỗi yêu cầu, `JwtAuthenticationFilter` đọc lại người dùng trong PostgreSQL để lấy vai trò hiện tại và trả `401` nếu tài khoản đã bị khóa. Vì vậy đổi vai trò hay khóa tài khoản có hiệu lực ngay từ yêu cầu kế tiếp, không phải chờ token hết hạn; giao diện nhận `401` thì tự đăng xuất.
+
+### 2.8.3. Tải lên và nạp tài liệu
 
 ![Tuần tự tải lên và nạp](assets/vp/H2_10_tuan_tu_tai_len_nap.png)
 
-*Hình 2.10. Biểu đồ tuần tự chức năng Tải lên và nạp tài liệu.*
+*Hình 2.12. Biểu đồ tuần tự chức năng Tải lên và nạp tài liệu.*
 
-Biểu đồ cho thấy điểm thiết kế quan trọng nhất của P4: thông điệp 7 (`202 Accepted`) trả về **trước** khi pipeline bắt đầu. Phần từ thông điệp 8 chạy trên luồng `@Async` của `IngestionService`; mỗi bước cập nhật một dòng trong `ingestion_tasks`, và giao diện đọc dòng đó qua `GET /api/ai/status/{taskId}` (thông điệp 15–16). Nhờ vậy một PDF 40 trang có OCR không giữ kết nối HTTP hàng phút.
+Biểu đồ cho thấy điểm thiết kế quan trọng nhất của P4: `process(taskId)` (thông điệp 7) là lời gọi bất đồng bộ, nên `202 ACCEPTED` (thông điệp 9) trả về **trước** khi pipeline bắt đầu. Các thông điệp 10–14 chạy trên luồng `@Async` của `IngestionService`, trong đó tệp chunk được gửi sang ai-service theo từng lô (khối `loop`). Mỗi bước cập nhật một dòng trong `ingestion_tasks`; giao diện đọc dòng đó định kỳ qua `GET /api/ai/status/{taskId}` để hiện tiến trình (thông điệp 15). Nhờ vậy một PDF 40 trang có OCR không giữ kết nối HTTP hàng phút.
 
-### 2.8.3. Hỏi đáp có trích dẫn
+### 2.8.4. Tải phiên bản mới và đặt hiện hành
+
+![Tuần tự phiên bản mới](assets/vp/SQ_phien_ban_moi.png)
+
+*Hình 2.13. Biểu đồ tuần tự chức năng Tải phiên bản mới và đặt hiện hành.*
+
+Phần trên của biểu đồ giống luồng tải lên, khác ở bước kiểm tra: nếu tài liệu còn phiên bản `PROCESSING` thì trả `409`, vì hai pipeline chạy song song trên cùng tài liệu sẽ tranh nhau cờ hiện hành. Phần dưới là thao tác đặt hiện hành, chỉ áp dụng cho phiên bản `INGESTED`. Vector của phiên bản cũ đã bị xóa khi bản mới nạp xong, nên trước khi đổi cờ, backend đọc lại chunk của phiên bản được chọn từ PostgreSQL và ghi lại vào Qdrant (thông điệp 17–19); không cần OCR lại vì chunk vẫn được giữ. Chỉ khi bước này thành công, cờ `is_current` mới được đổi và vector của các phiên bản còn lại mới bị xóa (thông điệp 20–22). Nếu ai-service lỗi, backend trả `502` và phiên bản hiện hành cũ vẫn giữ nguyên, nên hỏi đáp không bao giờ trỏ vào một phiên bản không có vector.
+
+### 2.8.5. Thử lại nạp
+
+![Tuần tự thử lại](assets/vp/SQ_thu_lai_nap_lai.png)
+
+*Hình 2.14. Biểu đồ tuần tự chức năng Thử lại nạp tài liệu.*
+
+Khối `alt` có ba nhánh, khớp với ba ngoại lệ của kịch bản 2.7.5. Ở nhánh hợp lệ, chunk cũ của phiên bản bị xóa trước (thông điệp 8) rồi mới chuyển trạng thái, để lần nạp mới không trộn với kết quả dở dang của lần lỗi. Nạp lại (`reindex`) có cùng cấu trúc nhưng điều kiện là phiên bản hiện hành đã `INGESTED`, không xóa chunk trước và gọi `process(taskId, true)`.
+
+### 2.8.6. Hỏi đáp có trích dẫn
 
 ![Tuần tự hỏi đáp](assets/vp/H2_11_tuan_tu_hoi_dap.png)
 
-*Hình 2.11. Biểu đồ tuần tự chức năng Hỏi đáp có trích dẫn.*
+*Hình 2.15. Biểu đồ tuần tự chức năng Hỏi đáp có trích dẫn.*
 
-`AiGatewayService` là điểm duy nhất áp dụng ba chính sách cắt ngang: giới hạn tần suất (thông điệp 3–4), gắn quyền (thông điệp 5) và kiểm toán (thông điệp 12). Bên trong ai-service, tác tử quyết định dùng công cụ nào; chi tiết bảng luật và vòng lặp của tác tử ở Chương 5, chi tiết truy xuất lai ở Chương 4.
+`AiGatewayService` là điểm duy nhất áp dụng ba chính sách cắt ngang: giới hạn tần suất (thông điệp 4–7, khóa Redis `ai:rate:{email}:{phút}`), gắn quyền (thông điệp 10) và kiểm toán (thông điệp 8 và 13). Khối `alt` cho thấy cả yêu cầu bị chặn (`429`) cũng được ghi nhật ký. Bên trong ai-service, tác tử quyết định dùng công cụ nào; chi tiết bảng luật và vòng lặp của tác tử ở Chương 5, chi tiết truy xuất lai ở Chương 4.
 
-## 2.9. Biểu đồ hoạt động: vòng đời phiên bản tài liệu
+### 2.8.7. Tìm kiếm ngữ nghĩa
+
+![Tuần tự tìm kiếm](assets/vp/SQ_tim_kiem.png)
+
+*Hình 2.16. Biểu đồ tuần tự chức năng Tìm kiếm ngữ nghĩa.*
+
+Tìm kiếm đi qua cùng `AiGatewayService` với hỏi đáp, nên dùng chung giới hạn 30 yêu cầu/phút, cách gắn `user_roles` và nhật ký kiểm toán. Khác biệt là ai-service chỉ truy xuất và chấm lại, không gọi tác tử và LLM, nên kết quả là danh sách đoạn kèm điểm và số trang.
+
+### 2.8.8. Xóa tài liệu
+
+![Tuần tự xóa tài liệu](assets/vp/SQ_xoa_tai_lieu.png)
+
+*Hình 2.17. Biểu đồ tuần tự chức năng Xóa tài liệu.*
+
+`DocumentService.delete` chạy trong một giao dịch và đi qua danh sách tài liệu ba lần. Lần đầu chỉ kiểm tra: một tài liệu đang nạp làm cả yêu cầu bị từ chối với `409`. Lần thứ hai xóa vector ở ai-service; nếu một lời gọi lỗi, backend trả `502` và giao dịch không xóa dòng nào trong PostgreSQL. Lần thứ ba mới xóa tệp PDF và các bảng theo thứ tự nhiệm vụ → chunk → phiên bản → tài liệu. Tách ba vòng như vậy bảo đảm không có bản ghi bị xóa khi vector còn nằm trong Qdrant.
+
+## 2.9. Biểu đồ hoạt động
+
+Mỗi biểu đồ hoạt động chia làn theo bên thực hiện (người dùng, frontend, backend, ai-service), nên thấy được bước nào chạy ở đâu và nhánh lỗi dừng ở tầng nào.
+
+### 2.9.1. Đăng nhập
+
+![Hoạt động đăng nhập](assets/vp/HD_dang_nhap.png)
+
+*Hình 2.18. Biểu đồ hoạt động chức năng Đăng nhập.*
+
+Ba nút quyết định ở làn Backend tương ứng ba kiểm tra trong `AuthService.login`. Email không tồn tại và sai mật khẩu cùng trả `401` với một thông báo, để không lộ email nào có trong hệ thống.
+
+### 2.9.2. Quản lý người dùng
+
+![Hoạt động quản lý người dùng](assets/vp/HD_quan_ly_nguoi_dung.png)
+
+*Hình 2.19. Biểu đồ hoạt động chức năng Quản lý người dùng.*
+
+### 2.9.3. Tải lên và nạp tài liệu
+
+![Hoạt động tải lên và nạp](assets/vp/HD_tai_len_nap.png)
+
+*Hình 2.20. Biểu đồ hoạt động chức năng Tải lên và nạp tài liệu.*
+
+Luồng tách làm hai nhánh song song sau khi tạo nhiệm vụ nạp: một nhánh trả `202` và để giao diện hỏi trạng thái mỗi 1,4 giây, nhánh kia chạy pipeline. Khi ai-service không trích xuất được, backend dùng PDFBox thay thế thay vì báo lỗi ngay.
+
+### 2.9.4. Hỏi đáp có trích dẫn
+
+![Hoạt động hỏi đáp](assets/vp/HD_hoi_dap.png)
+
+*Hình 2.21. Biểu đồ hoạt động chức năng Hỏi đáp có trích dẫn.*
+
+Cả hai nhánh cuối (có câu trả lời và từ chối) đều quay về backend để ghi nhật ký, nên mọi câu hỏi đều để lại một dòng trong `ai_audit_logs`.
+
+### 2.9.5. Tìm kiếm ngữ nghĩa
+
+![Hoạt động tìm kiếm](assets/vp/HD_tim_kiem.png)
+
+*Hình 2.22. Biểu đồ hoạt động chức năng Tìm kiếm ngữ nghĩa.*
+
+### 2.9.6. Xóa tài liệu
+
+![Hoạt động xóa tài liệu](assets/vp/HD_xoa_tai_lieu.png)
+
+*Hình 2.23. Biểu đồ hoạt động chức năng Xóa tài liệu.*
+
+### 2.9.7. Vòng đời phiên bản tài liệu
 
 ![Vòng đời phiên bản](assets/vp/H2_12_hoat_dong_vong_doi_phien_ban.png)
 
-*Hình 2.12. Biểu đồ hoạt động vòng đời của một phiên bản tài liệu.*
+*Hình 2.24. Biểu đồ hoạt động vòng đời của một phiên bản tài liệu.*
 
 Một phiên bản chỉ có ba trạng thái: `PROCESSING`, `INGESTED`, `FAILED`. Nhiệm vụ nạp đi kèm có thêm số bước để giao diện hiển thị tiến trình:
 
@@ -389,13 +496,33 @@ Một phiên bản chỉ có ba trạng thái: `PROCESSING`, `INGESTED`, `FAILED
 
 Thứ tự ở bước 5 có chủ ý: phiên bản được lưu `INGESTED` trước, rồi mới đánh dấu hiện hành và xóa vector bản cũ. Nếu làm ngược lại, luồng bất đồng bộ có thể ghi đè cờ hiện hành bằng một bản sao cũ của thực thể.
 
+### 2.9.8. Biểu đồ trạng thái
+
+![Trạng thái phiên bản](assets/vp/TT_phien_ban.png)
+
+*Hình 2.25. Biểu đồ trạng thái của một phiên bản tài liệu.*
+
+Cột `status` chỉ có ba giá trị, nhưng `INGESTED` được tách thành hai trạng thái theo cờ `is_current`, vì hai trạng thái này cho phép thao tác khác nhau: chỉ phiên bản hiện hành được nạp lại, còn phiên bản không hiện hành chỉ có thể được đặt hiện hành trở lại. Phiên bản `FAILED` không tự chuyển trạng thái; quản trị viên phải bấm Thử lại.
+
+![Trạng thái nhiệm vụ nạp](assets/vp/TT_nhiem_vu_nap.png)
+
+*Hình 2.26. Biểu đồ trạng thái của nhiệm vụ nạp (`ingestion_tasks`).*
+
+Nhiệm vụ nạp đi tuần tự qua bốn bước của Bảng 2.18. Lỗi ở bất kỳ bước nào đưa nhiệm vụ về `FAILED` và giữ nguyên số bước, nên giao diện cho biết pipeline dừng ở đâu.
+
 ## 2.10. Thiết kế lớp
 
 ![Biểu đồ lớp backend](assets/vp/H2_13_lop_thiet_ke_backend.png)
 
-*Hình 2.13. Biểu đồ lớp thiết kế của backend theo ba tầng.*
+*Hình 2.27. Biểu đồ lớp thiết kế của backend theo ba tầng.*
 
 Backend tổ chức theo gói chức năng (`auth`, `user`, `document`, `ai`, `security`, `config`), mỗi gói chia ba tầng: Controller nhận REST, Service chứa nghiệp vụ và giao dịch, Repository/Client truy cập dữ liệu hoặc dịch vụ khác.
+
+![Biểu đồ gói](assets/vp/TK_goi.png)
+
+*Hình 2.28. Biểu đồ gói của backend và ai-service.*
+
+Ở backend, `security` là gói trung tâm: mọi gói nghiệp vụ phụ thuộc vào nó để đọc người dùng hiện tại và vai trò. Các gói `document` và `ai` không phụ thuộc lẫn nhau. Ở ai-service, `api.v1` chỉ là lớp vỏ HTTP; logic nằm ở `agent`, gói truy xuất và `knowledge_graph`, và phụ thuộc chỉ đi một chiều từ tác tử xuống truy xuất rồi xuống đồ thị.
 
 | Lớp | Tầng | Trách nhiệm |
 | :--- | :--- | :--- |
@@ -416,7 +543,22 @@ Phía ai-service, các lớp chính là `RAGService` (truy xuất và sinh), `Ru
 
 ## 2.11. Thiết kế cơ sở dữ liệu
 
-### 2.11.1. Mô hình dữ liệu đa kho
+### 2.11.1. Lựa chọn SQL và NoSQL
+
+Hệ thống không dùng một loại cơ sở dữ liệu cho mọi thứ mà dùng **kết hợp SQL và NoSQL** (polyglot persistence): mỗi loại dữ liệu nằm ở kho có mô hình dữ liệu phù hợp nhất với cách nó được đọc và ghi.
+
+| Kho | Loại | Mô hình dữ liệu | Dữ liệu lưu | Lý do chọn |
+| :--- | :--- | :--- | :--- | :--- |
+| PostgreSQL 15 | SQL (quan hệ) | Bảng, cột, khóa chính, ràng buộc `UNIQUE` | Người dùng, tài liệu, phiên bản, chunk, nhiệm vụ nạp, nhật ký AI | Dữ liệu nghiệp vụ có cấu trúc cố định, cần giao dịch ACID (đổi phiên bản hiện hành, xóa nhiều bảng cùng lúc), ràng buộc duy nhất (email, mã tài liệu, `chunk_id`) và truy vấn lọc, phân trang |
+| Qdrant | NoSQL – cơ sở dữ liệu vector | Điểm = vector 384 chiều + payload JSON | Vector nhúng của từng chunk kèm quyền đọc | Tìm k láng giềng gần nhất theo cosine trên chỉ mục HNSW; SQL không làm được việc này hiệu quả. Payload cho phép lọc quyền ngay trong truy vấn |
+| Neo4j 5 | NoSQL – cơ sở dữ liệu đồ thị | Nút, cạnh có nhãn và thuộc tính | Tài liệu, chunk, thực thể, khẳng định và quan hệ của KB (Chương 4) | Truy vấn nhiều bước nhảy (chunk → thực thể → chunk khác) bằng Cypher; nếu làm bằng SQL phải nối bảng đệ quy, khó viết và chậm |
+| Redis 7 | NoSQL – key-value trong bộ nhớ | Khóa chuỗi → số nguyên, có TTL | Bộ đếm giới hạn tần suất `ai:rate:{email}:{phút}` | Tăng bộ đếm nguyên tử (`INCR`) và tự hết hạn (`EXPIRE` 2 phút) với độ trễ dưới mili giây, dùng chung cho nhiều tiến trình backend |
+
+*Bảng 2.20. Lựa chọn SQL và NoSQL cho từng loại dữ liệu.*
+
+Nguyên tắc phân chia: **PostgreSQL là nguồn sự thật**, ba kho NoSQL là dữ liệu dẫn xuất hoặc tạm thời. Mất Qdrant hoặc Neo4j thì dựng lại được từ PostgreSQL và tệp PDF; mất Redis chỉ làm bộ đếm về 0 (backend cho qua khi Redis lỗi, xem `AiRateLimiter`). Ngược lại, dữ liệu nghiệp vụ không bao giờ chỉ nằm ở kho NoSQL.
+
+### 2.11.2. Mô hình dữ liệu đa kho
 
 | Kho | Vai trò | Dữ liệu | Khóa liên kết |
 | :--- | :--- | :--- | :--- |
@@ -425,21 +567,23 @@ Phía ai-service, các lớp chính là `RAGService` (truy xuất và sinh), `Ru
 | Qdrant | Chỉ mục vector dẫn xuất | Vector 384 chiều + payload của từng chunk | point id = UUIDv5(`chunk_id`) |
 | Neo4j | Đồ thị dẫn xuất | Tài liệu, chunk, thực thể, quan hệ (Chương 4) | `Chunk.chunk_id`, `Document.doc_id` = `documents.id` |
 
-*Bảng 2.20. Phân vai các kho dữ liệu.*
+*Bảng 2.21. Phân vai các kho dữ liệu.*
 
 Một định danh `chunk_id` sinh ở backend đi xuyên qua ba kho. Nhờ vậy, khi Qdrant hoặc Neo4j trả về một đoạn, backend tìm được đúng dòng `document_chunks`, đúng phiên bản và đúng tệp PDF để mở và tô vàng.
 
-### 2.11.2. Sơ đồ thực thể – quan hệ
+### 2.11.3. Sơ đồ thực thể – quan hệ
 
 ![ERD PostgreSQL](assets/vp/H2_14_erd_postgresql.png)
 
-*Hình 2.14. Sơ đồ thực thể – quan hệ của cơ sở dữ liệu PostgreSQL (Flyway V1–V2).*
+*Hình 2.29. Sơ đồ thực thể – quan hệ của cơ sở dữ liệu PostgreSQL (Flyway V1–V2).*
 
-Lược đồ do Flyway quản lý: `V1__baseline.sql` tạo năm bảng gốc, `V2__document_access_and_ai_audit.sql` thêm cột `documents.allowed_roles` và bảng `ai_audit_logs`. Hibernate chạy ở chế độ `validate`, tức chỉ kiểm tra thực thể khớp lược đồ chứ không tự sửa lược đồ.
+Lược đồ do Flyway quản lý: `V1__baseline.sql` tạo năm bảng gốc, `V2__document_access_and_ai_audit.sql` thêm cột `documents.allowed_roles` và bảng `ai_audit_logs`. Hibernate chạy ở chế độ `validate`, tức chỉ kiểm tra thực thể khớp lược đồ chứ không tự sửa lược đồ. Sơ đồ ghi kiểu theo kiểu chung của Visual Paradigm: `char(36)` tương ứng `uuid`, `bit` tương ứng `boolean`, `clob` tương ứng `text` của PostgreSQL.
 
-Các quan hệ một – nhiều trên hình là **khóa ngoại logic**: lược đồ không khai báo `FOREIGN KEY` vật lý, toàn vẹn tham chiếu do `DocumentService` bảo đảm (ví dụ xóa theo thứ tự nhiệm vụ → chunk → phiên bản → tài liệu trong một giao dịch). Lựa chọn này giữ cho thao tác xóa hàng loạt và nạp lại đơn giản; cái giá là ràng buộc nằm ở mã nguồn chứ không ở CSDL. Bổ sung khóa ngoại vật lý là một bước cải tiến được nêu ở mục 2.13.
+Năm quan hệ một – nhiều được vẽ với biểu tượng khóa ngoại ở cột con: `documents` → `document_versions`, `document_chunks`, `ingestion_tasks` qua `document_id`, và `document_versions` → `document_chunks`, `ingestion_tasks` qua `version_id`. Bảng `ai_audit_logs` đứng riêng: mỗi dòng là ảnh chụp tại thời điểm hỏi (email, vai trò, câu hỏi), không trỏ tới `users` hay `documents`, nên xóa tài liệu hoặc người dùng không làm mất nhật ký.
 
-### 2.11.3. Từ điển dữ liệu
+Các quan hệ này là **khóa ngoại logic**: lược đồ không khai báo `FOREIGN KEY` vật lý, toàn vẹn tham chiếu do `DocumentService` bảo đảm (ví dụ xóa theo thứ tự nhiệm vụ → chunk → phiên bản → tài liệu trong một giao dịch). Lựa chọn này giữ cho thao tác xóa hàng loạt và nạp lại đơn giản; cái giá là ràng buộc nằm ở mã nguồn chứ không ở CSDL. Bổ sung khóa ngoại vật lý là một bước cải tiến được nêu ở mục 2.14.
+
+### 2.11.4. Từ điển dữ liệu
 
 | Cột | Kiểu | Ràng buộc | Ý nghĩa |
 | :--- | :--- | :--- | :--- |
@@ -451,7 +595,7 @@ Các quan hệ một – nhiều trên hình là **khóa ngoại logic**: lượ
 | `active` | `boolean` | | `false` là bị khóa |
 | `created_at` | `timestamp` | NOT NULL | Thời điểm tạo |
 
-*Bảng 2.21. Bảng `users`.*
+*Bảng 2.22. Bảng `users`.*
 
 | Cột | Kiểu | Ràng buộc | Ý nghĩa |
 | :--- | :--- | :--- | :--- |
@@ -463,7 +607,7 @@ Các quan hệ một – nhiều trên hình là **khóa ngoại logic**: lượ
 | `created_by` | `varchar(255)` | NOT NULL | Người tạo |
 | `created_at`, `updated_at` | `timestamp` | NOT NULL | Thời điểm tạo, cập nhật |
 
-*Bảng 2.22. Bảng `documents`.*
+*Bảng 2.23. Bảng `documents`.*
 
 | Cột | Kiểu | Ràng buộc | Ý nghĩa |
 | :--- | :--- | :--- | :--- |
@@ -479,7 +623,7 @@ Các quan hệ một – nhiều trên hình là **khóa ngoại logic**: lượ
 | `error_message` | `varchar(2000)` | | Lý do lỗi khi `FAILED` |
 | `created_by`, `created_at` | `varchar(255)`, `timestamp` | NOT NULL | Người tải lên, thời điểm |
 
-*Bảng 2.23. Bảng `document_versions`.*
+*Bảng 2.24. Bảng `document_versions`.*
 
 | Cột | Kiểu | Ràng buộc | Ý nghĩa |
 | :--- | :--- | :--- | :--- |
@@ -494,7 +638,7 @@ Các quan hệ một – nhiều trên hình là **khóa ngoại logic**: lượ
 | `content` | `text` | NOT NULL | Nội dung chunk |
 | `highlight_json` | `text` | | Tọa độ dòng để tô vàng trên PDF |
 
-*Bảng 2.24. Bảng `document_chunks`.*
+*Bảng 2.25. Bảng `document_chunks`.*
 
 | Cột | Kiểu | Ràng buộc | Ý nghĩa |
 | :--- | :--- | :--- | :--- |
@@ -506,7 +650,7 @@ Các quan hệ một – nhiều trên hình là **khóa ngoại logic**: lượ
 | `message` | `varchar(2000)` | | Thông điệp tiến trình hoặc lỗi |
 | `updated_at` | `timestamp` | NOT NULL | Lần cập nhật cuối |
 
-*Bảng 2.25. Bảng `ingestion_tasks`.*
+*Bảng 2.26. Bảng `ingestion_tasks`.*
 
 | Cột | Kiểu | Ràng buộc | Ý nghĩa |
 | :--- | :--- | :--- | :--- |
@@ -521,9 +665,9 @@ Các quan hệ một – nhiều trên hình là **khóa ngoại logic**: lượ
 | `latency_ms` | `bigint` | NOT NULL | Độ trễ đầu–cuối tại backend |
 | `created_at` | `timestamp` | NOT NULL, index giảm dần | Thời điểm gọi |
 
-*Bảng 2.26. Bảng `ai_audit_logs`.*
+*Bảng 2.27. Bảng `ai_audit_logs`.*
 
-### 2.11.4. Cấu trúc payload trong Qdrant
+### 2.11.5. Cấu trúc payload trong Qdrant
 
 Mỗi chunk là một điểm trong collection `enterprise_documents` (vector 384 chiều, khoảng cách cosine). Payload do `AiIngestClient` dựng và được dùng để lọc ngay trong truy vấn:
 
@@ -535,15 +679,27 @@ Mỗi chunk là một điểm trong collection `enterprise_documents` (vector 38
 | `allowed_roles` | `documents.allowed_roles` | Lọc quyền trong truy vấn |
 | `page_start`, `page_end`, `chunk_index`, `section_path` | `document_chunks` | Trích dẫn trang và mục |
 
-*Bảng 2.27. Payload của một điểm trong Qdrant.*
+*Bảng 2.28. Payload của một điểm trong Qdrant.*
 
-### 2.11.5. Nhất quán giữa các kho
+![Cấu trúc Qdrant và Redis](assets/vp/CSDL_qdrant_redis.png)
+
+*Hình 2.30. Cấu trúc dữ liệu NoSQL: collection Qdrant và khóa Redis.*
+
+Hình trên vẽ lại Bảng 2.28 cùng khóa Redis dưới dạng sơ đồ để đặt cạnh ERD. Hai kho này không có quan hệ giữa các bản ghi: Qdrant liên kết về PostgreSQL qua `chunk_id`, `document_id`, `version_id`; khóa Redis chỉ sống 120 giây.
+
+![Lược đồ Neo4j](assets/vp/CSDL_neo4j.png)
+
+*Hình 2.31. Lược đồ đồ thị Neo4j: các loại nút và quan hệ chính.*
+
+Trong Neo4j, mỗi hộp là một nhãn nút và mỗi đường nối là một loại cạnh. `Document.doc_id` bằng `documents.id` và `Chunk.chunk_id` bằng `document_chunks.chunk_id`, nên một kết quả truy xuất đồ thị vẫn mở được đúng trang PDF. Các thuộc tính và cách xây dựng đồ thị được trình bày ở Chương 4.
+
+### 2.11.6. Nhất quán giữa các kho
 
 Hệ thống không dùng giao dịch phân tán. Nhất quán giữa PostgreSQL, Qdrant và Neo4j được giữ bằng bốn quy tắc:
 
 1. **Ghi idempotent.** Point id trong Qdrant là UUIDv5 của `chunk_id`, nên nạp lại cùng một chunk ghi đè chứ không nhân bản.
 2. **Thứ tự xóa an toàn.** Khi xóa tài liệu, vector và nút đồ thị bị xóa trước; chỉ khi ai-service xác nhận mới xóa dữ liệu quan hệ. Nếu bước đầu lỗi, không có gì bị xóa (kịch bản 2.7.8).
-3. **Phiên bản cũ rời chỉ mục khi bản mới sẵn sàng.** Vector của phiên bản cũ chỉ bị xóa sau khi phiên bản mới đã `INGESTED`, nên không có khoảng thời gian tài liệu "biến mất" khỏi hỏi đáp.
+3. **Phiên bản cũ rời chỉ mục khi bản mới sẵn sàng.** Vector của phiên bản cũ chỉ bị xóa sau khi phiên bản mới đã `INGESTED`, nên không có khoảng thời gian tài liệu "biến mất" khỏi hỏi đáp. Khi quay về một phiên bản cũ, chiều ngược lại cũng đúng: vector của nó được ghi lại trước, rồi mới đổi cờ hiện hành.
 4. **Dựng lại được.** Qdrant và Neo4j là dữ liệu dẫn xuất: nạp lại (CN3.6) hoặc các script ở Chương 4 dựng lại chỉ mục từ PostgreSQL và tệp PDF.
 
 ## 2.12. Thiết kế giao diện lập trình (API)
@@ -553,8 +709,7 @@ Hệ thống không dùng giao dịch phân tán. Nhất quán giữa PostgreSQL
 | Nhóm | Phương thức và đường dẫn | Quyền | Chức năng |
 | :--- | :--- | :--- | :--- |
 | Xác thực | `POST /api/auth/register`, `POST /api/auth/login` | Công khai | CN1.2, CN1.1 |
-| Người dùng | `GET /api/users` | Đã đăng nhập | CN1.3 |
-| | `POST /api/users`, `PATCH /api/users/{id}/role`, `PATCH /api/users/{id}/status` | ADMIN | CN1.4–CN1.6 |
+| Người dùng | `GET /api/users`, `POST /api/users`, `PATCH /api/users/{id}/role`, `PATCH /api/users/{id}/status` | ADMIN | CN1.3–CN1.6 |
 | Tài liệu | `GET /api/documents?q=&category=&status=`, `GET /api/documents/{id}`, `GET /api/documents/{id}/versions`, `GET /api/documents/{id}/chunks` | Đã đăng nhập, lọc theo `allowed_roles` | CN2.1–CN2.3 |
 | | `GET /api/documents/{id}/file` | Đã đăng nhập | CN2.4 |
 | | `GET /api/documents/{id}/chunks/{chunkId}/preview`, `.../highlighted` | Đã đăng nhập | CN4.3 |
@@ -567,7 +722,7 @@ Hệ thống không dùng giao dịch phân tán. Nhất quán giữa PostgreSQL
 | | `GET /api/ai/health` | Đã đăng nhập | CN5.2 |
 | | `GET /api/ai/audit?limit=` | ADMIN | CN5.1 |
 
-*Bảng 2.28. API công khai của backend.*
+*Bảng 2.29. API công khai của backend.*
 
 ### 2.12.2. API nội bộ của ai-service
 
@@ -585,7 +740,7 @@ Mọi endpoint dưới đây (trừ `/health`) yêu cầu header `X-Internal-Tok
 | `/api/v1/eval/*` | Quản trị | Chạy và so sánh cấu hình truy xuất |
 | `GET /health`, `/health/dependencies`, `/api/v1/metrics/latency` | Docker, vận hành | Sức khỏe, phụ thuộc, độ trễ p50/p95 từng bước |
 
-*Bảng 2.29. API nội bộ của ai-service.*
+*Bảng 2.30. API nội bộ của ai-service.*
 
 ### 2.12.3. Quy ước chung
 
@@ -594,15 +749,38 @@ Mọi endpoint dưới đây (trừ `/health`) yêu cầu header `X-Internal-Tok
 - Lỗi luôn có dạng `{"message": "..."}` với thông điệp tiếng Việt hiển thị thẳng cho người dùng; mã HTTP phản ánh loại lỗi (`400` đầu vào, `401` chưa xác thực, `403` không đủ quyền, `404` không tìm thấy, `409` xung đột trạng thái, `413` tệp quá lớn, `429` quá tần suất, `502` dịch vụ AI lỗi).
 - Tác vụ dài trả `202 Accepted` kèm `taskId`; kết quả đọc qua `GET /api/ai/status/{taskId}`.
 
-## 2.13. KẾT LUẬN
+## 2.13. Thiết kế giao diện
+
+Giao diện là một ứng dụng trang đơn (React) dùng chung một khung: thanh điều hướng bên trái theo vai trò, thanh tiêu đề có ô tìm nhanh, vùng nội dung và thanh trạng thái phía dưới (tình trạng ai-service, độ trễ, số vector, mô hình nhúng).
+
+![Bố cục chung](assets/ui/06_tong_quan.png)
+
+*Hình 2.32. Bố cục chung của giao diện, minh họa bằng trang Tổng quan.*
+
+| Màn hình | Đường dẫn | Vai trò | Chức năng |
+| :--- | :--- | :--- | :--- |
+| Đăng nhập | `/login` | Công khai | CN1.1 |
+| Tổng quan | `/dashboard` | Đã đăng nhập | Số liệu kho, tài liệu mới, trạng thái hệ thống |
+| Trợ lý AI | `/chat` | Đã đăng nhập | CN4.1, CN4.3 |
+| Tìm kiếm tri thức | `/search` | Đã đăng nhập | CN4.2 |
+| Kho tài liệu | `/documents` | Đã đăng nhập | CN2.1, CN2.8 |
+| Chi tiết tài liệu | `/documents/:id` | Đã đăng nhập | CN2.2–CN2.4, CN2.6, CN2.7, CN3.5, CN3.6 |
+| Tải tài liệu mới | `/documents/upload` | ADMIN | CN2.5, CN3.4 |
+| Người dùng | `/users` | ADMIN | CN1.3–CN1.6 |
+
+*Bảng 2.31. Các màn hình chính và chức năng tương ứng.*
+
+Màn hình chỉ dành cho `ADMIN` được chặn hai lớp: frontend không hiện mục menu và chuyển sang trang `/forbidden` (`RequireRole`), backend vẫn kiểm tra vai trò ở mỗi yêu cầu. Ảnh chụp các màn hình khi chạy thật được trình bày ở Chương 6.
+
+## 2.14. KẾT LUẬN
 
 Chương 2 đã trả lời sáu vấn đề đặt ra ở đầu chương:
 
 - **P1:** hệ thống được phân rã thành tám container theo kiến trúc microservice. Backend Spring Boot là cổng duy nhất của người dùng và sở hữu PostgreSQL. ai-service FastAPI sở hữu Qdrant và Neo4j và không mở ra ngoài.
 - **P2:** bốn tác nhân, năm module, 28 chức năng được đặc tả bằng một biểu đồ use case tổng quan và năm biểu đồ use case chi tiết có quan hệ `include` và `extend`.
 - **P3:** tám kịch bản chuẩn và ngoại lệ, với thông điệp lỗi trùng với mã nguồn, làm căn cứ cho kiểm thử chấp nhận.
-- **P4:** ba biểu đồ tuần tự (đăng nhập, tải lên và nạp, hỏi đáp), một biểu đồ hoạt động cho vòng đời phiên bản và một biểu đồ lớp ba tầng. Tác vụ nạp dài được tách khỏi yêu cầu HTTP bằng `202 Accepted` và bảng `ingestion_tasks`.
-- **P5:** cơ sở dữ liệu quan hệ gồm 6 bảng theo đúng lược đồ Flyway, kèm từ điển dữ liệu; payload Qdrant mang sẵn quyền đọc; một `chunk_id` xuyên suốt ba kho và bốn quy tắc giữ nhất quán khi không có giao dịch phân tán.
+- **P4:** tám biểu đồ tuần tự theo đúng tám kịch bản, bảy biểu đồ hoạt động có làn, hai biểu đồ trạng thái, biểu đồ triển khai, biểu đồ gói và biểu đồ lớp ba tầng. Tác vụ nạp dài được tách khỏi yêu cầu HTTP bằng `202 Accepted` và bảng `ingestion_tasks`.
+- **P5:** dữ liệu được chia theo mô hình phù hợp: SQL (PostgreSQL) là nguồn sự thật cho dữ liệu nghiệp vụ, NoSQL gồm Qdrant (vector), Neo4j (đồ thị) và Redis (key-value). Cơ sở dữ liệu quan hệ gồm 6 bảng theo đúng lược đồ Flyway, kèm từ điển dữ liệu; payload Qdrant mang sẵn quyền đọc; một `chunk_id` xuyên suốt ba kho và bốn quy tắc giữ nhất quán khi không có giao dịch phân tán.
 - **P6:** 24 endpoint công khai và các nhóm endpoint nội bộ, cùng một quy ước lỗi thống nhất.
 
 Thiết kế còn ba hạn chế được ghi nhận. Thứ nhất, toàn vẹn tham chiếu do mã nguồn bảo đảm, chưa có khóa ngoại vật lý. Thứ hai, nạp tài liệu chạy bất đồng bộ trong một tiến trình backend, chưa có hàng đợi nên chưa mở rộng ngang được. Thứ ba, lịch sử hỏi đáp chỉ lưu trong trình duyệt. Ba hướng cải tiến tương ứng là thêm `FOREIGN KEY` bằng một migration Flyway mới, chuyển `ingestion_tasks` sang một hàng đợi thông điệp, và thêm bảng hội thoại phía máy chủ.
@@ -793,7 +971,7 @@ Bi-encoder dùng **một encoder dùng chung** (shared encoder) để mã hóa �
 
 Sau đó so sánh hai vector bằng cosine. Ưu điểm lớn nhất là **tách rời pha mã hóa**: toàn bộ đoạn văn có thể được mã hóa trước và lưu trong vector database; khi có câu hỏi, chỉ cần mã hóa câu hỏi rồi tìm kiếm. Chi phí truy vấn không phụ thuộc số lượng tài liệu.
 
-![Kiến trúc bi-encoder](assets/dl_encoder.png)
+![Kiến trúc bi-encoder](assets/vp/H3_1_bi_encoder.png)
 
 *Hình 3.1. Bi-encoder dùng chung encoder cho câu hỏi và đoạn văn, so sánh bằng cosine.*
 
@@ -885,24 +1063,29 @@ Nhóm nghiên cứu đặt ra năm tiêu chí, theo thứ tự ưu tiên:
 
 Tiêu chí 1 là điều kiện tiên quyết; các tiêu chí còn lại là ràng buộc tài nguyên. Một mô hình chính xác hơn 20% nhưng chậm gấp 10 lần có thể vẫn chấp nhận được nếu chỉ dùng offline; ngược lại, mô hình chạy online phải đáp ứng ngân sách độ trễ.
 
-<!-- LANDSCAPE:START -->
-
-### 3.5.4. Bảng so sánh kiến trúc và cấu hình huấn luyện (in ngang)
+### 3.5.4. Bảng so sánh kiến trúc và cấu hình huấn luyện
 
 Bảng dưới đây bổ sung góc nhìn kỹ thuật cho phần so sánh định tính: không chỉ "mô hình nào tốt hơn" mà còn **vì sao** - số lớp, kích thước ẩn, tham số, độ dài token, learning rate và epoch. Đây là các trường mà một bảng so sánh thông thường hay bỏ qua, trong khi chúng quyết định chi phí huấn luyện, khả năng chạy CPU và độ dài ngữ cảnh.
 
-**Bảng 3.1. So sánh kiến trúc, cấu hình huấn luyện và kết quả của các mô hình**
+**Bảng 3.1. So sánh kiến trúc của các mô hình**
 
-| Mô hình | Đặc trưng | Kiến trúc | Số layer | Hidden / Heads | Tham số | Max token | Learning rate | Epoch | Batch | Recall@1 / @3 | MRR |
-| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: |
-| **MiniLM-L12-v2** | 384d; mean pooling; không prefix; 50+ ngôn ngữ; XLM-R 250k | MiniLM-L12 (BERT encoder) | 12 | 384 / 12 | ~118 M | 128 | 0 (zero-shot) | 0 | 32 | 60,0% / 80,0% | 0,6667 |
-| **Vietnamese-Bi-Encoder** | 768d; mean pooling; không prefix; tiếng Việt; PhoBERT 64k | RoBERTa-base (PhoBERT) | 12 | 768 / 12 | ~135 M | 258 | 0 (zero-shot) | 0 | 32 | 80,0% / 80,0% | 0,8000 |
-| **Multilingual-E5-Small** | 384d; mean pooling; prefix `query:` / `passage:`; 100+ ngôn ngữ; XLM-R 250k | E5-small (BERT encoder) | 12 | 384 / 12 | ~118 M | 512 | 0 (zero-shot) | 0 | 32 | 80,0% / 100,0% | 0,9000 |
-| **Reranker mmarco** | 1 điểm; cặp (query, passage); không vector; 100+ ngôn ngữ | Cross-encoder MiniLM | 12 | 384 / 12 | ~118 M | 512 | 0 (zero-shot) | 0 | 10 cặp/query | — | — |
+| Mô hình | Đặc trưng | Kiến trúc | Số layer | Hidden / Heads | Tham số | Max token |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: |
+| **MiniLM-L12-v2** | 384d; mean pooling; không prefix; 50+ ngôn ngữ; XLM-R 250k | MiniLM-L12 (BERT encoder) | 12 | 384 / 12 | ~118 M | 128 |
+| **Vietnamese-Bi-Encoder** | 768d; mean pooling; không prefix; tiếng Việt; PhoBERT 64k | RoBERTa-base (PhoBERT) | 12 | 768 / 12 | ~135 M | 258 |
+| **Multilingual-E5-Small** | 384d; mean pooling; prefix `query:` / `passage:`; 100+ ngôn ngữ; XLM-R 250k | E5-small (BERT encoder) | 12 | 384 / 12 | ~118 M | 512 |
+| **Reranker mmarco** | 1 điểm; cặp (query, passage); không vector; 100+ ngôn ngữ | Cross-encoder MiniLM | 12 | 384 / 12 | ~118 M | 512 |
+
+**Bảng 3.2. Cấu hình huấn luyện và kết quả của các mô hình**
+
+| Mô hình | Learning rate | Epoch | Batch | Recall@1 / @3 | MRR |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **MiniLM-L12-v2** | 0 (zero-shot) | 0 | 32 | 60,0% / 80,0% | 0,6667 |
+| **Vietnamese-Bi-Encoder** | 0 (zero-shot) | 0 | 32 | 80,0% / 80,0% | 0,8000 |
+| **Multilingual-E5-Small** | 0 (zero-shot) | 0 | 32 | 80,0% / 100,0% | 0,9000 |
+| **Reranker mmarco** | 0 (zero-shot) | 0 | 10 cặp/query | — | — |
 
 *Nguồn: `config.json` và `sentence_bert_config.json` của từng mô hình trên Hugging Face; kết quả đo trên 152 chunk Điều lệ Công ty. Learning rate và epoch bằng 0 vì cả bốn mô hình đều dùng trọng số pretrained, không huấn luyện lại trên corpus của đồ án. Nếu fine-tune, cấu hình đề xuất: LR 2e-5, epoch 3–5, batch 16, warmup 10%, weight decay 0,01, contrastive loss với hard negatives.*
-
-<!-- LANDSCAPE:END -->
 
 ---
 
@@ -1066,9 +1249,9 @@ Vấn đề V2 đặt ra ở mục 3.1 là một mô hình nhúng (mô hình **A
 | **Multilingual-E5-Small** | 384 | **0,806 → 0,829** | 0,722 → 0,722 | 0,889 → 0,944 | 59 → 1926 |
 | Multilingual-E5-Base | 768 | 0,787 → 0,770 | 0,722 → 0,667 | 0,833 → 0,778 | 152 → 2156 |
 
-*Bảng 3.2. Mô hình A (chỉ bi-encoder) so với mô hình AB (bi-encoder + cross-encoder chấm lại).*
+*Bảng 3.3. Mô hình A (chỉ bi-encoder) so với mô hình AB (bi-encoder + cross-encoder chấm lại).*
 
-Ba kết luận rút ra từ Bảng 3.2:
+Ba kết luận rút ra từ Bảng 3.3:
 
 1. **B cải thiện mạnh các mô hình A yếu.** MRR của MiniLM tăng từ 0,556 lên 0,713, của BKAI từ 0,631 lên 0,732. Cross-encoder sửa được những đoạn nhiễu mà bi-encoder xếp nhầm lên đầu.
 2. **Với mô hình A tốt nhất, B chỉ thêm ít nhưng vẫn có ích.** E5-Small tăng MRR từ 0,806 lên 0,829 và Recall@3 từ 0,889 lên 0,944. AB với E5-Small là cấu hình tốt nhất trong bảng và là cấu hình hệ thống đang dùng.
@@ -1112,7 +1295,7 @@ Giải thích: `_prepare` chỉ gom khoảng trắng rồi gắn tiền tố `qu
 | Bỏ dấu (cách cũ) | 0,169 | 6% | 22% | 39% |
 | **Giữ dấu (hiện tại)** | **0,806** | **72%** | **89%** | **100%** |
 
-*Bảng 3.3. Ảnh hưởng của việc bỏ dấu tiếng Việt trước khi nhúng.*
+*Bảng 3.4. Ảnh hưởng của việc bỏ dấu tiếng Việt trước khi nhúng.*
 
 Giả thuyết ban đầu sai: bỏ dấu biến "Hội đồng" và "hội đông", "cổ phần" và "có phần" thành cùng một chuỗi, và E5 vốn được huấn luyện trên văn bản có dấu nên mất gần hết tín hiệu. Hệ thống chuyển sang giữ dấu khi nhúng. Nhiễu OCR được xử lý ở tầng khác: khớp từ khóa và khớp thực thể không dấu với độ tin cậy thấp hơn (Chương 4, mục 4.15.4 và 4.15.5).
 
@@ -1234,7 +1417,7 @@ Sự khác biệt nằm ở **cấu trúc** (điều/chương/trang), **ngữ ng
 
 EAKWP tổ chức tri thức thành năm lớp:
 
-![Các lớp biểu diễn tri thức của EAKWP](assets/kb_layers.png)
+![Các lớp biểu diễn tri thức của EAKWP](assets/vp/H4_1_nam_lop_tri_thuc.png)
 
 *Hình 4.1. Năm lớp biểu diễn tri thức, từ bản gốc đến tri thức thủ tục.*
 
@@ -1243,7 +1426,7 @@ EAKWP tổ chức tri thức thành năm lớp:
 | L0 | Bản gốc | PDF, hash, phiên bản | Filesystem + PostgreSQL |
 | L1 | Cấu trúc | Chương, điều, khoản, trang, thứ tự | `section_path`, `document_sections` (mở rộng) |
 | L2 | Ngữ nghĩa | Chunk + embedding 384 chiều | Qdrant + `document_chunks` |
-| L3 | Quan hệ | Thực thể, quan hệ, đồ thị | Neo4j (prototype, chưa bật RAG) |
+| L3 | Quan hệ | Thực thể, quan hệ, đồ thị | Neo4j (KB1, KB2, KB); RAG đọc qua `graph_search` |
 | L4 | Thủ tục | Quy tắc trả lời, trích dẫn, từ chối | RAG service + prompt |
 
 Cách phân lớp này giúp tách biệt trách nhiệm:
@@ -1274,7 +1457,7 @@ Các yêu cầu này định hình toàn bộ pipeline bên dưới.
 
 ### 4.3.1. Sơ đồ pipeline
 
-![Pipeline xây dựng cơ sở tri thức](assets/kb_pipeline.png)
+![Pipeline xây dựng cơ sở tri thức](assets/vp/H4_2_pipeline_xay_kb.png)
 
 *Hình 4.2. Pipeline sáu tầng: thu nhận, phân tích cấu trúc, phân đoạn, làm giàu metadata, nhúng vector, lập chỉ mục.*
 
@@ -1724,7 +1907,7 @@ Query
   → Selection + citation
 ```
 
-![Pipeline truy xuất lai nhiều tầng](assets/kb_retrieval.png)
+![Pipeline truy xuất lai nhiều tầng](assets/vp/H4_4_truy_xuat_lai.png)
 
 *Hình 4.4. Truy xuất lai: vector lo phần ngữ nghĩa, lexical/article boost giữ từ khóa chốt, cross-encoder và shape gate siết precision.*
 
@@ -2116,9 +2299,22 @@ Tri thức được chia thành hai kho nguồn và một kho hợp nhất:
 - **Tài liệu upload:** 7 tài liệu người dùng tải lên qua giao diện, đồng bộ trực tiếp vào KB khi nạp (mục 5.3.3).
 - **KB, kho hợp nhất:** gom tất cả tài liệu trên dưới một nút `KnowledgeBase`. KB không sao chép dữ liệu, chỉ thêm cạnh thành viên `HAS_DOCUMENT`.
 
-![Kiến trúc KB1, KB2 và KB hợp nhất](assets/kb_graph_sources.png)
+![Kiến trúc KB1, KB2 và KB hợp nhất](assets/vp/H4_2_kien_truc_kb.png)
 
-*Hình 4.5. Hai đường nạp PDF/link vào KB1/KB2, gộp thành KB và nối vào RAG.*
+*Hình 4.5. Hai đường nạp PDF/link vào KB1/KB2, tài liệu upload đồng bộ vào KB; KB1, KB2 gộp thành KB và nối vào RAG.*
+
+Toàn cảnh ba kho trong Neo4j cho thấy đúng kiến trúc trên: KB1 giữ 35 tài liệu PDF, KB2 giữ 10 trang web, KB hợp nhất giữ 52 tài liệu (35 + 10 + 7 tài liệu tải lên qua backend). KB1 và KB2 nối vào KB bằng cạnh `MERGED_INTO` do truy vấn `MERGE_KBS` trong `03_merge_and_resolve.cypher` tạo ra.
+
+```cypher
+MATCH p=(:KnowledgeBase)-[:HAS_DOCUMENT]->(:Document) RETURN p
+UNION
+MATCH p=(:KnowledgeBase)-[:MERGED_INTO]->(:KnowledgeBase) RETURN p
+```
+
+![Toàn cảnh KB1, KB2 và KB hợp nhất](assets/neo4j/neo4j_g1_kb_toan_canh.png)
+
+*Hình 4.6. Toàn cảnh KB1, KB2 và KB hợp nhất trong Neo4j Browser: 3 nút KnowledgeBase, 52 nút Document, 99 cạnh.*
+
 
 | Thành phần | Nguồn | Tài liệu | Chunk | Ghi chú |
 | :--- | :--- | ---: | ---: | :--- |
@@ -2193,11 +2389,23 @@ Mô hình là **đồ thị thuộc tính có nhãn** (Labeled Property Graph, L
 
 *Bảng 4.14. Các kiểu cạnh.*
 
-Hình 4.6 là lược đồ do chính Neo4j sinh ra (`CALL db.schema.visualization()`) trên cơ sở dữ liệu sau khi đã xử lý tích hợp: sáu nhãn node và mười bốn kiểu quan hệ.
+Hình 4.7 là lược đồ do chính Neo4j sinh ra (`CALL db.schema.visualization()`) trên cơ sở dữ liệu sau khi đã xử lý tích hợp: sáu nhãn node và mười bốn kiểu quan hệ.
 
 ![Lược đồ đồ thị trong Neo4j Browser](assets/neo4j/neo4j_schema_v2.png)
 
-*Hình 4.6. Lược đồ đồ thị tri thức trong Neo4j Browser: 6 nhãn node, 14 kiểu quan hệ.*
+*Hình 4.7. Lược đồ đồ thị tri thức trong Neo4j Browser: 6 nhãn node, 14 kiểu quan hệ.*
+
+Áp lược đồ này lên một tài liệu cụ thể: Quy chế hoạt động Hội đồng Quản trị (tài liệu tải lên) có 53 chunk, 194 cạnh `MENTIONS` tới 51 thực thể. Hình dưới lấy 24 chunk đầu; các thực thể như "Hội đồng Quản trị", "Đại hội đồng cổ đông", "Luật Doanh nghiệp" nằm giữa vì được nhiều chunk cùng nhắc tới, còn các nút "Điều N" nằm ở rìa vì mỗi điều chỉ được một hai chunk dẫn chiếu.
+
+```cypher
+MATCH p=(d:Document {doc_id:'1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7'})-[:HAS_CHUNK]->(c:Chunk)-[:MENTIONS]->(e:Entity)
+WHERE c.chunk_index < 24 AND NOT e.type IN ['moc_thoi_gian']
+RETURN p
+```
+
+![Đồ thị tài liệu Quy chế HĐQT](assets/neo4j/neo4j_g9_tai_lieu_hdqt.png)
+
+*Hình 4.8. Document → Chunk → Entity của Quy chế hoạt động HĐQT: 54 nút, 122 cạnh.*
 
 ## 4.14. Mã Cypher của KB và đường nạp dữ liệu
 
@@ -2293,6 +2501,17 @@ def build_link_record(url, html=None, title=None):
 
 Trang `masanconsumer.com` chặn thư viện `httpx` và User-Agent đơn lẻ (HTTP 403), nên `fetch_html` dùng `requests` với bộ header trình duyệt đầy đủ. Lần nạp đầu khai báo nén `br` mà `requests` không giải mã được, khiến 267 chunk KB2 là dữ liệu nhị phân. Lỗi được phát hiện nhờ đọc thử nội dung chunk sau khi nạp, không phải nhờ đếm số lượng. Lệnh chạy: `python scripts/10_build_neo4j_kb.py --links data/kb_sources/links.json --kb KB2`.
 
+Trong Neo4j, KB2 gồm 10 trang web, 31 chunk và 11 thực thể. Dù nhỏ, KB2 dùng chung thực thể với KB1: "Cổ phần", "Cổ tức", "Hội đồng Quản trị" trên trang quan hệ cổ đông chính là các nút đã có từ Điều lệ, vì `entity_id` được băm từ tên đã chuẩn hóa (`ids.entity_id`).
+
+```cypher
+MATCH p=(:KnowledgeBase {kb_id:'KB2'})-[:HAS_DOCUMENT]->(:Document)-[:HAS_CHUNK]->(:Chunk)-[:MENTIONS]->(:Entity)
+RETURN p
+```
+
+![KB2 từ trang web công khai](assets/neo4j/neo4j_g8_kb2_web.png)
+
+*Hình 4.9. KB2 trong Neo4j Browser: trang web → chunk → thực thể dùng chung với KB1.*
+
 ### 4.14.4. Gộp KB1 và KB2 thành KB
 
 Gộp không sao chép node mà chỉ thêm cạnh thành viên. Vì ID theo nội dung, một tài liệu có trong cả KB1 và KB2 vẫn chỉ có một cạnh tới KB:
@@ -2313,17 +2532,55 @@ Sau khi gộp, tài liệu mới nạp vào KB1 hoặc KB2 tự xuất hiện tr
 
 ### 4.14.5. Trực quan hóa trên Neo4j Browser
 
-Kết quả gộp được kiểm tra trực tiếp trên Neo4j Browser. Hình 4.7 cho thấy KB hợp nhất có 52 tài liệu, trong đó 44 tài liệu đang được truy xuất (đã loại 7 bản trùng và 1 phiên bản cũ của Điều lệ). Cột `dang_dung` là kết quả của các bước xử lý ở mục 4.15.
+Kết quả gộp được kiểm tra trực tiếp trên Neo4j Browser. Hình 4.10 cho thấy KB hợp nhất có 52 tài liệu, trong đó 44 tài liệu đang được truy xuất (đã loại 7 bản trùng và 1 phiên bản cũ của Điều lệ). Cột `dang_dung` là kết quả của các bước xử lý ở mục 4.15.
 
 ![KB1, KB2 và KB trong Neo4j Browser](assets/neo4j/neo4j_kb_tong_quan.png)
 
-*Hình 4.7. Số tài liệu và chunk của KB1, KB2 và KB hợp nhất (truy vấn trên Neo4j Browser).*
+*Hình 4.10. Số tài liệu và chunk của KB1, KB2 và KB hợp nhất (truy vấn trên Neo4j Browser).*
 
-Hình 4.8 là đồ thị một tài liệu cụ thể: nút xanh lá là Document, nút hồng là các Chunk 28–33 của Quy chế hoạt động HĐQT, nút nâu là các Entity mà những chunk đó nhắc đến.
+Ba hình tiếp theo cho thấy phần "đồ thị" thực sự của KB: quan hệ giữa các thực thể. Bước nạp tạo cạnh `RELATES_TO` giữa hai thực thể cùng xuất hiện trong một chunk, trọng số là số chunk chung (truy vấn `LINK_ENTITIES` trong `02_ingest.cypher`). KB có 581 cạnh như vậy, trọng số lớn nhất 281. Lọc các cạnh có trọng số từ 6 trở lên, bỏ mốc thời gian và số điều, còn 53 thực thể và 167 quan hệ; hai cụm hiện rõ là quản trị công ty (Hội đồng Quản trị, Đại hội đồng cổ đông, Cổ phần, Vốn điều lệ) và lao động (Người lao động, Hợp đồng lao động, Tiền lương, Kỷ luật), nối nhau qua Tổng Giám đốc.
 
-![Đồ thị một tài liệu trong Neo4j Browser](assets/neo4j/neo4j_tai_lieu_hdqt.png)
+```cypher
+MATCH (a:Entity)-[r:RELATES_TO]->(b:Entity)
+WHERE r.weight >= 6
+  AND NOT a.type IN ['moc_thoi_gian','dieu_khoan'] AND NOT b.type IN ['moc_thoi_gian','dieu_khoan']
+RETURN a, r, b
+```
 
-*Hình 4.8. Đồ thị Document → Chunk → Entity của Quy chế hoạt động HĐQT trong Neo4j Browser.*
+![Mạng quan hệ thực thể](assets/neo4j/neo4j_g2_mang_thuc_the.png)
+
+*Hình 4.11. Mạng quan hệ RELATES_TO giữa các thực thể có trọng số ≥ 6: 53 nút, 167 cạnh.*
+
+"Hội đồng Quản trị" là thực thể trung tâm của KB: được 612 chunk nhắc tới và có 76 cạnh `RELATES_TO`. Hình dưới lấy 25 quan hệ mạnh nhất của nó, rồi lần ngược mỗi thực thể láng giềng về 2 chunk và tài liệu chứa chunk đó. Đây chính là đường mà `graph_search` đi khi mở rộng một câu hỏi về Hội đồng Quản trị sang các đoạn liên quan (mục 4.16).
+
+```cypher
+MATCH p1=(e:Entity {name:'Hội đồng Quản trị'})-[r:RELATES_TO]-(n:Entity)
+WITH p1, n, r ORDER BY r.weight DESC LIMIT 25
+MATCH p2=(:Document)-[:HAS_CHUNK]->(:Chunk)-[:MENTIONS]->(n)
+WITH p1, n, collect(p2)[0..2] AS ps UNWIND ps AS p2
+RETURN p1, p2
+```
+
+![Thực thể trung tâm Hội đồng Quản trị](assets/neo4j/neo4j_g3_hub_hdqt.png)
+
+*Hình 4.12. Thực thể "Hội đồng Quản trị", 25 láng giềng mạnh nhất và chunk, tài liệu nguồn: 86 nút, 122 cạnh.*
+
+Cạnh `REFERENCES` nối chunk chứa câu "theo quy định tại Điều N" tới chunk của Điều N trong cùng văn bản (truy vấn `LINK_REFERENCES`, chỉ nối trong cùng tài liệu nên chỉ số dẫn chiếu chéo tài liệu bằng 0 ở Bảng 4.24). KB có 204 cạnh như vậy; riêng Điều lệ 2021 (tải lên) có 23 và Điều lệ 2025 có 35. Các nút "Điều N" là thực thể loại `dieu_khoan` mà chunk nhắc tới.
+
+```cypher
+MATCH p=(d:Document)-[:HAS_CHUNK]->(:Chunk)-[:REFERENCES]->(:Chunk)
+WHERE d.doc_id = '84202bc4-4a22-46fa-8e7c-2ba11e857b68' OR d.title = 'Dieu le cong ty 2025'
+RETURN p
+UNION
+MATCH (d:Document)-[:HAS_CHUNK]->(a:Chunk)-[:REFERENCES]->(:Chunk)
+WHERE d.doc_id = '84202bc4-4a22-46fa-8e7c-2ba11e857b68' OR d.title = 'Dieu le cong ty 2025'
+MATCH p=(a)-[:MENTIONS]->(:Entity {type:'dieu_khoan'})
+RETURN p
+```
+
+![Dẫn chiếu Điều N giữa các chunk](assets/neo4j/neo4j_g4_dan_chieu_dieu.png)
+
+*Hình 4.13. Dẫn chiếu REFERENCES giữa các chunk của Điều lệ 2021 và 2025: 71 nút, 131 cạnh.*
 
 ## 4.15. Các vấn đề khi tích hợp nhiều nguồn và cách đồ án xử lý
 
@@ -2378,7 +2635,7 @@ Kết quả trên KB: 7 cặp trùng lặp, đều là cặp "PDF offline – b�
 
 ![Trùng lặp và phiên bản trong Neo4j Browser](assets/neo4j/neo4j_phien_ban_trung_lap.png)
 
-*Hình 4.9. Các cạnh `DUPLICATE_OF` và `NEW_VERSION_OF` sau bước xử lý tích hợp.*
+*Hình 4.14. Các cạnh `DUPLICATE_OF` và `NEW_VERSION_OF` sau bước xử lý tích hợp.*
 
 ### 4.15.3. Nhiều phiên bản của cùng một văn bản
 
@@ -2396,6 +2653,18 @@ dates = [f"{y:04d}-{m:02d}-{d:02d}" for pattern in (LONG_DATE_RE, DATE_RE)
          if 1 <= m <= 12 and 1 <= d <= 31]
 return (max(dates), "text") if dates else (None, None)
 ```
+
+Kết quả xử lý trùng lặp và phiên bản nhìn trên toàn KB: 7 cạnh `DUPLICATE_OF` (bản PDF trùng bản tải lên), 10 cạnh `SIMILAR_TO` (độ chồng lấn cao nhưng chưa đủ ngưỡng trùng) và 2 cạnh `NEW_VERSION_OF` trong chuỗi Điều lệ 2021 → 2025 → 2026, cùng 52 tài liệu treo vào KB hợp nhất.
+
+```cypher
+MATCH p=(:Document)-[:NEW_VERSION_OF|DUPLICATE_OF|SIMILAR_TO]->(:Document) RETURN p
+UNION
+MATCH p=(:KnowledgeBase {kb_id:'KB'})-[:HAS_DOCUMENT]->(:Document) RETURN p
+```
+
+![Trùng lặp và phiên bản trên toàn KB](assets/neo4j/neo4j_g5_phien_ban.png)
+
+*Hình 4.15. KB hợp nhất với các cạnh DUPLICATE_OF, SIMILAR_TO, NEW_VERSION_OF: 53 nút, 71 cạnh.*
 
 ### 4.15.4. Song ngữ Anh–Việt và biến thể tên gọi
 
@@ -2491,7 +2760,22 @@ Cả 8 cặp `SAME_AS` đều đúng khi kiểm tra bằng mắt. Trong 13 cặp
 
 ![Hợp nhất mờ trong Neo4j Browser](assets/neo4j/neo4j_hop_nhat_mo.png)
 
-*Hình 4.10. Cạnh `SAME_AS` và `POSSIBLY_SAME_AS` với độ giống và mức thuộc.*
+*Hình 4.16. Cạnh `SAME_AS` và `POSSIBLY_SAME_AS` với độ giống và mức thuộc.*
+
+Hình dưới đặt các cặp hợp nhất vào ngữ cảnh: mỗi thực thể có cạnh `SAME_AS` hoặc `POSSIBLY_SAME_AS` được lần về tối đa 3 chunk nhắc tới nó và tài liệu chứa chunk. Hai tên gọi được hợp nhất thường đến từ hai tài liệu khác nhau (bản PDF có lỗi OCR và bản tải lên sạch), nên cạnh hợp nhất chính là cầu nối giữa các nguồn.
+
+```cypher
+MATCH p=(:Entity)-[:SAME_AS|POSSIBLY_SAME_AS]->(:Entity) RETURN p
+UNION
+MATCH (e:Entity) WHERE EXISTS { (e)-[:SAME_AS|POSSIBLY_SAME_AS]-() }
+MATCH p=(:Document)-[:HAS_CHUNK]->(:Chunk)-[:MENTIONS]->(e)
+WITH e, collect(p)[0..3] AS ps UNWIND ps AS p
+RETURN p
+```
+
+![Hợp nhất thực thể nối các nguồn](assets/neo4j/neo4j_g7_hop_nhat_thuc_the.png)
+
+*Hình 4.17. Thực thể đã hợp nhất (SAME_AS, POSSIBLY_SAME_AS) cùng chunk và tài liệu nguồn: 118 nút, 171 cạnh.*
 
 ### 4.15.7. Mâu thuẫn dữ kiện
 
@@ -2536,7 +2820,20 @@ Giá trị thắng có trạng thái `accepted`. Giá trị thua có trạng th�
 
 ![Mâu thuẫn vốn điều lệ trong Neo4j Browser](assets/neo4j/neo4j_von_dieu_le.png)
 
-*Hình 4.11. Các khẳng định về vốn điều lệ, trạng thái và lý do (truy vấn số 6 trong `07_explore.cypher`).*
+*Hình 4.18. Các khẳng định về vốn điều lệ, trạng thái và lý do (truy vấn số 6 trong `07_explore.cypher`).*
+
+Nhìn dưới dạng đồ thị, 14 khẳng định về vốn điều lệ tạo thành một hình sao: khẳng định được chấp nhận (Điều lệ 2026) ở giữa, 13 khẳng định cũ hơn nối vào bằng cạnh `CONFLICTS_WITH`, và mỗi khẳng định lần ngược được về chunk (`ASSERTS`) và tài liệu (`HAS_CHUNK`) đã nêu ra nó. Đây là bằng chứng truy vết mà công cụ `kb_attribute` của tác tử dùng để trích dẫn (Chương 5).
+
+```cypher
+MATCH p=(:Document)-[:HAS_CHUNK]->(:Chunk)-[:ASSERTS]->(:Claim {attribute:'Vốn điều lệ'}) RETURN p
+UNION
+MATCH p=(:Claim {attribute:'Vốn điều lệ'})-[:CONFLICTS_WITH]->(:Claim) RETURN p
+```
+
+![Mâu thuẫn vốn điều lệ dạng đồ thị](assets/neo4j/neo4j_g6_khang_dinh_von.png)
+
+*Hình 4.19. Khẳng định vốn điều lệ: Claim, chunk, tài liệu và cạnh CONFLICTS_WITH: 41 nút, 41 cạnh.*
+
 
 Dãy giá trị tăng đều theo ngày hiệu lực là bằng chứng độc lập cho thấy quy tắc ngày hiệu lực ở mục 4.15.3 đúng. Nếu ngày bị gán sai, dãy sẽ không đơn điệu. Giá trị 28,5 tỷ trên trang giới thiệu là dữ kiện lịch sử năm 2003 nằm trong một đoạn kể lại quá trình hình thành công ty. Khẳng định này không có ngày hiệu lực nên được xếp cũ nhất và bị loại theo R2. Nếu không bị R2 loại, nó cũng thua theo R3 vì đến từ nguồn web. Mệnh giá cổ phần (10.000 đồng) xuất hiện ở 18 đoạn và không có mâu thuẫn, nên mọi khẳng định đều được chấp nhận.
 
@@ -2552,9 +2849,9 @@ RAG kết nối KB qua ba bước, cài trong `RAGService.retrieve_hits` (`ai-se
 2. **Truy xuất đồ thị:** tìm thực thể trong câu hỏi, cộng tên đồng nghĩa (`SAME_AS`) và thực thể gần nghĩa theo vector; lấy các đoạn nhắc đến chúng; mở rộng từ 5 đoạn vector tốt nhất theo cạnh `REFERENCES` và thực thể chung.
 3. **Trộn và lọc:** trộn hai danh sách bằng Reciprocal Rank Fusion (RRF, trọng số đồ thị 0,2), chấm lại bằng cross-encoder, rồi qua cổng bằng chứng. Không đủ căn cứ thì từ chối.
 
-![RAG kết nối KB: IN và OUT](assets/rag_kb_in_out.png)
+![RAG kết nối KB: IN và OUT](assets/vp/H4_7_rag_noi_kb.png)
 
-*Hình 4.12. Luồng vào và ra của RAG khi nối KB.*
+*Hình 4.20. Biểu đồ tuần tự RAG nối KB: truy xuất vector và đồ thị, trộn RRF, chấm lại, cổng bằng chứng.*
 
 ### 4.16.2. Mã nguồn gắn với luồng
 
@@ -2599,9 +2896,9 @@ WHERE kb.kb_id IN $kb_ids
 
 ### 4.16.3. Dạng đầu ra của KB
 
-![Dạng KB output một trang](assets/kb_output_one_page.png)
+![Dạng KB output một trang](assets/vp/H4_6_kb_output_mot_trang.png)
 
-*Hình 4.13. Bản ghi KB của một tài liệu: Document → Chunk → Entity → quan hệ → thống kê.*
+*Hình 4.21. Bản ghi KB của một tài liệu dạng đối tượng: KnowledgeBase → Document → Chunk → Entity và các quan hệ.*
 
 Bản ghi này là hợp đồng dữ liệu giữa tầng nạp và tầng RAG. Mọi trường cần cho trích dẫn (`page_start`, `page_end`, `section_path`, `source_uri`) và cho kiểm soát chất lượng (`content_hash`, `version`, `is_current`, `confidence`) đều nằm trong cùng một bản ghi.
 
@@ -3136,7 +3433,7 @@ Theo vấn đề K5 và hạn chế V4 của Chương 3 (không tự huấn luy�
 
 | Tầng | Mô hình đang dùng | Mô hình thay thế đã đo | Biến cấu hình |
 | :--- | :--- | :--- | :--- |
-| Nhúng (A) | `intfloat/multilingual-e5-small` | E5-Base, BKAI bi-encoder, MiniLM-L12 (Bảng 3.1, 3.2) | `EMBEDDING_MODEL`, `EMBEDDING_QUERY_PREFIX` |
+| Nhúng (A) | `intfloat/multilingual-e5-small` | E5-Base, BKAI bi-encoder, MiniLM-L12 (Bảng 3.1–3.3) | `EMBEDDING_MODEL`, `EMBEDDING_QUERY_PREFIX` |
 | Chấm lại (B) | `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | tắt chấm lại (Bảng 5.10) | `RERANKER_MODEL`, `RERANK_GATE` |
 | Sinh câu trả lời | Gemini (`gemini-3.5-flash`) | OpenAI; `qwen2.5:3b` cục bộ qua Ollama; trích đoạn không LLM | `GEMINI_MODEL`, `LLM_BASE_URL`, `LLM_MODEL` |
 

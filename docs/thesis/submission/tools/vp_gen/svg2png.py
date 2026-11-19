@@ -6,7 +6,7 @@ from playwright.sync_api import sync_playwright
 
 src, dst = Path(sys.argv[1]), Path(sys.argv[2])
 dst.mkdir(exist_ok=True)
-TARGET = 2600
+TARGET = int(__import__("os").environ.get("SVG_TARGET_PX", "3400"))
 with sync_playwright() as p:
     b = p.chromium.launch(channel="msedge", headless=True)
     for svg in sorted(src.glob("*.svg")):

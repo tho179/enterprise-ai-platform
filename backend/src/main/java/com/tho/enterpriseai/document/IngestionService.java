@@ -235,7 +235,7 @@ public class IngestionService {
      * Sau khi phiên bản mới nạp xong và trở thành current, xóa vector của các
      * phiên bản cũ để tránh trùng lặp/câu trả lời ám chỉ dữ liệu đã bị thay thế.
      */
-    private void dropSupersededVectors(UUID documentId, UUID currentVersionId) {
+    public void dropSupersededVectors(UUID documentId, UUID currentVersionId) {
         try {
             List<UUID> superseded = versionRepository.findByDocumentId(documentId).stream()
                     .filter(item -> !item.getId().equals(currentVersionId))

@@ -158,7 +158,7 @@ def pick_python_file(code: str):
     return "module.py", "ai-service › app"
 
 
-def render(body: str, outdir: Path) -> str:
+def render(body: str, outdir: Path, reuse: bool = False) -> str:
     outdir.mkdir(parents=True, exist_ok=True)
     jobs, counter = [], {"n": 0, "json": 0}
 
@@ -183,6 +183,12 @@ def render(body: str, outdir: Path) -> str:
 
     new_body = FENCE.sub(repl, body)
     widths = {}
+    if reuse and all(png.exists() for _, _, png in jobs):
+        for _, _, png in jobs:
+            widths[png.name] = image_width(png)
+        for name, w in widths.items():
+            new_body = new_body.replace(f"![code](assets/code/{name})", f"![code|{w}](assets/code/{name})")
+        return new_body
     with sync_playwright() as p:
         b = p.chromium.launch(channel="msedge", headless=True)
         pg = b.new_page(viewport={"width": 1200, "height": 900}, device_scale_factor=SCALE)

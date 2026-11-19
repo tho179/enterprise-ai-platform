@@ -20,9 +20,22 @@ Tri thức được chia thành hai kho nguồn và một kho hợp nhất:
 - **Tài liệu upload:** 7 tài liệu người dùng tải lên qua giao diện, đồng bộ trực tiếp vào KB khi nạp (mục 5.3.3).
 - **KB, kho hợp nhất:** gom tất cả tài liệu trên dưới một nút `KnowledgeBase`. KB không sao chép dữ liệu, chỉ thêm cạnh thành viên `HAS_DOCUMENT`.
 
-![Kiến trúc KB1, KB2 và KB hợp nhất](assets/kb_graph_sources.png)
+![Kiến trúc KB1, KB2 và KB hợp nhất](assets/vp/H4_2_kien_truc_kb.png)
 
-*Hình 4.5. Hai đường nạp PDF/link vào KB1/KB2, gộp thành KB và nối vào RAG.*
+*Hình 4.5. Hai đường nạp PDF/link vào KB1/KB2, tài liệu upload đồng bộ vào KB; KB1, KB2 gộp thành KB và nối vào RAG.*
+
+Toàn cảnh ba kho trong Neo4j cho thấy đúng kiến trúc trên: KB1 giữ 35 tài liệu PDF, KB2 giữ 10 trang web, KB hợp nhất giữ 52 tài liệu (35 + 10 + 7 tài liệu tải lên qua backend). KB1 và KB2 nối vào KB bằng cạnh `MERGED_INTO` do truy vấn `MERGE_KBS` trong `03_merge_and_resolve.cypher` tạo ra.
+
+```cypher
+MATCH p=(:KnowledgeBase)-[:HAS_DOCUMENT]->(:Document) RETURN p
+UNION
+MATCH p=(:KnowledgeBase)-[:MERGED_INTO]->(:KnowledgeBase) RETURN p
+```
+
+![Toàn cảnh KB1, KB2 và KB hợp nhất](assets/neo4j/neo4j_g1_kb_toan_canh.png)
+
+*Hình 4.6. Toàn cảnh KB1, KB2 và KB hợp nhất trong Neo4j Browser: 3 nút KnowledgeBase, 52 nút Document, 99 cạnh.*
+
 
 | Thành phần | Nguồn | Tài liệu | Chunk | Ghi chú |
 | :--- | :--- | ---: | ---: | :--- |
@@ -97,11 +110,23 @@ Mô hình là **đồ thị thuộc tính có nhãn** (Labeled Property Graph, L
 
 *Bảng 4.14. Các kiểu cạnh.*
 
-Hình 4.6 là lược đồ do chính Neo4j sinh ra (`CALL db.schema.visualization()`) trên cơ sở dữ liệu sau khi đã xử lý tích hợp: sáu nhãn node và mười bốn kiểu quan hệ.
+Hình 4.7 là lược đồ do chính Neo4j sinh ra (`CALL db.schema.visualization()`) trên cơ sở dữ liệu sau khi đã xử lý tích hợp: sáu nhãn node và mười bốn kiểu quan hệ.
 
 ![Lược đồ đồ thị trong Neo4j Browser](assets/neo4j/neo4j_schema_v2.png)
 
-*Hình 4.6. Lược đồ đồ thị tri thức trong Neo4j Browser: 6 nhãn node, 14 kiểu quan hệ.*
+*Hình 4.7. Lược đồ đồ thị tri thức trong Neo4j Browser: 6 nhãn node, 14 kiểu quan hệ.*
+
+Áp lược đồ này lên một tài liệu cụ thể: Quy chế hoạt động Hội đồng Quản trị (tài liệu tải lên) có 53 chunk, 194 cạnh `MENTIONS` tới 51 thực thể. Hình dưới lấy 24 chunk đầu; các thực thể như "Hội đồng Quản trị", "Đại hội đồng cổ đông", "Luật Doanh nghiệp" nằm giữa vì được nhiều chunk cùng nhắc tới, còn các nút "Điều N" nằm ở rìa vì mỗi điều chỉ được một hai chunk dẫn chiếu.
+
+```cypher
+MATCH p=(d:Document {doc_id:'1cb5c2d8-7a56-46b0-b65f-4c3650a27fb7'})-[:HAS_CHUNK]->(c:Chunk)-[:MENTIONS]->(e:Entity)
+WHERE c.chunk_index < 24 AND NOT e.type IN ['moc_thoi_gian']
+RETURN p
+```
+
+![Đồ thị tài liệu Quy chế HĐQT](assets/neo4j/neo4j_g9_tai_lieu_hdqt.png)
+
+*Hình 4.8. Document → Chunk → Entity của Quy chế hoạt động HĐQT: 54 nút, 122 cạnh.*
 
 ## 4.14. Mã Cypher của KB và đường nạp dữ liệu
 
@@ -197,6 +222,17 @@ def build_link_record(url, html=None, title=None):
 
 Trang `masanconsumer.com` chặn thư viện `httpx` và User-Agent đơn lẻ (HTTP 403), nên `fetch_html` dùng `requests` với bộ header trình duyệt đầy đủ. Lần nạp đầu khai báo nén `br` mà `requests` không giải mã được, khiến 267 chunk KB2 là dữ liệu nhị phân. Lỗi được phát hiện nhờ đọc thử nội dung chunk sau khi nạp, không phải nhờ đếm số lượng. Lệnh chạy: `python scripts/10_build_neo4j_kb.py --links data/kb_sources/links.json --kb KB2`.
 
+Trong Neo4j, KB2 gồm 10 trang web, 31 chunk và 11 thực thể. Dù nhỏ, KB2 dùng chung thực thể với KB1: "Cổ phần", "Cổ tức", "Hội đồng Quản trị" trên trang quan hệ cổ đông chính là các nút đã có từ Điều lệ, vì `entity_id` được băm từ tên đã chuẩn hóa (`ids.entity_id`).
+
+```cypher
+MATCH p=(:KnowledgeBase {kb_id:'KB2'})-[:HAS_DOCUMENT]->(:Document)-[:HAS_CHUNK]->(:Chunk)-[:MENTIONS]->(:Entity)
+RETURN p
+```
+
+![KB2 từ trang web công khai](assets/neo4j/neo4j_g8_kb2_web.png)
+
+*Hình 4.9. KB2 trong Neo4j Browser: trang web → chunk → thực thể dùng chung với KB1.*
+
 ### 4.14.4. Gộp KB1 và KB2 thành KB
 
 Gộp không sao chép node mà chỉ thêm cạnh thành viên. Vì ID theo nội dung, một tài liệu có trong cả KB1 và KB2 vẫn chỉ có một cạnh tới KB:
@@ -217,17 +253,55 @@ Sau khi gộp, tài liệu mới nạp vào KB1 hoặc KB2 tự xuất hiện tr
 
 ### 4.14.5. Trực quan hóa trên Neo4j Browser
 
-Kết quả gộp được kiểm tra trực tiếp trên Neo4j Browser. Hình 4.7 cho thấy KB hợp nhất có 52 tài liệu, trong đó 44 tài liệu đang được truy xuất (đã loại 7 bản trùng và 1 phiên bản cũ của Điều lệ). Cột `dang_dung` là kết quả của các bước xử lý ở mục 4.15.
+Kết quả gộp được kiểm tra trực tiếp trên Neo4j Browser. Hình 4.10 cho thấy KB hợp nhất có 52 tài liệu, trong đó 44 tài liệu đang được truy xuất (đã loại 7 bản trùng và 1 phiên bản cũ của Điều lệ). Cột `dang_dung` là kết quả của các bước xử lý ở mục 4.15.
 
 ![KB1, KB2 và KB trong Neo4j Browser](assets/neo4j/neo4j_kb_tong_quan.png)
 
-*Hình 4.7. Số tài liệu và chunk của KB1, KB2 và KB hợp nhất (truy vấn trên Neo4j Browser).*
+*Hình 4.10. Số tài liệu và chunk của KB1, KB2 và KB hợp nhất (truy vấn trên Neo4j Browser).*
 
-Hình 4.8 là đồ thị một tài liệu cụ thể: nút xanh lá là Document, nút hồng là các Chunk 28–33 của Quy chế hoạt động HĐQT, nút nâu là các Entity mà những chunk đó nhắc đến.
+Ba hình tiếp theo cho thấy phần "đồ thị" thực sự của KB: quan hệ giữa các thực thể. Bước nạp tạo cạnh `RELATES_TO` giữa hai thực thể cùng xuất hiện trong một chunk, trọng số là số chunk chung (truy vấn `LINK_ENTITIES` trong `02_ingest.cypher`). KB có 581 cạnh như vậy, trọng số lớn nhất 281. Lọc các cạnh có trọng số từ 6 trở lên, bỏ mốc thời gian và số điều, còn 53 thực thể và 167 quan hệ; hai cụm hiện rõ là quản trị công ty (Hội đồng Quản trị, Đại hội đồng cổ đông, Cổ phần, Vốn điều lệ) và lao động (Người lao động, Hợp đồng lao động, Tiền lương, Kỷ luật), nối nhau qua Tổng Giám đốc.
 
-![Đồ thị một tài liệu trong Neo4j Browser](assets/neo4j/neo4j_tai_lieu_hdqt.png)
+```cypher
+MATCH (a:Entity)-[r:RELATES_TO]->(b:Entity)
+WHERE r.weight >= 6
+  AND NOT a.type IN ['moc_thoi_gian','dieu_khoan'] AND NOT b.type IN ['moc_thoi_gian','dieu_khoan']
+RETURN a, r, b
+```
 
-*Hình 4.8. Đồ thị Document → Chunk → Entity của Quy chế hoạt động HĐQT trong Neo4j Browser.*
+![Mạng quan hệ thực thể](assets/neo4j/neo4j_g2_mang_thuc_the.png)
+
+*Hình 4.11. Mạng quan hệ RELATES_TO giữa các thực thể có trọng số ≥ 6: 53 nút, 167 cạnh.*
+
+"Hội đồng Quản trị" là thực thể trung tâm của KB: được 612 chunk nhắc tới và có 76 cạnh `RELATES_TO`. Hình dưới lấy 25 quan hệ mạnh nhất của nó, rồi lần ngược mỗi thực thể láng giềng về 2 chunk và tài liệu chứa chunk đó. Đây chính là đường mà `graph_search` đi khi mở rộng một câu hỏi về Hội đồng Quản trị sang các đoạn liên quan (mục 4.16).
+
+```cypher
+MATCH p1=(e:Entity {name:'Hội đồng Quản trị'})-[r:RELATES_TO]-(n:Entity)
+WITH p1, n, r ORDER BY r.weight DESC LIMIT 25
+MATCH p2=(:Document)-[:HAS_CHUNK]->(:Chunk)-[:MENTIONS]->(n)
+WITH p1, n, collect(p2)[0..2] AS ps UNWIND ps AS p2
+RETURN p1, p2
+```
+
+![Thực thể trung tâm Hội đồng Quản trị](assets/neo4j/neo4j_g3_hub_hdqt.png)
+
+*Hình 4.12. Thực thể "Hội đồng Quản trị", 25 láng giềng mạnh nhất và chunk, tài liệu nguồn: 86 nút, 122 cạnh.*
+
+Cạnh `REFERENCES` nối chunk chứa câu "theo quy định tại Điều N" tới chunk của Điều N trong cùng văn bản (truy vấn `LINK_REFERENCES`, chỉ nối trong cùng tài liệu nên chỉ số dẫn chiếu chéo tài liệu bằng 0 ở Bảng 4.24). KB có 204 cạnh như vậy; riêng Điều lệ 2021 (tải lên) có 23 và Điều lệ 2025 có 35. Các nút "Điều N" là thực thể loại `dieu_khoan` mà chunk nhắc tới.
+
+```cypher
+MATCH p=(d:Document)-[:HAS_CHUNK]->(:Chunk)-[:REFERENCES]->(:Chunk)
+WHERE d.doc_id = '84202bc4-4a22-46fa-8e7c-2ba11e857b68' OR d.title = 'Dieu le cong ty 2025'
+RETURN p
+UNION
+MATCH (d:Document)-[:HAS_CHUNK]->(a:Chunk)-[:REFERENCES]->(:Chunk)
+WHERE d.doc_id = '84202bc4-4a22-46fa-8e7c-2ba11e857b68' OR d.title = 'Dieu le cong ty 2025'
+MATCH p=(a)-[:MENTIONS]->(:Entity {type:'dieu_khoan'})
+RETURN p
+```
+
+![Dẫn chiếu Điều N giữa các chunk](assets/neo4j/neo4j_g4_dan_chieu_dieu.png)
+
+*Hình 4.13. Dẫn chiếu REFERENCES giữa các chunk của Điều lệ 2021 và 2025: 71 nút, 131 cạnh.*
 
 ## 4.15. Các vấn đề khi tích hợp nhiều nguồn và cách đồ án xử lý
 
@@ -282,7 +356,7 @@ Kết quả trên KB: 7 cặp trùng lặp, đều là cặp "PDF offline – b�
 
 ![Trùng lặp và phiên bản trong Neo4j Browser](assets/neo4j/neo4j_phien_ban_trung_lap.png)
 
-*Hình 4.9. Các cạnh `DUPLICATE_OF` và `NEW_VERSION_OF` sau bước xử lý tích hợp.*
+*Hình 4.14. Các cạnh `DUPLICATE_OF` và `NEW_VERSION_OF` sau bước xử lý tích hợp.*
 
 ### 4.15.3. Nhiều phiên bản của cùng một văn bản
 
@@ -300,6 +374,18 @@ dates = [f"{y:04d}-{m:02d}-{d:02d}" for pattern in (LONG_DATE_RE, DATE_RE)
          if 1 <= m <= 12 and 1 <= d <= 31]
 return (max(dates), "text") if dates else (None, None)
 ```
+
+Kết quả xử lý trùng lặp và phiên bản nhìn trên toàn KB: 7 cạnh `DUPLICATE_OF` (bản PDF trùng bản tải lên), 10 cạnh `SIMILAR_TO` (độ chồng lấn cao nhưng chưa đủ ngưỡng trùng) và 2 cạnh `NEW_VERSION_OF` trong chuỗi Điều lệ 2021 → 2025 → 2026, cùng 52 tài liệu treo vào KB hợp nhất.
+
+```cypher
+MATCH p=(:Document)-[:NEW_VERSION_OF|DUPLICATE_OF|SIMILAR_TO]->(:Document) RETURN p
+UNION
+MATCH p=(:KnowledgeBase {kb_id:'KB'})-[:HAS_DOCUMENT]->(:Document) RETURN p
+```
+
+![Trùng lặp và phiên bản trên toàn KB](assets/neo4j/neo4j_g5_phien_ban.png)
+
+*Hình 4.15. KB hợp nhất với các cạnh DUPLICATE_OF, SIMILAR_TO, NEW_VERSION_OF: 53 nút, 71 cạnh.*
 
 ### 4.15.4. Song ngữ Anh–Việt và biến thể tên gọi
 
@@ -395,7 +481,22 @@ Cả 8 cặp `SAME_AS` đều đúng khi kiểm tra bằng mắt. Trong 13 cặp
 
 ![Hợp nhất mờ trong Neo4j Browser](assets/neo4j/neo4j_hop_nhat_mo.png)
 
-*Hình 4.10. Cạnh `SAME_AS` và `POSSIBLY_SAME_AS` với độ giống và mức thuộc.*
+*Hình 4.16. Cạnh `SAME_AS` và `POSSIBLY_SAME_AS` với độ giống và mức thuộc.*
+
+Hình dưới đặt các cặp hợp nhất vào ngữ cảnh: mỗi thực thể có cạnh `SAME_AS` hoặc `POSSIBLY_SAME_AS` được lần về tối đa 3 chunk nhắc tới nó và tài liệu chứa chunk. Hai tên gọi được hợp nhất thường đến từ hai tài liệu khác nhau (bản PDF có lỗi OCR và bản tải lên sạch), nên cạnh hợp nhất chính là cầu nối giữa các nguồn.
+
+```cypher
+MATCH p=(:Entity)-[:SAME_AS|POSSIBLY_SAME_AS]->(:Entity) RETURN p
+UNION
+MATCH (e:Entity) WHERE EXISTS { (e)-[:SAME_AS|POSSIBLY_SAME_AS]-() }
+MATCH p=(:Document)-[:HAS_CHUNK]->(:Chunk)-[:MENTIONS]->(e)
+WITH e, collect(p)[0..3] AS ps UNWIND ps AS p
+RETURN p
+```
+
+![Hợp nhất thực thể nối các nguồn](assets/neo4j/neo4j_g7_hop_nhat_thuc_the.png)
+
+*Hình 4.17. Thực thể đã hợp nhất (SAME_AS, POSSIBLY_SAME_AS) cùng chunk và tài liệu nguồn: 118 nút, 171 cạnh.*
 
 ### 4.15.7. Mâu thuẫn dữ kiện
 
@@ -440,7 +541,20 @@ Giá trị thắng có trạng thái `accepted`. Giá trị thua có trạng th�
 
 ![Mâu thuẫn vốn điều lệ trong Neo4j Browser](assets/neo4j/neo4j_von_dieu_le.png)
 
-*Hình 4.11. Các khẳng định về vốn điều lệ, trạng thái và lý do (truy vấn số 6 trong `07_explore.cypher`).*
+*Hình 4.18. Các khẳng định về vốn điều lệ, trạng thái và lý do (truy vấn số 6 trong `07_explore.cypher`).*
+
+Nhìn dưới dạng đồ thị, 14 khẳng định về vốn điều lệ tạo thành một hình sao: khẳng định được chấp nhận (Điều lệ 2026) ở giữa, 13 khẳng định cũ hơn nối vào bằng cạnh `CONFLICTS_WITH`, và mỗi khẳng định lần ngược được về chunk (`ASSERTS`) và tài liệu (`HAS_CHUNK`) đã nêu ra nó. Đây là bằng chứng truy vết mà công cụ `kb_attribute` của tác tử dùng để trích dẫn (Chương 5).
+
+```cypher
+MATCH p=(:Document)-[:HAS_CHUNK]->(:Chunk)-[:ASSERTS]->(:Claim {attribute:'Vốn điều lệ'}) RETURN p
+UNION
+MATCH p=(:Claim {attribute:'Vốn điều lệ'})-[:CONFLICTS_WITH]->(:Claim) RETURN p
+```
+
+![Mâu thuẫn vốn điều lệ dạng đồ thị](assets/neo4j/neo4j_g6_khang_dinh_von.png)
+
+*Hình 4.19. Khẳng định vốn điều lệ: Claim, chunk, tài liệu và cạnh CONFLICTS_WITH: 41 nút, 41 cạnh.*
+
 
 Dãy giá trị tăng đều theo ngày hiệu lực là bằng chứng độc lập cho thấy quy tắc ngày hiệu lực ở mục 4.15.3 đúng. Nếu ngày bị gán sai, dãy sẽ không đơn điệu. Giá trị 28,5 tỷ trên trang giới thiệu là dữ kiện lịch sử năm 2003 nằm trong một đoạn kể lại quá trình hình thành công ty. Khẳng định này không có ngày hiệu lực nên được xếp cũ nhất và bị loại theo R2. Nếu không bị R2 loại, nó cũng thua theo R3 vì đến từ nguồn web. Mệnh giá cổ phần (10.000 đồng) xuất hiện ở 18 đoạn và không có mâu thuẫn, nên mọi khẳng định đều được chấp nhận.
 
@@ -456,9 +570,9 @@ RAG kết nối KB qua ba bước, cài trong `RAGService.retrieve_hits` (`ai-se
 2. **Truy xuất đồ thị:** tìm thực thể trong câu hỏi, cộng tên đồng nghĩa (`SAME_AS`) và thực thể gần nghĩa theo vector; lấy các đoạn nhắc đến chúng; mở rộng từ 5 đoạn vector tốt nhất theo cạnh `REFERENCES` và thực thể chung.
 3. **Trộn và lọc:** trộn hai danh sách bằng Reciprocal Rank Fusion (RRF, trọng số đồ thị 0,2), chấm lại bằng cross-encoder, rồi qua cổng bằng chứng. Không đủ căn cứ thì từ chối.
 
-![RAG kết nối KB: IN và OUT](assets/rag_kb_in_out.png)
+![RAG kết nối KB: IN và OUT](assets/vp/H4_7_rag_noi_kb.png)
 
-*Hình 4.12. Luồng vào và ra của RAG khi nối KB.*
+*Hình 4.20. Biểu đồ tuần tự RAG nối KB: truy xuất vector và đồ thị, trộn RRF, chấm lại, cổng bằng chứng.*
 
 ### 4.16.2. Mã nguồn gắn với luồng
 
@@ -503,9 +617,9 @@ WHERE kb.kb_id IN $kb_ids
 
 ### 4.16.3. Dạng đầu ra của KB
 
-![Dạng KB output một trang](assets/kb_output_one_page.png)
+![Dạng KB output một trang](assets/vp/H4_6_kb_output_mot_trang.png)
 
-*Hình 4.13. Bản ghi KB của một tài liệu: Document → Chunk → Entity → quan hệ → thống kê.*
+*Hình 4.21. Bản ghi KB của một tài liệu dạng đối tượng: KnowledgeBase → Document → Chunk → Entity và các quan hệ.*
 
 Bản ghi này là hợp đồng dữ liệu giữa tầng nạp và tầng RAG. Mọi trường cần cho trích dẫn (`page_start`, `page_end`, `section_path`, `source_uri`) và cho kiểm soát chất lượng (`content_hash`, `version`, `is_current`, `confidence`) đều nằm trong cùng một bản ghi.
 

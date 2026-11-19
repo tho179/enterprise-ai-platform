@@ -180,7 +180,7 @@ Bi-encoder dùng **một encoder dùng chung** (shared encoder) để mã hóa �
 
 Sau đó so sánh hai vector bằng cosine. Ưu điểm lớn nhất là **tách rời pha mã hóa**: toàn bộ đoạn văn có thể được mã hóa trước và lưu trong vector database; khi có câu hỏi, chỉ cần mã hóa câu hỏi rồi tìm kiếm. Chi phí truy vấn không phụ thuộc số lượng tài liệu.
 
-![Kiến trúc bi-encoder](assets/dl_encoder.png)
+![Kiến trúc bi-encoder](assets/vp/H3_1_bi_encoder.png)
 
 *Hình 3.1. Bi-encoder dùng chung encoder cho câu hỏi và đoạn văn, so sánh bằng cosine.*
 
@@ -272,24 +272,29 @@ Nhóm nghiên cứu đặt ra năm tiêu chí, theo thứ tự ưu tiên:
 
 Tiêu chí 1 là điều kiện tiên quyết; các tiêu chí còn lại là ràng buộc tài nguyên. Một mô hình chính xác hơn 20% nhưng chậm gấp 10 lần có thể vẫn chấp nhận được nếu chỉ dùng offline; ngược lại, mô hình chạy online phải đáp ứng ngân sách độ trễ.
 
-<!-- LANDSCAPE:START -->
-
-### 3.5.4. Bảng so sánh kiến trúc và cấu hình huấn luyện (in ngang)
+### 3.5.4. Bảng so sánh kiến trúc và cấu hình huấn luyện
 
 Bảng dưới đây bổ sung góc nhìn kỹ thuật cho phần so sánh định tính: không chỉ "mô hình nào tốt hơn" mà còn **vì sao** - số lớp, kích thước ẩn, tham số, độ dài token, learning rate và epoch. Đây là các trường mà một bảng so sánh thông thường hay bỏ qua, trong khi chúng quyết định chi phí huấn luyện, khả năng chạy CPU và độ dài ngữ cảnh.
 
-**Bảng 3.1. So sánh kiến trúc, cấu hình huấn luyện và kết quả của các mô hình**
+**Bảng 3.1. So sánh kiến trúc của các mô hình**
 
-| Mô hình | Đặc trưng | Kiến trúc | Số layer | Hidden / Heads | Tham số | Max token | Learning rate | Epoch | Batch | Recall@1 / @3 | MRR |
-| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :--- | :---: | :---: | :---: | :---: |
-| **MiniLM-L12-v2** | 384d; mean pooling; không prefix; 50+ ngôn ngữ; XLM-R 250k | MiniLM-L12 (BERT encoder) | 12 | 384 / 12 | ~118 M | 128 | 0 (zero-shot) | 0 | 32 | 60,0% / 80,0% | 0,6667 |
-| **Vietnamese-Bi-Encoder** | 768d; mean pooling; không prefix; tiếng Việt; PhoBERT 64k | RoBERTa-base (PhoBERT) | 12 | 768 / 12 | ~135 M | 258 | 0 (zero-shot) | 0 | 32 | 80,0% / 80,0% | 0,8000 |
-| **Multilingual-E5-Small** | 384d; mean pooling; prefix `query:` / `passage:`; 100+ ngôn ngữ; XLM-R 250k | E5-small (BERT encoder) | 12 | 384 / 12 | ~118 M | 512 | 0 (zero-shot) | 0 | 32 | 80,0% / 100,0% | 0,9000 |
-| **Reranker mmarco** | 1 điểm; cặp (query, passage); không vector; 100+ ngôn ngữ | Cross-encoder MiniLM | 12 | 384 / 12 | ~118 M | 512 | 0 (zero-shot) | 0 | 10 cặp/query | — | — |
+| Mô hình | Đặc trưng | Kiến trúc | Số layer | Hidden / Heads | Tham số | Max token |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: |
+| **MiniLM-L12-v2** | 384d; mean pooling; không prefix; 50+ ngôn ngữ; XLM-R 250k | MiniLM-L12 (BERT encoder) | 12 | 384 / 12 | ~118 M | 128 |
+| **Vietnamese-Bi-Encoder** | 768d; mean pooling; không prefix; tiếng Việt; PhoBERT 64k | RoBERTa-base (PhoBERT) | 12 | 768 / 12 | ~135 M | 258 |
+| **Multilingual-E5-Small** | 384d; mean pooling; prefix `query:` / `passage:`; 100+ ngôn ngữ; XLM-R 250k | E5-small (BERT encoder) | 12 | 384 / 12 | ~118 M | 512 |
+| **Reranker mmarco** | 1 điểm; cặp (query, passage); không vector; 100+ ngôn ngữ | Cross-encoder MiniLM | 12 | 384 / 12 | ~118 M | 512 |
+
+**Bảng 3.2. Cấu hình huấn luyện và kết quả của các mô hình**
+
+| Mô hình | Learning rate | Epoch | Batch | Recall@1 / @3 | MRR |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **MiniLM-L12-v2** | 0 (zero-shot) | 0 | 32 | 60,0% / 80,0% | 0,6667 |
+| **Vietnamese-Bi-Encoder** | 0 (zero-shot) | 0 | 32 | 80,0% / 80,0% | 0,8000 |
+| **Multilingual-E5-Small** | 0 (zero-shot) | 0 | 32 | 80,0% / 100,0% | 0,9000 |
+| **Reranker mmarco** | 0 (zero-shot) | 0 | 10 cặp/query | — | — |
 
 *Nguồn: `config.json` và `sentence_bert_config.json` của từng mô hình trên Hugging Face; kết quả đo trên 152 chunk Điều lệ Công ty. Learning rate và epoch bằng 0 vì cả bốn mô hình đều dùng trọng số pretrained, không huấn luyện lại trên corpus của đồ án. Nếu fine-tune, cấu hình đề xuất: LR 2e-5, epoch 3–5, batch 16, warmup 10%, weight decay 0,01, contrastive loss với hard negatives.*
-
-<!-- LANDSCAPE:END -->
 
 ---
 
@@ -453,9 +458,9 @@ Vấn đề V2 đặt ra ở mục 3.1 là một mô hình nhúng (mô hình **A
 | **Multilingual-E5-Small** | 384 | **0,806 → 0,829** | 0,722 → 0,722 | 0,889 → 0,944 | 59 → 1926 |
 | Multilingual-E5-Base | 768 | 0,787 → 0,770 | 0,722 → 0,667 | 0,833 → 0,778 | 152 → 2156 |
 
-*Bảng 3.2. Mô hình A (chỉ bi-encoder) so với mô hình AB (bi-encoder + cross-encoder chấm lại).*
+*Bảng 3.3. Mô hình A (chỉ bi-encoder) so với mô hình AB (bi-encoder + cross-encoder chấm lại).*
 
-Ba kết luận rút ra từ Bảng 3.2:
+Ba kết luận rút ra từ Bảng 3.3:
 
 1. **B cải thiện mạnh các mô hình A yếu.** MRR của MiniLM tăng từ 0,556 lên 0,713, của BKAI từ 0,631 lên 0,732. Cross-encoder sửa được những đoạn nhiễu mà bi-encoder xếp nhầm lên đầu.
 2. **Với mô hình A tốt nhất, B chỉ thêm ít nhưng vẫn có ích.** E5-Small tăng MRR từ 0,806 lên 0,829 và Recall@3 từ 0,889 lên 0,944. AB với E5-Small là cấu hình tốt nhất trong bảng và là cấu hình hệ thống đang dùng.
@@ -499,7 +504,7 @@ Giải thích: `_prepare` chỉ gom khoảng trắng rồi gắn tiền tố `qu
 | Bỏ dấu (cách cũ) | 0,169 | 6% | 22% | 39% |
 | **Giữ dấu (hiện tại)** | **0,806** | **72%** | **89%** | **100%** |
 
-*Bảng 3.3. Ảnh hưởng của việc bỏ dấu tiếng Việt trước khi nhúng.*
+*Bảng 3.4. Ảnh hưởng của việc bỏ dấu tiếng Việt trước khi nhúng.*
 
 Giả thuyết ban đầu sai: bỏ dấu biến "Hội đồng" và "hội đông", "cổ phần" và "có phần" thành cùng một chuỗi, và E5 vốn được huấn luyện trên văn bản có dấu nên mất gần hết tín hiệu. Hệ thống chuyển sang giữ dấu khi nhúng. Nhiễu OCR được xử lý ở tầng khác: khớp từ khóa và khớp thực thể không dấu với độ tin cậy thấp hơn (Chương 4, mục 4.15.4 và 4.15.5).
 
@@ -607,7 +612,7 @@ Sự khác biệt nằm ở **cấu trúc** (điều/chương/trang), **ngữ ng
 
 EAKWP tổ chức tri thức thành năm lớp:
 
-![Các lớp biểu diễn tri thức của EAKWP](assets/kb_layers.png)
+![Các lớp biểu diễn tri thức của EAKWP](assets/vp/H4_1_nam_lop_tri_thuc.png)
 
 *Hình 4.1. Năm lớp biểu diễn tri thức, từ bản gốc đến tri thức thủ tục.*
 
@@ -616,7 +621,7 @@ EAKWP tổ chức tri thức thành năm lớp:
 | L0 | Bản gốc | PDF, hash, phiên bản | Filesystem + PostgreSQL |
 | L1 | Cấu trúc | Chương, điều, khoản, trang, thứ tự | `section_path`, `document_sections` (mở rộng) |
 | L2 | Ngữ nghĩa | Chunk + embedding 384 chiều | Qdrant + `document_chunks` |
-| L3 | Quan hệ | Thực thể, quan hệ, đồ thị | Neo4j (prototype, chưa bật RAG) |
+| L3 | Quan hệ | Thực thể, quan hệ, đồ thị | Neo4j (KB1, KB2, KB); RAG đọc qua `graph_search` |
 | L4 | Thủ tục | Quy tắc trả lời, trích dẫn, từ chối | RAG service + prompt |
 
 Cách phân lớp này giúp tách biệt trách nhiệm:
@@ -647,7 +652,7 @@ Các yêu cầu này định hình toàn bộ pipeline bên dưới.
 
 ### 4.2.1. Sơ đồ pipeline
 
-![Pipeline xây dựng cơ sở tri thức](assets/kb_pipeline.png)
+![Pipeline xây dựng cơ sở tri thức](assets/vp/H4_2_pipeline_xay_kb.png)
 
 *Hình 4.2. Pipeline sáu tầng: thu nhận, phân tích cấu trúc, phân đoạn, làm giàu metadata, nhúng vector, lập chỉ mục.*
 
@@ -1097,7 +1102,7 @@ Query
   → Selection + citation
 ```
 
-![Pipeline truy xuất lai nhiều tầng](assets/kb_retrieval.png)
+![Pipeline truy xuất lai nhiều tầng](assets/vp/H4_4_truy_xuat_lai.png)
 
 *Hình 4.4. Truy xuất lai: vector lo phần ngữ nghĩa, lexical/article boost giữ từ khóa chốt, cross-encoder và shape gate siết precision.*
 
@@ -1488,9 +1493,9 @@ Thiết kế chia tri thức thành hai kho nguồn và một kho hợp nhất:
 - **KB2 — kho nguồn công khai:** 10 trang web chính thức của doanh nghiệp (giới thiệu, quản trị, công bố thông tin, báo cáo thường niên, tài liệu doanh nghiệp). Đây là nguồn cập nhật nhanh, bổ sung ngữ cảnh mà PDF có thể chưa có.
 - **KB — kho hợp nhất:** liên kết tất cả Document/Chunk/Entity của KB1 và KB2 dưới cùng một `KnowledgeBase`. KB không sao chép dữ liệu; nó thêm cạnh thành viên `HAS_DOCUMENT`, nhờ đó cùng một tài liệu xuất hiện ở cả KB1 và KB vẫn chỉ có một node.
 
-![Kiến trúc KB1, KB2 và KB hợp nhất](assets/kb_graph_sources.png)
+![Kiến trúc KB1, KB2 và KB hợp nhất](assets/vp/H4_2_kien_truc_kb.png)
 
-*Hình 4.5. Hai đường nạp PDF/link vào KB1/KB2, gộp thành KB và nối vào RAG.*
+*Hình 4.5. Hai đường nạp PDF/link vào KB1/KB2, tài liệu upload đồng bộ vào KB; KB1, KB2 gộp thành KB và nối vào RAG.*
 
 | Thành phần | Nguồn | Quy mô | Vai trò | Trạng thái |
 | :--- | :--- | :--- | :--- | :--- |
@@ -1842,7 +1847,7 @@ Kết quả gộp được kiểm tra trực tiếp trên Neo4j Browser. Hình 4
 
 Hình dưới là một trang output chuẩn của KB, dựng từ `debug/kb_sample.json` của lần dry-run ngày 09/11/2026 (rút gọn; các khóa `doc`, `chunks`, `entities` giữ đúng như `build_pdf_record` trả về). Hai phần `relations` và `stats` không nằm trong JSON thô: chúng do `store.upsert_record` và `store.stats` sinh ra khi ghi Neo4j. Trang này là hợp đồng dữ liệu giữa tầng nạp và tầng RAG.
 
-![Dạng KB output một trang](assets/kb_output_one_page.png)
+![Dạng KB output một trang](assets/vp/H4_6_kb_output_mot_trang.png)
 
 *Hình 4.9. Dạng KB output một trang: Document → Chunk → Entity → Relations → Stats.*
 
@@ -1875,7 +1880,7 @@ RAG kết nối KB qua ba bước:
 2. **Mở rộng đồ thị:** trích thực thể từ câu hỏi (Điều 7, HĐQT, Tổng Giám đốc...) → tìm chunk chứa thực thể trong KB → trả về ứng viên bổ sung.
 3. **Hợp nhất và rerank:** RRF hợp nhất hai danh sách, cross-encoder chấm lại, answer gate quyết định trả lời hay từ chối.
 
-![RAG kết nối KB: IN và OUT](assets/rag_kb_in_out.png)
+![RAG kết nối KB: IN và OUT](assets/vp/H4_7_rag_noi_kb.png)
 
 *Hình 4.11. Luồng IN/OUT của RAG khi nối KB: câu hỏi + tham số vào, câu trả lời + citation ra, hoặc từ chối có kiểm soát.*
 

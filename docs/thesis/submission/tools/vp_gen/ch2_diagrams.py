@@ -7,7 +7,7 @@ Flyway schema V1 + V2.
 import sys
 
 sys.path.insert(0, ".")
-from vpgen import BLUE, WHITE, Project, Shape  # noqa: E402
+from vpgen import BLUE, ORANGE, WHITE, Project, Shape, new_id, q  # noqa: E402
 
 p = Project()
 UW, UH = 250, 44  # use case size
@@ -126,7 +126,6 @@ dep("ai", "qdrant", "gRPC/HTTP")
 dep("ai", "neo4j", "Bolt + Cypher")
 dep("ai", "llm", "HTTP")
 dep("ai", "model", "nạp trong tiến trình")
-note(d, "Mỗi khối là một container trong docker-compose. Trình duyệt chỉ gọi backend; ai-service và các kho dữ liệu không mở ra ngoài.", 10, 500, 820, 40)
 
 # ---------------------------------------------------------------------------
 # H2.2 Functional decomposition
@@ -180,7 +179,6 @@ for a, u in [
     ("ai", "Quản trị cơ sở tri thức đồ thị"), ("llm", "Hỏi đáp có trích dẫn"),
 ]:
     d.connect(p.rel("Association", A[a].el, U[u].el), A[a], U[u])
-note(d, "Người dùng gồm ba vai trò EMPLOYEE, MANAGER, IT_SUPPORT; Quản trị viên (ADMIN) kế thừa mọi quyền của Người dùng.", 260, 632, 380, 54)
 
 # ---------------------------------------------------------------------------
 # H2.4 - H2.8 Use cases per module
@@ -198,7 +196,6 @@ usecase_diagram(
           ("Tạo tài khoản", "Kiểm tra quyền ADMIN"), ("Đổi vai trò", "Kiểm tra quyền ADMIN"),
           ("Khóa / mở khóa tài khoản", "Kiểm tra quyền ADMIN")],
     gen=[("Quản trị viên", "Người dùng")],
-    note_text="Quản trị viên kế thừa Người dùng nên cũng đăng nhập được. Đăng ký công khai luôn tạo tài khoản EMPLOYEE.",
 )
 usecase_diagram(
     "H2_5_uc_quan_ly_tai_lieu", "M2. Quản lý tài liệu",
@@ -216,7 +213,6 @@ usecase_diagram(
           ("Xóa tài liệu", "Xóa vector ở ai-service")],
     ext=[("Lọc theo danh mục, trạng thái", "Xem danh sách tài liệu")],
     gen=[("Quản trị viên", "Người dùng")],
-    note_text="Quản trị viên kế thừa mọi use case của Người dùng. Người dùng chỉ thấy tài liệu có allowed_roles chứa vai trò của mình hoặc '*'.",
 )
 usecase_diagram(
     "H2_6_uc_nap_tai_lieu", "M3. Nạp và xử lý tài liệu",
@@ -232,7 +228,6 @@ usecase_diagram(
           ("Nạp tài liệu (5 bước)", "Tạo embedding, ghi Qdrant"),
           ("Thử lại phiên bản lỗi", "Nạp tài liệu (5 bước)"), ("Nạp lại phiên bản hiện hành", "Nạp tài liệu (5 bước)")],
     ext=[("Ghi nút vào đồ thị Neo4j", "Tạo embedding, ghi Qdrant")],
-    note_text="Nạp tài liệu chạy bất đồng bộ (@Async); khi ai-service không trích xuất được, backend tự chuyển sang PDFBox.",
 )
 usecase_diagram(
     "H2_7_uc_hoi_dap_tim_kiem", "M4. Hỏi đáp và tìm kiếm",
@@ -260,7 +255,6 @@ usecase_diagram(
     incl=[("Quản trị KB đồ thị", "Nạp PDF vào KB1"), ("Quản trị KB đồ thị", "Nạp link vào KB2"),
           ("Quản trị KB đồ thị", "Gộp KB1 + KB2"), ("Quản trị KB đồ thị", "Bảo trì: trùng lặp, mâu thuẫn")],
     gen=[("Quản trị viên", "Người dùng")],
-    note_text="Chi tiết KB đồ thị (KB1, KB2, hợp nhất, cập nhật) trình bày ở Chương 4; đánh giá truy xuất ở Chương 3 và 4.",
 )
 
 # ---------------------------------------------------------------------------
@@ -282,7 +276,6 @@ sequence(
         (2, 1, "200 OK {token, role, fullName}"),
         (1, 0, "lưu phiên, chuyển tới trang theo vai trò"),
     ],
-    note_text="Sai mật khẩu hoặc không có email: 401 \"Email hoặc mật khẩu không đúng.\"; tài khoản bị khóa: 403.",
 )
 sequence(
     "H2_10_tuan_tu_tai_len_nap",
@@ -306,7 +299,6 @@ sequence(
         (1, 0, "bước 5/5, INGESTED"),
     ],
     gap=36, step=160,
-    note_text="Lỗi ở bất kỳ bước nào: phiên bản chuyển FAILED kèm thông báo; quản trị viên dùng \"Thử lại\".",
 )
 sequence(
     "H2_11_tuan_tu_hoi_dap",
@@ -314,7 +306,7 @@ sequence(
     [
         (0, 1, "nhập câu hỏi"),
         (1, 2, "POST /api/ai/chat + JWT"),
-        (2, 3, "INCR rate:{email}"),
+        (2, 3, "INCR ai:rate:{email}:{phút}"),
         (3, 2, "số lần trong phút"),
         (2, 4, "POST /chat/ask + user_roles"),
         (4, 5, "tìm vector + đồ thị, lọc quyền"),
@@ -328,7 +320,6 @@ sequence(
         (1, 0, "câu trả lời + trích dẫn"),
     ],
     gap=36, step=150, width=140,
-    note_text="Quá 30 yêu cầu/phút: 429 và ghi RATE_LIMITED; không đủ bằng chứng: tác tử từ chối, bỏ qua LLM.",
 )
 
 # ---------------------------------------------------------------------------
@@ -416,7 +407,6 @@ d.connect(p.rel("Dependency", K["is"].el, K["tr"].el), K["is"], K["tr"],
           points=[(460, 145), (718, 145), (718, 440), (730, 440)])
 d.connect(p.rel("Dependency", K["aus"].el, K["urr"].el), K["aus"], K["urr"],
           points=[(1450, 150), (1464, 150), (1464, 440), (1400, 440)])
-note(d, "Tầng Controller (REST) → Service (nghiệp vụ, giao dịch) → Client/Repository (ai-service, Redis, PostgreSQL). Mỗi Repository là Spring Data JPA trên một bảng.", 20, 500, 900, 40)
 
 # ---------------------------------------------------------------------------
 # H2.14 ERD (Flyway V1 + V2)
@@ -425,11 +415,28 @@ d = p.diagram("H2_14_erd_postgresql", "ERDiagram")
 T = {}
 
 
+COL = {}
+
+
 def table(key, name, cols, x, y, w=250):
     t = p.el("DBTable", name)
     for cname, ctype, length, pk, nullable in cols:
-        p.el("DBColumn", cname, parent=t, type=ctype, length=36 if ctype == "char" else length, primaryKey=pk, nullable=nullable)
-    T[key] = d.add(Shape(t, x, y, w, 26 + 19 * len(cols)))
+        COL[(key, cname)] = p.el("DBColumn", cname, parent=t, type=ctype, length=36 if ctype == "char" else length,
+                                 primaryKey=pk, nullable=nullable)
+    T[key] = d.add(Shape(t, x, y, w, 26 + 19 * len(cols), fill=ORANGE))
+
+
+def foreign_key(parent, child, column):
+    """Logical 1 - 0..* relationship; the FK column is bound so VP marks it as a foreign key."""
+    sp = lambda n, v: f'<StringProperty displayName="{n}" name="{n}" value={q(v)}/>'  # noqa: E731
+    fk = p.rel("DBForeignKey", T[parent].el, T[child].el, extra=sp("fromMultiplicity", "1") + sp("toMultiplicity", "0..*"))
+    COL[(child, column)].extra += (
+        f'<ModelsProperty displayName="Foreign Key Constraints" name="foreignKeyConstraints"><Model composite="true" '
+        f'considerDefaultProperties="true" displayModelType="Foreign Key Constraint" id={q(new_id())} modelType="DBForeignKeyConstraint">'
+        f'<ModelProperties><ModelRefProperty displayName="Foreign Key" name="foreignKey"><ModelRef id={q(fk.id)}/></ModelRefProperty>'
+        f'<ModelRefProperty displayName="Ref Column" name="refColumn"><ModelRef id={q(COL[(parent, "id")].id)}/></ModelRefProperty>'
+        f'</ModelProperties></Model></ModelsProperty>')
+    d.connect(fk, T[parent], T[child])
 
 
 # VP CE only knows generic JDBC types: uuid -> char(36), boolean -> bit, text -> clob.
@@ -464,9 +471,12 @@ table("audit", "ai_audit_logs", [
     ("action", V, 32, False, False), ("query_text", V, 2000, False, False), ("document_id", V, 64, False, True),
     ("status", V, 32, False, False), ("model_used", V, 128, False, True), ("result_count", I, 0, False, False),
     ("latency_ms", BI, 0, False, False), ("created_at", TS, 0, False, False)], 20, 330)
-for a, b in [("documents", "versions"), ("documents", "tasks"), ("versions", "chunks"), ("versions", "tasks")]:
-    d.connect(p.rel("DBForeignKey", T[a].el, T[b].el), T[a], T[b])
-note(d, "Quan hệ là khóa ngoại logic do ứng dụng bảo đảm; Flyway V1-V2 không tạo FOREIGN KEY vật lý. Kiểu hiển thị là kiểu chung của VP: char(36) = uuid, bit = boolean, clob = text của PostgreSQL.", 20, 590, 890, 40)
+# five logical foreign keys of V1 (no physical FOREIGN KEY, see section 2.11.3);
+# ai_audit_logs keeps user_email / document_id as a snapshot, so it references nothing.
+for parent, child, column in [("documents", "versions", "document_id"), ("documents", "tasks", "document_id"),
+                              ("documents", "chunks", "document_id"), ("versions", "chunks", "version_id"),
+                              ("versions", "tasks", "version_id")]:
+    foreign_key(parent, child, column)
 
 open("ch2.xml", "w", encoding="utf-8").write(p.xml())
 print("diagrams:", [x.name for x in p.diagrams])

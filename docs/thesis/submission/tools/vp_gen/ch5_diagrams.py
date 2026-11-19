@@ -49,7 +49,6 @@ dep("flat", "qd", "")
 dep("hyb", "qd", "")
 dep("hyb", "neo", "graph_search")
 dep("hyb", "llm", "")
-note(d, "Mỗi bước ghi một dòng vào agent_trace: luật, hành động, kết quả quan sát, thời gian. Cờ AGENT_ENABLED=false bỏ qua tác tử, gọi thẳng RAGService.", 10, 380, 860, 40)
 
 # H5.2 agent loop ------------------------------------------------------------
 d = p.diagram("H5_2_vong_lap_tac_tu", "ActivityDiagram")

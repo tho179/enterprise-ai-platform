@@ -349,7 +349,7 @@ Theo vấn đề K5 và hạn chế V4 của Chương 3 (không tự huấn luy�
 
 | Tầng | Mô hình đang dùng | Mô hình thay thế đã đo | Biến cấu hình |
 | :--- | :--- | :--- | :--- |
-| Nhúng (A) | `intfloat/multilingual-e5-small` | E5-Base, BKAI bi-encoder, MiniLM-L12 (Bảng 3.1, 3.2) | `EMBEDDING_MODEL`, `EMBEDDING_QUERY_PREFIX` |
+| Nhúng (A) | `intfloat/multilingual-e5-small` | E5-Base, BKAI bi-encoder, MiniLM-L12 (Bảng 3.1–3.3) | `EMBEDDING_MODEL`, `EMBEDDING_QUERY_PREFIX` |
 | Chấm lại (B) | `cross-encoder/mmarco-mMiniLMv2-L12-H384-v1` | tắt chấm lại (Bảng 5.10) | `RERANKER_MODEL`, `RERANK_GATE` |
 | Sinh câu trả lời | Gemini (`gemini-3.5-flash`) | OpenAI; `qwen2.5:3b` cục bộ qua Ollama; trích đoạn không LLM | `GEMINI_MODEL`, `LLM_BASE_URL`, `LLM_MODEL` |
 

@@ -11,6 +11,7 @@ from xml.sax.saxutils import escape, quoteattr
 
 BLUE = "Cr:122,207,245,255"
 WHITE = "Cr:255,255,255,255"
+ORANGE = "Cr:255,192,128,255"  # database diagrams
 _rng = random.Random(20261116)
 _ALPHA = string.ascii_letters + string.digits + "._"
 
@@ -26,12 +27,13 @@ def q(v) -> str:
 
 
 class Element:
-    def __init__(self, kind, name="", parent=None, **props):
+    def __init__(self, kind, name="", parent=None, extra="", **props):
         self.id = new_id()
         self.kind = kind
         self.name = name
         self.children: list[Element] = []
         self.props = props
+        self.extra = extra
         if parent is not None:
             parent.children.append(self)
 
@@ -60,14 +62,15 @@ class Element:
             f'{pad}<Model composite="false" considerDefaultProperties="true" displayModelType={q(self.kind)} '
             f'id={q(self.id)} modelType={q(self.kind)} name={q(self.name)}>\n'
             f'{pad}\t<ModelProperties>\n'
-            f'{pad}\t\t<StringProperty displayName="Name" name="name" value={q(self.name)}/>{extra}\n'
+            f'{pad}\t\t<StringProperty displayName="Name" name="name" value={q(self.name)}/>{extra}{self.extra}\n'
             f'{pad}\t</ModelProperties>{kids}\n'
             f'{pad}</Model>'
         )
 
 
 class Relation:
-    def __init__(self, kind, src: Element, dst: Element, name=""):
+    def __init__(self, kind, src: Element, dst: Element, name="", extra=""):
+        self.extra = extra
         self.id = new_id()
         self.kind = kind
         self.src = src
@@ -106,13 +109,14 @@ class Relation:
             f'{pad}\t<ModelProperties>\n'
             f'{pad}\t\t<StringProperty displayName="Name" name="name" value={q(self.name)}/>\n'
             f'{pad}\t\t<ModelRefProperty displayName="From" name="from"><ModelRef id={q(self.src.id)}/></ModelRefProperty>\n'
-            f'{pad}\t\t<ModelRefProperty displayName="To" name="to"><ModelRef id={q(self.dst.id)}/></ModelRefProperty>\n'
+            f'{pad}\t\t<ModelRefProperty displayName="To" name="to"><ModelRef id={q(self.dst.id)}/></ModelRefProperty>{self.extra}\n'
             f'{pad}\t</ModelProperties>\n{pad}</Model>'
         )
 
 
 class Shape:
-    def __init__(self, el: Element, x, y, w, h, shape_type=None, fill=BLUE, caption=None, font=11, bold=False, fit=False):
+    def __init__(self, el: Element, x, y, w, h, shape_type=None, fill=BLUE, caption=None, font=11, bold=False, fit=False, extra=""):
+        self.extra = extra
         self.id = new_id()
         self.el = el
         self.type = shape_type or el.kind
@@ -137,12 +141,13 @@ class Shape:
             cap = f'<Caption height="{ch}" side="None" visible="true" width="{cw}" x="{cx}" y="{cy}"/>'
         else:
             cap = f'<Caption height="{self.h}" side="Center" visible="true" width="{self.w}" x="-14" y="-8"/>'
+        zz = next(z) if not isinstance(z, int) else z
+        counter = z if not isinstance(z, int) else itertools.count(z + 1)
         kids = ""
         if self.children:
             kids = f"\n{pad}\t<ChildShapes>" + "".join(
-                "\n" + c.xml(next(z), depth + 2) for c in self.children
+                "\n" + c.xml(counter, depth + 2) for c in self.children
             ) + f"\n{pad}\t</ChildShapes>"
-        zz = next(z) if not isinstance(z, int) else z
         return (
             f'{pad}<Shape height="{self.h}" id={q(self.id)} model={q(self.el.id)} name={q(self.el.name)} '
             f'shapeType={q(self.type)} width="{self.w}" x="{self.x}" y="{self.y}" zorder="{zz}">\n'
@@ -150,6 +155,7 @@ class Shape:
             f'{pad}\t\t<IntegerProperty displayName="ZOrder" name="zOrder" value="{zz}"/>\n'
             f'{pad}\t\t<ModelRefProperty displayName="Meta Model Element" name="metaModelElement"><ModelRef id={q(self.el.id)}/></ModelRefProperty>\n'
             + (f'{pad}\t\t<BooleanProperty displayName="Request Fit Size" name="requestFitSize" value="true"/>\n' if self.fit else '')
+            + (f'{pad}\t\t{self.extra}\n' if self.extra else '')
             + f'{pad}\t</DiagramElementProperties>\n'
             f'{pad}\t<ElementFont color="Cr:0,0,0,255" name="Dialog" size="{self.font}" style="{1 if self.bold else 0}"/>\n'
             f'{pad}\t<Line cap="0" color="Cr:0,0,0,255" transparency="0" weight="1.0"><Stroke/></Line>\n'
@@ -220,6 +226,7 @@ DIAGRAM_TYPES = {
     "DeploymentDiagram": "Deployment Diagram",
     "ERDiagram": "Entity Relationship Diagram",
     "PackageDiagram": "Package Diagram",
+    "StateDiagram": "State Machine Diagram",
 }
 
 
@@ -262,23 +269,23 @@ class Project:
         self.relations: list[Relation] = []
         self.diagrams: list[Diagram] = []
 
-    def el(self, kind, name="", parent=None, **props) -> Element:
+    def el(self, kind, name="", parent=None, extra="", **props) -> Element:
         # One model element per (kind, name): VP renames duplicates ("Người dùng2").
         if parent is None and kind in ("Actor", "UseCase", "Class", "Component", "InteractionLifeLine"):
             registry = self.__dict__.setdefault("_named", {})
             if (kind, name) in registry:
                 return registry[(kind, name)]
-            e = Element(kind, name, None, **props)
+            e = Element(kind, name, None, extra, **props)
             registry[(kind, name)] = e
             self.elements.append(e)
             return e
-        e = Element(kind, name, parent, **props)
+        e = Element(kind, name, parent, extra, **props)
         if parent is None:
             self.elements.append(e)
         return e
 
-    def rel(self, kind, a, b, name="") -> Relation:
-        r = Relation(kind, a, b, name)
+    def rel(self, kind, a, b, name="", extra="") -> Relation:
+        r = Relation(kind, a, b, name, extra)
         self.relations.append(r)
         return r
 

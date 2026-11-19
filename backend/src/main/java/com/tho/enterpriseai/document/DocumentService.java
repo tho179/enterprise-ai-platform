@@ -286,6 +286,22 @@ public class DocumentService {
                     HttpStatus.CONFLICT, "Chỉ đặt phiên bản đã nạp làm hiện hành.");
         }
         DocumentEntity document = findDocument(target.getDocumentId());
+        if (!target.isCurrent()) {
+            // The target's vectors were dropped when a newer version took over.
+            // Re-index its stored chunks first; flags change only if that succeeds.
+            List<DocumentChunkEntity> chunks = chunkRepository.findByVersionIdOrderByChunkIndexAsc(target.getId());
+            if (chunks.isEmpty()) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT, "Phiên bản không còn đoạn trích, vui lòng nạp lại tệp.");
+            }
+            try {
+                aiIngestClient.ingest(document, target, chunks);
+            } catch (RuntimeException exception) {
+                logger.warn("Cannot re-index version {} before making it current", target.getId(), exception);
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_GATEWAY, "Không ghi lại được vector của phiên bản. Kiểm tra dịch vụ AI rồi thử lại.");
+            }
+        }
         for (DocumentVersionEntity item : versionRepository.findByDocumentId(document.getId())) {
             boolean current = item.getId().equals(target.getId());
             if (item.isCurrent() != current) {
@@ -295,6 +311,7 @@ public class DocumentService {
         }
         document.setUpdatedAt(LocalDateTime.now());
         documentRepository.save(document);
+        ingestionService.dropSupersededVectors(document.getId(), target.getId());
         return toVersionDto(target);
     }
 

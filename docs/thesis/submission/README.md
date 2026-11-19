@@ -15,8 +15,37 @@ Cập nhật: 05/11/2026
 
 Hình và công thức:
 
-- Hình VP xuất **SVG** (`ExportDiagramImage -type svg`), rồi vẽ lại bằng Edge ở ~2.600 px qua `tools/vp_gen/svg2png.py`. Không dùng `-type pdf`: VP làm mất chữ tiếng Việt có dấu. PNG mặc định của VP chỉ tỉ lệ 1:1 nên bị mờ.
-- Ảnh chụp Neo4j: `SCALE=2.5 node tools/neo4j_capture/capture_kb_v2.cjs <thư mục>`; ảnh code vẽ ở tỉ lệ 3 (`render_code_images.SCALE`).
+- Hình VP xuất **SVG** (`ExportDiagramImage -type svg`, lưu nguyên bản ở `tools/vp_gen/vp_svg/`), làm sạch bằng `tools/vp_gen/fix_vp_svg.py`, rồi vẽ lại bằng Edge ở ~3.400 px qua `tools/vp_gen/svg2png.py`. Không dùng `-type pdf`: VP làm mất chữ tiếng Việt có dấu. PNG mặc định của VP chỉ tỉ lệ 1:1 nên bị mờ.
+- `fix_vp_svg.py` sửa các lỗi của bản SVG do VP xuất:
+  - bỏ `clip-path`, vốn làm đường nối bị đứt khúc và mất một nét của đầu mũi tên;
+  - phóng to chữ và căn giữa trong hình;
+  - sắp lại use case (`LAYOUTS`) và hình hộp (`BOX_LAYOUTS`: H2.1, H2.13, H5.1) để không đường nối nào cắt qua hình khác, kèm bộ kiểm tra tự động;
+  - đặt nhãn «include»/«extend»/thông điệp vào chỗ trống;
+  - thay chữ dạng glyph trong ghi chú bằng chữ thật.
+
+  Lệnh chạy:
+  ```bash
+  python tools/vp_gen/fix_vp_svg.py tools/vp_gen/vp_svg <out_svg>
+  python tools/vp_gen/svg2png.py <out_svg> assets/vp
+  ```
+- Bản build chỉ xoay một hình VP 90° (kèm chú thích) khi xoay giúp hình in to hơn ít nhất 30% (`ROTATE_GAIN`).
+- Các hình không có khung ghi chú (note); phần giải thích nằm trong đoạn văn dưới hình. Logo "Powered By Visual Paradigm Community Edition" được giữ theo điều kiện của bản miễn phí.
+- **Biểu đồ tuần tự** (H2.9–H2.11, H4.7) theo chuẩn Boundary – Control – Entity:
+  - Bộ sinh và nội dung:
+    - `tools/vp_gen/seqgen.py` dựng các thành phần sau:
+      - Actor;
+      - lifeline «boundary»/«control»/«entity»;
+      - Message thật nối giữa các activation;
+      - thông điệp trả về nét đứt, lời gọi `@Async`;
+      - khối `alt`/`loop` có điều kiện canh.
+    - `tools/vp_gen/seq_specs.py` chứa nội dung từng hình, lấy theo tên hàm và API trong code.
+  - Lệnh chạy: `python tools/vp_gen/seq_specs.py <thư_mục_xml>`. Sau đó, với mỗi tệp: `ImportXML` vào một bản sao project, rồi `ExportDiagramImage -type svg`.
+- **Hình Chương 3–4** đều xuất từ VP:
+  - `assets/vp/EAKWP_chuong_3_4.vpp` cho các hình H3.2, H4.1–H4.6, H4.8, H4.9.
+  - `tools/vp_gen/ch34_diagrams.py` cho các hình bi-encoder, năm lớp tri thức, pipeline xây KB và truy xuất lai.
+  - Chỉ hai biểu đồ cột số liệu (`dl_benchmark.png`, `kb_chunking.png`) vẽ ngoài VP.
+- 9 đồ thị lớn của Chương 4 (Hình 4.6, 4.8, 4.9, 4.11–4.13, 4.15, 4.17, 4.19): `node tools/neo4j_capture/capture_kb_graphs.cjs <thư mục>` (cần `NEO4J_PASSWORD`, Neo4j đang chạy). Script chạy truy vấn Cypher thật trên Neo4j Browser, phóng khung đồ thị lên 1350 px và xuất bằng nút "Download as PNG" của chính Neo4j; truy vấn của từng hình được in trong chương ngay trước hình.
+- Ảnh chụp Neo4j dạng bảng: `SCALE=2.5 node tools/neo4j_capture/capture_kb_v2.cjs <thư mục>`; ảnh code vẽ ở tỉ lệ 3 (`render_code_images.SCALE`).
 - Word tự hạ ảnh xuống ~200 dpi khi xuất PDF; `build_do_an_form.py` thay lại ảnh gốc vào PDF (`restore_full_resolution`). Ảnh trong PDF hiện ≥ 241 dpi, trung vị 418 dpi.
 - Dòng `> **Công thức N.M.** $...$` được dựng thành phương trình hiển thị của Word (OMML), căn giữa, số (N.M) căn phải; nhiều phương trình ghép bằng `;` hoặc `,` được tách mỗi dòng một phương trình.
 

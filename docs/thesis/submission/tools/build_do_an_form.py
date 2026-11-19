@@ -61,13 +61,158 @@ bd.add_inline = _inline_no_zwsp
 _orig_widths = bd.compute_table_widths
 
 
+def _plain(cell: str) -> tuple[str, bool]:
+    """Visible text of a cell and whether it is mostly inline code (Consolas 10 pt)."""
+    code = "".join(re.findall(r"`([^`]*)`", cell))
+    text = re.sub(r"[*`]", "", cell).strip()
+    return text, bool(code) and len(code) >= 0.6 * max(1, len(text))
+
+
 def _widths(rows, n_cols, total_cm=16.0, min_cm=1.8):
-    if n_cols == 12 and rows and rows[0][0].strip() == "Mô hình":
-        return [2.9, 4.4, 2.8, 1.4, 1.8, 1.7, 1.5, 1.9, 1.5, 2.2, 2.0, 1.6]
-    return _orig_widths(rows, n_cols, total_cm, min_cm)
+    """Column widths for 13 pt table text: every column is at least as wide as its
+    longest word (bold in the header), so Word never breaks a word; the remaining
+    width goes to the columns with the most text."""
+    per_char, per_char_bold, per_char_code, pad = 0.235, 0.29, 0.19, 0.6
+    mins, needs = [], []
+    for c in range(n_cols):
+        col_min, col_len = 0.9, 1
+        for r, row in enumerate(rows):
+            if c >= len(row):
+                continue
+            text, is_code = _plain(row[c])
+            unit = per_char_code if is_code else (per_char_bold if r == 0 else per_char)
+            # Word may break after "-" and "/", so those split words too.
+            words = re.split(r"(?<=[-/])|\s+", text)
+            longest = max((len(w) for w in words), default=1)
+            col_min = max(col_min, unit * longest + pad)
+            if r > 0:
+                col_len = max(col_len, len(text))
+        mins.append(col_min)
+        needs.append(col_len)
+    if sum(mins) >= total_cm:
+        return [m * total_cm / sum(mins) for m in mins]
+    spare = total_cm - sum(mins)
+    weights = [max(0.0, n * per_char - m) for n, m in zip(needs, mins)]
+    if sum(weights) == 0:
+        weights = [1.0] * n_cols
+    return [m + spare * w / sum(weights) for m, w in zip(mins, weights)]
 
 
 bd.compute_table_widths = _widths
+
+
+_orig_make_omml = bd.make_omml
+
+
+def _make_omml_clean(latex: str):
+    r"""Normalise LaTeX that latex2mathml renders badly: \arg\min / \arg\max appear
+    verbatim, and \ln n runs together as "lnn"."""
+    latex = re.sub(r"\\arg\s*\\(min|max)", r"\\mathrm{arg\\,\1}", latex)
+    latex = re.sub(r"\\(ln|log|exp)(?![a-zA-Z])\s*(?=[A-Za-z0-9\\])", r"\\\1\\,", latex)
+    return _orig_make_omml(latex)
+
+
+bd.make_omml = _make_omml_clean
+
+
+ROT_DIR = BASE / "assets" / "rot"
+ROTATE_GAIN = 1.3           # turn a VP diagram 90° when that prints it >= 30 % larger
+PRINT_LONG_CM = 23.0        # long side of a rotated figure on the page
+
+
+def rotate_wide_figures(body: str) -> str:
+    """Turn wide Visual Paradigm figures 90° together with their caption.
+
+    The caption is drawn into the picture (Times New Roman italic, 12 pt at print
+    size) so both read when the page is turned clockwise; the Markdown caption line
+    is dropped from the flow but stays in the list of figures (collected earlier)."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    ROT_DIR.mkdir(parents=True, exist_ok=True)
+    pattern = re.compile(r"!\[([^\]]*)\]\((assets/(?:vp|neo4j)/[^)]+\.png)\)\n\n(\*Hình \d+\.\d+\.[^\n]*\*)\n")
+
+    def repl(m):
+        src = BASE / m.group(2)
+        raw = Image.open(src)
+        if raw.mode in ("RGBA", "LA", "P"):
+            raw = raw.convert("RGBA")
+            im = Image.new("RGB", raw.size, "white")
+            im.paste(raw, mask=raw.split()[-1])   # Neo4j exports a transparent background
+        else:
+            im = raw.convert("RGB")
+        # Large Neo4j graph views are always turned so they print 23 cm long.
+        always = src.name.startswith("neo4j_g")
+        if not always:
+            if m.group(2).startswith("assets/neo4j/"):
+                return m.group(0)
+            # Turn a VP diagram only when that prints it clearly larger (>= 30 %):
+            # upright it gets 15.8 x 21.5 cm, turned 23 x 15.8 cm.
+            upright = min(15.8 / im.width, 21.5 / im.height)
+            turned = min(15.8 / im.height, PRINT_LONG_CM / im.width)
+            if turned < ROTATE_GAIN * upright:
+                return m.group(0)
+        if always:
+            # Neo4j's export keeps the whole canvas; trim the empty margin around the graph.
+            from PIL import ImageChops
+            box = ImageChops.difference(im, Image.new("RGB", im.size, "white")).getbbox()
+            if box:
+                pad = 40
+                im = im.crop((max(0, box[0] - pad), max(0, box[1] - pad),
+                              min(im.width, box[2] + pad), min(im.height, box[3] + pad)))
+            # Keep whichever orientation prints the graph larger on a 15.8 x 23 cm area
+            # (the caption takes ~1.5 cm of the height when upright).
+            upright = min(15.8 / im.width, 21.5 / im.height)
+            turned = min(15.8 / im.height, PRINT_LONG_CM / im.width)
+            if upright >= turned:
+                out = ROT_DIR / src.name
+                im.save(out, optimize=True)
+                return f"![{m.group(1)}]({out.relative_to(BASE).as_posix()})\n\n{m.group(3)}\n"
+        caption = m.group(3).strip("*").strip()
+        px_per_cm = im.width / PRINT_LONG_CM
+        font = ImageFont.truetype(r"C:\Windows\Fonts\timesi.ttf", int(round(0.4233 * px_per_cm)))
+        draw = ImageDraw.Draw(im)
+        words, lines, cur = caption.split(), [], ""
+        for w in words:
+            test = (cur + " " + w).strip()
+            if draw.textlength(test, font=font) > im.width * 0.92 and cur:
+                lines.append(cur)
+                cur = w
+            else:
+                cur = test
+        lines.append(cur)
+        line_h = int(font.size * 1.35)
+        gap = int(0.45 * px_per_cm)
+        canvas = Image.new("RGB", (im.width, im.height + gap + line_h * len(lines) + gap // 2), "white")
+        canvas.paste(im, (0, 0))
+        d = ImageDraw.Draw(canvas)
+        y = im.height + gap
+        for line in lines:
+            d.text(((canvas.width - d.textlength(line, font=font)) / 2, y), line, font=font, fill="black")
+            y += line_h
+        out = ROT_DIR / src.name
+        canvas.rotate(90, expand=True).save(out, optimize=True)
+        return f"![rot]({out.relative_to(BASE).as_posix()})\n"
+
+    return pattern.sub(repl, body)
+
+
+def _text_direction(cell, value: str) -> None:
+    tc_pr = cell._tc.get_or_add_tcPr()
+    for old in tc_pr.findall(qn("w:textDirection")):
+        tc_pr.remove(old)
+    el = OxmlElement("w:textDirection")
+    el.set(qn("w:val"), value)
+    tc_pr.append(el)
+
+
+def _no_borders(cell) -> None:
+    tc_pr = cell._tc.get_or_add_tcPr()
+    borders = OxmlElement("w:tcBorders")
+    for edge in ("top", "bottom", "right"):
+        el = OxmlElement(f"w:{edge}")
+        el.set(qn("w:val"), "nil")
+        borders.append(el)
+    tc_pr.append(borders)
 
 
 # ---------------------------------------------------------------------------
@@ -138,6 +283,7 @@ class FormDocx(bd.ThesisDocx):
     def __init__(self, md_path: Path, figures, tables):
         self.figures, self.tables = figures, tables
         self._chapters_started = 0
+        self._rot = None
         super().__init__(md_path, "Đồ án tốt nghiệp", header_text="")
 
     def _setup_styles(self):
@@ -242,6 +388,12 @@ class FormDocx(bd.ThesisDocx):
         buffer.clear()
         if not text:
             return
+        if getattr(self, "_rot", None) is not None:
+            if CAPTION_RE.match(text) and self._rot["caption"] is None:
+                self._rot["caption"] = text
+            else:
+                self._rot["notes"].append(text)
+            return
         if CAPTION_RE.match(text):
             p = self._new_para("Caption VN")
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -250,6 +402,19 @@ class FormDocx(bd.ThesisDocx):
         bd.add_inline(self._new_para("Normal"), text)
 
     def _image(self, alt, rel_path):
+        if alt == "rot":
+            from PIL import Image as _Img
+            path = (self.base_dir / rel_path).resolve()
+            w, h = _Img.open(path).size
+            width_cm = min(15.8, PRINT_LONG_CM * w / h)
+            p = self._new_para()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.first_line_indent = Cm(0)
+            p.paragraph_format.space_before = Pt(6)
+            p.paragraph_format.space_after = Pt(6)
+            p.paragraph_format.line_spacing = 1.0
+            p.add_run().add_picture(str(path), width=Cm(width_cm))
+            return
         if alt.startswith("code"):
             width_px = int(alt.split("|")[1]) if "|" in alt else 700
             p = self._new_para()
@@ -265,10 +430,42 @@ class FormDocx(bd.ThesisDocx):
         self.doc.paragraphs[-1].paragraph_format.keep_with_next = True
 
     def _table(self, rows, aligns):
+        if getattr(self, "_rot", None) is not None:
+            self._rot["rows"] = rows
+            return
         super()._table(rows, aligns)
         table = self.doc.tables[-1]
         for cell in table.rows[0].cells:
             cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        # Same type as the body text: Times New Roman 13 pt, inline code Consolas 10 pt.
+        m_ns = "http://schemas.openxmlformats.org/officeDocument/2006/math"
+        for row in table.rows:
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    p.paragraph_format.line_spacing = 1.1
+                    for run in p.runs:
+                        if run.font.name == bd.FONT_CODE:
+                            run.font.size = Pt(10)
+                        else:
+                            run.font.name = bd.FONT_BODY
+                            run._element.get_or_add_rPr().get_or_add_rFonts().set(qn("w:eastAsia"), bd.FONT_BODY)
+                            run.font.size = Pt(13)
+                    for omml in p._p.iter(f"{{{m_ns}}}oMath"):
+                        bd.set_omml_size(omml, 13)
+        # Keep each table on one page together with its caption (which follows it);
+        # a table longer than a page repeats its header row instead.
+        for i, row in enumerate(table.rows):
+            tr_pr = row._tr.get_or_add_trPr()
+            tr_pr.append(OxmlElement("w:cantSplit"))
+            if i == 0:
+                tr_pr.append(OxmlElement("w:tblHeader"))
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    p.paragraph_format.keep_with_next = True
+        # The spacer paragraph the base builder adds after every table sits between
+        # the table and its caption: it must not allow a page break either.
+        spacer = self.doc.paragraphs[-1]
+        spacer.paragraph_format.keep_with_next = True
         if self._landscape:
             for row in table.rows:
                 for cell in row.cells:
@@ -355,6 +552,92 @@ class FormDocx(bd.ThesisDocx):
             text = tail[0].upper() + tail[1:]
             bd.add_inline(self._new_para("Normal"), text)
 
+    # ---- rotated blocks (no landscape pages) ------------------------------
+    # "<!-- LANDSCAPE:START/END -->" now means: turn the enclosed table 90° on a
+    # portrait page. The table is transposed and every cell is written bottom-to-top,
+    # so turning the page clockwise shows the original table; its caption becomes a
+    # column on the right (= below the table once the page is turned).
+
+    def _start_landscape(self):
+        self._rot = {"rows": None, "caption": None, "notes": []}
+
+    def _end_landscape(self):
+        rot, self._rot = self._rot, None
+        if rot and rot["rows"]:
+            self._rotated_table(rot)
+
+    def _rotated_table(self, rot):
+        from docx.enum.table import WD_ROW_HEIGHT_RULE
+
+        rows = rot["rows"]
+        n_src_cols = len(rows[0])
+        # Length of each page row (= width of a source column once the page is turned).
+        # Cells are written bottom-to-top, so the text can only grow in length, never
+        # in the number of lines, which is fixed by the page column width (~4 lines of
+        # 13 pt). Each row therefore gets room for its longest cell in at most 4 lines,
+        # and at least the longest header word in bold (~0.26 cm per character).
+        mins, needs = [], []
+        for k in range(n_src_cols):
+            head = re.sub(r"[*`]", "", rows[0][k])
+            cells = [re.sub(r"[*`]", "", r[k]) for r in rows[1:]]
+            head_word = max((len(w) for w in head.split()), default=4)
+            data_word = max((len(w) for c in cells for w in re.split(r"[\s/-]+", c)), default=4)
+            mins.append(max(0.27 * head_word + 0.5, 0.235 * data_word + 0.5))
+            needs.append(0.235 * max(len(c) for c in cells) / 4 + 0.4)
+        budget = 23.5
+        spare = max(0.0, budget - sum(mins))
+        extra_need = [max(0.0, nd - mn) for nd, mn in zip(needs, mins)]
+        total_extra = sum(extra_need) or 1.0
+        widths = [mn + spare * e / total_extra for mn, e in zip(mins, extra_need)]
+        scale = budget / sum(widths)
+        extra = [t for t in [rot["caption"]] + rot["notes"] if t]
+        brk = self.doc.add_paragraph()
+        brk.add_run().add_break(WD_BREAK.PAGE)
+        brk.paragraph_format.space_after = Pt(0)
+        brk.paragraph_format.line_spacing = 1.0
+        table = self.doc.add_table(rows=n_src_cols, cols=len(rows) + len(extra))
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        table.autofit = False
+        bd.set_table_borders(table)
+        side_w = 1.25
+        data_w = (16.0 - side_w * len(extra)) / len(rows)
+        for i in range(n_src_cols):
+            src_col = n_src_cols - 1 - i            # first source column at the bottom
+            row = table.rows[i]
+            row.height = Cm(widths[src_col] * scale)
+            row.height_rule = WD_ROW_HEIGHT_RULE.AT_LEAST
+            tr_pr = row._tr.get_or_add_trPr()
+            tr_pr.append(OxmlElement("w:cantSplit"))
+            for j, src_row in enumerate(rows):
+                cell = row.cells[j]
+                cell.width = Cm(data_w)
+                _text_direction(cell, "btLr")
+                cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                p = cell.paragraphs[0]
+                p.paragraph_format.first_line_indent = Cm(0)
+                p.paragraph_format.space_before = p.paragraph_format.space_after = Pt(2)
+                p.paragraph_format.line_spacing = 1.0
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER if j == 0 else WD_ALIGN_PARAGRAPH.LEFT
+                text = src_row[src_col].strip()
+                bd.add_inline(p, text, bold=True if j == 0 else None, size=13, color=BLACK)
+        for k, text in enumerate(extra):
+            col = len(rows) + k
+            top, bottom = table.cell(0, col), table.cell(n_src_cols - 1, col)
+            merged = top.merge(bottom)
+            for r in range(n_src_cols):
+                table.cell(r, col).width = Cm(side_w)
+            _text_direction(merged, "btLr")
+            merged.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            _no_borders(merged)
+            p = merged.paragraphs[0]
+            for extra_p in merged.paragraphs[1:]:
+                extra_p._p.getparent().remove(extra_p._p)
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.first_line_indent = Cm(0)
+            is_caption = k == 0 and rot["caption"] is not None
+            bd.add_inline(p, text.strip("*").strip(), italic=True, size=12 if is_caption else 10.5, color=BLACK)
+        self._pending_break = True
+
     def _rule(self):
         return None
 
@@ -381,6 +664,10 @@ def restore_full_resolution(pdf_path: Path, sources: list[Path]) -> None:
     doc = fitz.open(str(pdf_path))
     done, replaced = set(), 0
     for page in doc:
+        # skip the cover pages: their near-blank picture can otherwise match a
+        # mostly-white diagram of the same aspect ratio and get replaced by it
+        if "HỌC VIỆN CÔNG NGHỆ BƯU CHÍNH VIỄN THÔNG" in page.get_text():
+            continue
         for info in page.get_images(full=True):
             xref, w, h = info[0], info[2], info[3]
             if xref in done or w < 300:
@@ -394,6 +681,8 @@ def restore_full_resolution(pdf_path: Path, sources: list[Path]) -> None:
             except Exception:
                 continue
             t = thumb(emb)
+            if ImageStat.Stat(t).stddev[0] < 4:
+                continue  # blank picture, nothing to restore
             best = None
             for src, ratio, width, ct in cands:
                 if abs(ratio - w / h) / ratio > 0.02 or width <= w:
@@ -407,8 +696,41 @@ def restore_full_resolution(pdf_path: Path, sources: list[Path]) -> None:
     tmp = pdf_path.with_name(pdf_path.stem + "_hires.pdf")
     doc.save(str(tmp), garbage=3, deflate=True)
     doc.close()
-    shutil.move(str(tmp), str(pdf_path))
+    # a freshly written file is often held briefly by the virus scanner on Windows
+    import os, time
+    for attempt in range(20):
+        try:
+            os.replace(tmp, pdf_path)
+            break
+        except PermissionError:
+            if attempt == 19:
+                raise
+            time.sleep(0.5)
     print(f"restored {replaced} images at full resolution")
+
+
+def fit_display_equations(doc, min_size: float = 9.0) -> None:
+    """Shrink display equations that Word wraps onto a second line until they fit
+    on one line (measured by Word's own layout, line numbers of first/last char)."""
+    wd_line = 10  # wdFirstCharacterLineNumber
+    shrunk = 0
+    for i in range(1, doc.OMaths.Count + 1):
+        om = doc.OMaths(i)
+        if om.Type != 0:  # 0 = display (our numbered formulas); skip inline math
+            continue
+        rng = om.Range
+        size = rng.Font.Size if 1 < rng.Font.Size < 100 else 13.0
+        while size > min_size:
+            first = rng.Characters.First.Information(wd_line)
+            last = rng.Characters.Last.Information(wd_line)
+            if first == last:
+                break
+            size -= 0.5
+            rng.Font.Size = size
+            doc.Repaginate()
+        if size < 13:
+            shrunk += 1
+    print(f"display equations shrunk to one line: {shrunk}")
 
 
 def export_pdf(docx_path: Path):
@@ -438,6 +760,7 @@ def export_pdf(docx_path: Path):
                 if field.Type == 13:
                     field.Update()
 
+        fit_display_equations(doc)
         update_toc()
         # (bold, left cm, hanging cm, right cm, space before pt, space after pt)
         fmt = {
@@ -513,8 +836,9 @@ def main():
     out_md.write_text(old[: m.start()] + clean, encoding="utf-8")
 
     body = move_table_captions_below(clean)
-    body = rci.render(body, CODE_DIR)
+    body = rci.render(body, CODE_DIR, reuse=args.no_code_images)
     figures, tables = collect_captions(body)
+    body = rotate_wide_figures(body)
     FormDocx(source_md, figures, tables).build(body, out_docx)
     print(f"wrote {out_docx} ({out_docx.stat().st_size:,} bytes); {len(figures)} hình, {len(tables)} bảng")
     if args.pdf:
